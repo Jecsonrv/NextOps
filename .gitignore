@@ -1,0 +1,69 @@
+# Root .gitignore for NextOps
+
+# Python
+*.py[cod]
+__pycache__/
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+celerybeat-schedule
+
+# Environment
+.env
+backend/.env
+backend/.env.local
+backend/.env.production
+
+# Pytest
+.pytest_cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+backend/logs/
+
+# Media uploads and generated files
+media/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Misc
+*.egg
+*.egg-info
+pip-log.txt
+pip-delete-this-directory.txt

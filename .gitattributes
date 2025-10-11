@@ -1,0 +1,14 @@
+* text=auto
+
+# Mark common binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.mov binary
+*.mp4 binary
+
+# Ensure shell scripts keep LF
+*.sh text eol=lf
