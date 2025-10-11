@@ -1,0 +1,93 @@
+===================================================================
+                    MSC MEDITERRANEAN SHIPPING
+             Servicios de Transporte Marítimo Internacional
+===================================================================
+
+                          FACTURA COMERCIAL
+                          
+Número: FAC-MSC-2025-0002                    Fecha: 16/01/2025
+NIT: 0614-130590-002-5                       NRC: 34567-8
+
+-------------------------------------------------------------------
+DATOS DEL CLIENTE
+-------------------------------------------------------------------
+Cliente:        IMPORTADORA DEL PACIFICO
+NIT:            0614-210596-002-2
+Dirección:      Boulevard del Hipódromo 234, San Salvador
+Teléfono:       2244-2222
+Email:          logistica@impacifico.com
+
+-------------------------------------------------------------------
+DATOS DEL EMBARQUE
+-------------------------------------------------------------------
+Master B/L:     MSCU9876543210
+Container:      MSCU9876543
+Tipo:           40' HC (High Cube)
+Peso:           26,000 kg
+Sello:          SEAL987654
+
+Referencia OT:  OT-2025-002
+
+Puerto Origen:  Rotterdam, Netherlands
+Puerto Destino: Puerto Acajutla, El Salvador
+Buque:          MSC OSCAR
+ETD:            12/01/2025
+ETA:            27/01/2025
+
+-------------------------------------------------------------------
+DETALLE DE SERVICIOS
+-------------------------------------------------------------------
+
+ITEM  DESCRIPCION                           CANTIDAD    PRECIO      TOTAL
+----  ------------------------------------  ----------  ----------  -------
+001   Flete Marítimo - FCL 40HC             1.00        1,500.00    1,500.00
+      Rotterdam - Acajutla
+      MBL: MSCU9876543210
+
+002   Terminal Handling Charges (THC)       1.00          280.00      280.00
+      Puerto Acajutla
+      
+003   Documentación y Manifiesto            1.00           75.00       75.00
+      Container: MSCU9876543
+
+004   Cargos Administrativos                1.00          120.00      120.00
+      Procesamiento de documentos
+
+-------------------------------------------------------------------
+RESUMEN
+-------------------------------------------------------------------
+
+                                            Subtotal:      1,975.00
+                                            IVA 13%:         256.75
+                                            -------
+                                            TOTAL USD:     2,231.75
+                                            =======
+
+TOTAL EN LETRAS: DOS MIL DOSCIENTOS TREINTA Y UN DOLARES 
+                 CON SETENTA Y CINCO CENTAVOS
+
+-------------------------------------------------------------------
+CONDICIONES DE PAGO
+-------------------------------------------------------------------
+Forma de pago:   Transferencia bancaria
+Plazo:           30 días a partir de fecha de factura
+Cuenta bancaria: Banco Agrícola - Cta. 1234567890
+
+-------------------------------------------------------------------
+NOTAS ADICIONALES
+-------------------------------------------------------------------
+Esta factura corresponde a los servicios de transporte marítimo 
+y handling para el contenedor MSCU9876543 bajo el Master B/L 
+MSCU9876543210.
+
+Orden de Trabajo: OT-2025-002
+Operativo asignado: Jonathan
+Cliente: IMPORTADORA DEL PACIFICO
+
+Para cualquier consulta contactar a:
+Email: sv@msc.com
+Teléfono: +503-2222-4444
+
+===================================================================
+             Gracias por confiar en MSC Mediterranean Shipping
+===================================================================

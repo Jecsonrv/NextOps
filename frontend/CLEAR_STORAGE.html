@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Limpiar Storage</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .container {
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+                text-align: center;
+            }
+            button {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                font-size: 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-top: 20px;
+            }
+            button:hover {
+                background: #5568d3;
+            }
+            .success {
+                color: #22c55e;
+                font-weight: bold;
+                margin-top: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔧 Limpiar LocalStorage</h1>
+            <p>Haz clic para eliminar tokens antiguos y datos del navegador:</p>
+            <button onclick="clearStorage()">Limpiar Storage</button>
+            <div id="message"></div>
+        </div>
+
+        <script>
+            function clearStorage() {
+                // Limpiar todo localStorage
+                localStorage.clear();
+
+                // Verificar que se limpió
+                const message = document.getElementById("message");
+                message.innerHTML =
+                    '<p class="success">✓ Storage limpiado exitosamente</p><p>Ahora puedes cerrar esta página e ir a <a href="http://localhost:3001/login">Login</a></p>';
+
+                console.log(
+                    "LocalStorage limpiado:",
+                    localStorage.length === 0
+                );
+            }
+        </script>
+    </body>
+</html>
