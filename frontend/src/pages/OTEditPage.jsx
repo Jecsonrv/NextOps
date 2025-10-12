@@ -1,3 +1,11 @@
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import apiClient from "../lib/api";
+import { OTForm } from "../components/OTForm";
+import { Button } from "../components/ui/Button";
+import { ArrowLeft, Loader2 } from "lucide-react";
+
 export function OTEditPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -194,31 +202,6 @@ export function OTEditPage() {
         </div>
     );
 }
-
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "../lib/api";
-import { ConflictResolutionModal } from "../components/ot/ConflictResolutionModal";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
-import {
-    ArrowLeft,
-    Upload,
-    FileSpreadsheet,
-    CheckCircle,
-    XCircle,
-    AlertCircle,
-    Loader2,
-    FileText,
-    X,
-} from "lucide-react";
 
 /**
  * Página para importar OTs desde archivos Excel

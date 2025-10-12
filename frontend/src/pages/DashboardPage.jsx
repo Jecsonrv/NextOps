@@ -245,7 +245,7 @@ export function DashboardPage() {
                                         Ver OTs
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        Revisar órdenes de transporte
+                                        Revisar órdenes de Trabajo
                                     </p>
                                 </div>
                             </Link>

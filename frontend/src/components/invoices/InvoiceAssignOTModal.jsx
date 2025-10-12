@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import { Search, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import apiClient from "../../lib/api";
@@ -13,7 +12,12 @@ import { Input } from "../ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 
-export function InvoiceAssignOTModal({ isOpen, onClose, invoice, onAssign }) {
+export function InvoiceAssignOTModal({
+    isOpen = false,
+    onClose = () => {},
+    invoice = null,
+    onAssign = async () => {}
+}) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -457,30 +461,6 @@ export function InvoiceAssignOTModal({ isOpen, onClose, invoice, onAssign }) {
 
     return createPortal(modalContent, document.body);
 }
-
-InvoiceAssignOTModal.propTypes = {
-    isOpen: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    invoice: PropTypes.shape({
-        numero_factura: PropTypes.string,
-        confianza_match: PropTypes.oneOfType([
-            PropTypes.number,
-            PropTypes.string,
-        ]),
-        ot_data: PropTypes.shape({
-            numero_ot: PropTypes.string,
-            operativo: PropTypes.string,
-            cliente: PropTypes.string,
-            mbl: PropTypes.string,
-            master_bl: PropTypes.string,
-            naviera: PropTypes.string,
-            barco: PropTypes.string,
-            estado: PropTypes.string,
-        }),
-    }),
-    onAssign: PropTypes.func.isRequired,
-};
-
 InvoiceAssignOTModal.defaultProps = {
     invoice: null,
 };

@@ -512,25 +512,38 @@ export function InvoiceDetailPage() {
                             <CardContent className="pt-6">
                                 <div className="text-center py-4">
                                     <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                        Sin Orden de Transporte Asignada
-                                    </h3>
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Esta factura aún no está vinculada a
-                                        ninguna OT
-                                    </p>
-                                    <Button
-                                        onClick={() =>
-                                            setIsAssignOTModalOpen(true)
-                                        }
-                                    >
-                                        <Link2 className="w-4 h-4 mr-2" />
-                                        Asignar OT
-                                    </Button>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-900">Disputas</h2>
+                                            <p className="text-sm text-gray-600">
+                                                Gestiona disputas y notas de crédito asociadas a esta factura
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setShowDisputeModal(true)}
+                                                className="flex items-center gap-2"
+                                                disabled={
+                                                    invoice.estado_provision === "anulada" ||
+                                                    invoice.estado_provision === "anulada_parcialmente"
+                                                }
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Nueva Disputa
+                                            </Button>
+                                            {(invoice.estado_provision === "anulada" ||
+                                                invoice.estado_provision === "anulada_parcialmente") && (
+                                                <span className="text-xs text-gray-500">
+                                                    No se pueden crear disputas para facturas anuladas.
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                     {/* Información de la Factura */}
                     <Card>
@@ -552,47 +565,115 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 <div>
-                                    {invoice.estado_provision === 'anulada_parcialmente' ? (
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
-                                                Desglose de Montos
-                                            </label>
-                                            <div className="mt-2 space-y-1">
-                                                <p className="text-sm text-gray-600">
-                                                    Monto Original: <span className="font-semibold">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                                    {/* Calcular disputas resueltas y sus montos */}
+                                    {(() => {
+                                        const disputasResueltas = invoice.disputas?.filter(d => 
+                                            d.estado === 'resuelta' && 
+                                            (d.resultado === 'aprobada_total' || d.resultado === 'aprobada_parcial')
+                                        ) || [];
+                                        
+                                        const totalAnulado = disputasResueltas.reduce((sum, d) => {
+                                            if (d.resultado === 'aprobada_total') {
+                                                return sum + parseFloat(d.monto_disputa);
+                                            } else if (d.resultado === 'aprobada_parcial' && d.monto_recuperado) {
+                                                return sum + parseFloat(d.monto_recuperado);
+                                            }
+                                            return sum;
+                                        }, 0);
+                                        
+                                        const montoAplicable = invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined 
+                                            ? invoice.monto_aplicable 
+                                            : invoice.monto;
+                                        
+                                        // Mostrar desglose si hay disputas resueltas con anulaciones
+                                        if (disputasResueltas.length > 0 && totalAnulado > 0) {
+                                            // Determinar si es anulación total
+                                            const esAnulacionTotal = Math.abs(totalAnulado - invoice.monto) < 0.01;
+                                            
+                                            if (esAnulacionTotal) {
+                                                // Anulación total
+                                                return (
+                                                    <div>
+                                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                                            Factura Anulada Totalmente
+                                                        </label>
+                                                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm text-gray-700">Monto Original:</span>
+                                                                <span className="font-semibold text-gray-900 line-through">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            {disputasResueltas.map(disputa => (
+                                                                <div key={disputa.id} className="flex justify-between items-center text-sm">
+                                                                    <span className="text-gray-600">Anulado por disputa:</span>
+                                                                    <span className="font-medium text-red-600">
+                                                                        -${(disputa.resultado === 'aprobada_total' 
+                                                                            ? parseFloat(disputa.monto_disputa) 
+                                                                            : parseFloat(disputa.monto_recuperado || 0)
+                                                                        ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                            <div className="pt-2 border-t-2 border-red-300">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="font-bold text-red-700">Monto a Pagar:</span>
+                                                                    <span className="text-xl font-bold text-red-600">$0.00</span>
+                                                                </div>
+                                                                <p className="text-xs text-red-600 mt-1">No requiere pago</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else {
+                                                // Anulación parcial
+                                                return (
+                                                    <div>
+                                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                                            Ajuste por Disputas
+                                                        </label>
+                                                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm text-gray-700">Monto Original:</span>
+                                                                <span className="font-semibold text-gray-900">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            {disputasResueltas.map(disputa => (
+                                                                <div key={disputa.id} className="flex justify-between items-center text-sm">
+                                                                    <span className="text-gray-600">
+                                                                        {disputa.resultado === 'aprobada_total' ? 'Anulado (Total):' : 'Recuperado (Parcial):'}
+                                                                    </span>
+                                                                    <span className="font-medium text-red-600">
+                                                                        -${(disputa.resultado === 'aprobada_total' 
+                                                                            ? parseFloat(disputa.monto_disputa) 
+                                                                            : parseFloat(disputa.monto_recuperado || 0)
+                                                                        ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                            <div className="pt-2 border-t-2 border-blue-300">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="font-semibold text-gray-800">Monto a Pagar:</span>
+                                                                    <span className="text-xl font-bold text-green-600">
+                                                                        ${montoAplicable?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                        }
+                                        
+                                        // Sin disputas resueltas, mostrar monto normal
+                                        return (
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-600 uppercase">
+                                                    Monto Total
+                                                </label>
+                                                <p className="text-2xl font-bold text-green-600 mt-1">
+                                                    ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
                                                 </p>
-                                                <p className="text-sm text-red-600">
-                                                    Monto Anulado: <span className="font-semibold">-${(invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined ? (invoice.monto - invoice.monto_aplicable) : 0)?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
-                                                </p>
-                                                <div className="border-t border-gray-300 pt-1">
-                                                    <p className="text-lg font-bold text-green-600">
-                                                        Monto Aplicable: ${(invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined ? invoice.monto_aplicable : invoice.monto)?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                                    </p>
-                                                </div>
                                             </div>
-                                        </div>
-                                    ) : invoice.estado_provision === 'anulada' ? (
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
-                                                Monto Total
-                                            </label>
-                                            <p className="text-2xl font-bold text-red-600 mt-1 line-through">
-                                                ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
-                                            </p>
-                                            <p className="text-xs text-red-600 mt-1">
-                                                Factura anulada totalmente - No se paga
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
-                                                Monto Total
-                                            </label>
-                                            <p className="text-2xl font-bold text-green-600 mt-1">
-                                                ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
-                                            </p>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                 </div>
 
                                 <div>
@@ -697,7 +778,7 @@ export function InvoiceDetailPage() {
                             <CardContent className="space-y-6">
                                 {invoice.disputas?.length > 0 && (
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Disputas Activas</h4>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Disputas</h4>
                                         <div className="space-y-3">
                                             {invoice.disputas.map((dispute) => (
                                                 <Link 
@@ -713,6 +794,16 @@ export function InvoiceDetailPage() {
                                                                 <Badge variant={estadoProvisionColors[dispute.estado]}>
                                                                     {dispute.estado_display?.toUpperCase()}
                                                                 </Badge>
+                                                                {dispute.resultado && dispute.resultado !== 'pendiente' && (
+                                                                    <Badge variant={
+                                                                        dispute.resultado === 'aprobada_total' ? 'success' :
+                                                                        dispute.resultado === 'aprobada_parcial' ? 'warning' :
+                                                                        dispute.resultado === 'rechazada' ? 'destructive' :
+                                                                        'secondary'
+                                                                    }>
+                                                                        {dispute.resultado_display}
+                                                                    </Badge>
+                                                                )}
                                                             </div>
                                                             {dispute.numero_caso && (
                                                                 <p className="text-xs text-gray-600">
@@ -724,10 +815,21 @@ export function InvoiceDetailPage() {
                                                             <p className="text-lg font-bold text-gray-900">
                                                                 ${parseFloat(dispute.monto_disputa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                                             </p>
+                                                            {dispute.monto_recuperado > 0 && (
+                                                                <p className="text-xs text-green-600 font-medium">
+                                                                    Recuperado: ${parseFloat(dispute.monto_recuperado).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                                </p>
+                                                            )}
                                                             <p className="text-xs text-gray-500">{formatDate(dispute.created_at)}</p>
                                                         </div>
                                                     </div>
                                                     <p className="text-sm text-gray-600 line-clamp-2">{dispute.detalle}</p>
+                                                    {dispute.resolucion && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                                            <p className="text-xs text-gray-600">Resolución:</p>
+                                                            <p className="text-sm text-gray-800 mt-1 italic">"{dispute.resolucion}"</p>
+                                                        </div>
+                                                    )}
                                                 </Link>
                                             ))}
                                         </div>

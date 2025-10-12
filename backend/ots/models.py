@@ -419,8 +419,8 @@ class OT(TimeStampedModel, SoftDeleteModel):
         # LÓGICA ROBUSTA de auto-marcado de estado de provisión:
         # 1. Si hay fecha_provision -> estado debe ser 'provisionada'
         # 2. Si NO hay fecha_provision -> estado debe ser 'pendiente'
-        # EXCEPTO si el estado es 'rechazada', 'disputada' o 'revision' (estos se mantienen)
-        if self.estado_provision not in ['rechazada', 'disputada', 'revision']:
+        # EXCEPTO si el estado es 'rechazada', 'disputada', 'revision', 'anulada' o 'anulada_parcialmente' (estos se mantienen)
+        if self.estado_provision not in ['rechazada', 'disputada', 'revision', 'anulada', 'anulada_parcialmente']:
             if self.fecha_provision:
                 if self.estado_provision != 'provisionada':
                     self.estado_provision = 'provisionada'

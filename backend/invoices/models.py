@@ -367,13 +367,13 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         # Sincronizar ot_number con el objeto OT
         if self.ot:
             self.ot_number = self.ot.numero_ot
-        
+
         # Calcular vencimiento automático si es crédito
         if self.tipo_pago == 'credito':
             if self.proveedor and self.proveedor.tiene_credito:
                 # Aplicar días de crédito del proveedor
                 self.dias_credito_aplicado = self.proveedor.dias_credito
-            
+
             # Calcular fecha de vencimiento
             if self.dias_credito_aplicado > 0 and self.fecha_emision:
                 from datetime import timedelta
@@ -383,28 +383,49 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
             self.dias_credito_aplicado = 0
             self.fecha_vencimiento = None
             self.alerta_vencimiento = False
-        
+
+        # CALCULAR monto_aplicable si es None (por defecto = monto)
+        if self.monto_aplicable is None:
+            self.monto_aplicable = self.monto
+
+        # VALIDAR que monto_aplicable no sea negativo ni mayor que monto
+        if self.monto_aplicable < Decimal('0.00'):
+            self.monto_aplicable = Decimal('0.00')
+        if self.monto_aplicable > self.monto:
+            self.monto_aplicable = self.monto
+
         # Auto-actualizar estado_facturacion
         if self.fecha_facturacion and self.estado_facturacion == 'pendiente':
             self.estado_facturacion = 'facturada'
-        
+
         # Auto-actualizar estado_provision
-        # SOLO cambiar a provisionada si está en pendiente
-        # NO cambiar si está en anulada o anulada_parcialmente (permite agregar fecha sin cambiar estado)
-        if self.fecha_provision and self.estado_provision == 'pendiente':
-            self.estado_provision = 'provisionada'
+        # MEJORADO: Permitir agregar fecha_provision en estados anulada/anulada_parcialmente sin cambiar estado
+        # IMPORTANTE: NO cambiar el estado si ya está en anulada o anulada_parcialmente (viene de disputa)
+        if self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
+            if self.fecha_provision:
+                # Solo cambiar a provisionada si está en pendiente
+                if self.estado_provision == 'pendiente':
+                    self.estado_provision = 'provisionada'
         
         # SINCRONIZACIÓN CON OT: Solo para costos vinculados (Flete/Cargos Naviera)
-        if self.debe_sincronizar_con_ot():
-            # Si la factura no tiene fecha_provision pero la OT sí, heredarla
+        # HEREDAR FECHAS DE OT SI NO LAS TIENE (PRE-SAVE)
+        # IMPORTANTE: Solo heredar si NO está en estado anulada/anulada_parcialmente/disputada
+        if self.debe_sincronizar_con_ot() and self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
+            # 1. Heredar fecha_provision de OT si no la tiene
             if not self.fecha_provision and self.ot.fecha_provision:
                 self.fecha_provision = self.ot.fecha_provision
                 if self.estado_provision == 'pendiente':
                     self.estado_provision = 'provisionada'
+
+            # 2. ✅ HEREDAR fecha_facturacion de OT si no la tiene (fecha_recepcion_factura)
+            if not self.fecha_facturacion and self.ot.fecha_recepcion_factura:
+                self.fecha_facturacion = self.ot.fecha_recepcion_factura
+                if self.estado_facturacion == 'pendiente':
+                    self.estado_facturacion = 'facturada'
         
         super().save(*args, **kwargs)
         
-        # POST-SAVE: Sincronizar estado con OT si aplica
+        # POST-SAVE: Sincronizar BIDIRECCIONAL con OT (Invoice → OT)
         if self.debe_sincronizar_con_ot():
             self._sincronizar_estado_con_ot()
     
@@ -427,31 +448,78 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     
     def _sincronizar_estado_con_ot(self):
         """
-        Sincroniza el estado de provisión con la OT relacionada.
+        Sincroniza COMPLETO Invoice <-> OT (bidireccional).
         Solo se ejecuta para costos vinculados (Flete/Cargos Naviera).
+
+        SINCRONIZA:
+        - estado_provision <-> estado_provision (solo estados válidos en OT)
+        - fecha_provision <-> fecha_provision
+        - fecha_facturacion <-> fecha_recepcion_factura
+
+        IMPORTANTE: OT no tiene estados 'anulada' o 'anulada_parcialmente'.
+        Estos estados son exclusivos de Invoice. Cuando una factura se anula,
+        la OT debe ir a 'revision' para revisión manual.
         """
         if not self.ot:
             return
-        
-        # Mapeo de estados de factura a estados de OT
-        # Sincronizamos todos los estados relevantes
-        if self.estado_provision in ['disputada', 'revision', 'anulada', 'anulada_parcialmente']:
-            # Si la factura está en disputa, revisión o anulada, la OT también
+
+        fields_to_update = []
+
+        # 1. SINCRONIZAR ESTADO Y FECHA DE PROVISIÓN
+        if self.estado_provision in ['disputada', 'revision']:
+            # Si la factura está en disputa o revisión, la OT también
             if self.ot.estado_provision != self.estado_provision:
                 self.ot.estado_provision = self.estado_provision
-                # Si está anulada, limpiar fecha_provision de la OT también
-                if self.estado_provision in ['anulada', 'anulada_parcialmente']:
-                    self.ot.fecha_provision = None
-                    self.ot.save(update_fields=['estado_provision', 'fecha_provision', 'updated_at'])
-                else:
-                    self.ot.save(update_fields=['estado_provision', 'updated_at'])
+                fields_to_update.append('estado_provision')
+
+            # Limpiar fecha_provision de la OT
+            if self.ot.fecha_provision:
+                self.ot.fecha_provision = None
+                fields_to_update.append('fecha_provision')
+
+        elif self.estado_provision in ['anulada', 'anulada_parcialmente']:
+            # IMPORTANTE: OT no tiene estos estados. Enviar a 'revision' para revisión manual
+            # Esto permite que el equipo revise si toda la OT debe cambiar de estado
+            if self.ot.estado_provision != 'revision':
+                self.ot.estado_provision = 'revision'
+                fields_to_update.append('estado_provision')
+
+            # Limpiar fecha_provision de la OT
+            if self.ot.fecha_provision:
+                self.ot.fecha_provision = None
+                fields_to_update.append('fecha_provision')
         
         elif self.estado_provision == 'provisionada':
             # Si la factura se provisiona, actualizar fecha en OT
             if self.fecha_provision and self.ot.fecha_provision != self.fecha_provision:
                 self.ot.fecha_provision = self.fecha_provision
                 self.ot.estado_provision = 'provisionada'
-                self.ot.save(update_fields=['fecha_provision', 'estado_provision', 'updated_at'])
+                fields_to_update.extend(['fecha_provision', 'estado_provision'])
+        
+        elif self.estado_provision == 'pendiente':
+            # Si vuelve a pendiente, sincronizar también
+            if self.ot.estado_provision != 'pendiente':
+                self.ot.estado_provision = 'pendiente'
+                fields_to_update.append('estado_provision')
+            if self.ot.fecha_provision:
+                self.ot.fecha_provision = None
+                fields_to_update.append('fecha_provision')
+        
+        # 2. SINCRONIZAR FECHA DE FACTURACIÓN (Invoice.fecha_facturacion <-> OT.fecha_recepcion_factura)
+        # Solo sincronizar si hay cambio real
+        if self.fecha_facturacion != self.ot.fecha_recepcion_factura:
+            self.ot.fecha_recepcion_factura = self.fecha_facturacion
+            fields_to_update.append('fecha_recepcion_factura')
+        
+        # Guardar OT solo si hay cambios
+        if fields_to_update:
+            fields_to_update.append('updated_at')
+            # Remover duplicados
+            fields_to_update = list(set(fields_to_update))
+            # Marcar que estamos sincronizando desde Invoice para evitar bucle
+            self.ot._skip_invoice_sync = True
+            self.ot.save(update_fields=fields_to_update)
+            self.ot._skip_invoice_sync = False
     
     def calcular_dias_hasta_vencimiento(self):
         """Calcula cuántos días faltan para el vencimiento"""
@@ -483,7 +551,16 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         Si monto_aplicable es null, retorna el monto original.
         """
         return self.monto_aplicable if self.monto_aplicable is not None else self.monto
-    
+
+    def get_monto_anulado(self):
+        """
+        Calcula el monto anulado (Monto Total - Monto Aplicable).
+        Retorna Decimal con el monto que fue anulado por disputas.
+        """
+        monto_total = self.monto
+        monto_aplicable = self.monto_aplicable if self.monto_aplicable is not None else self.monto
+        return monto_total - monto_aplicable
+
     def es_costo_vinculado_ot(self):
         """
         Determina si este costo está vinculado a la OT (Flete o Cargos de Naviera).
@@ -653,6 +730,7 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
         is_new = self.pk is None
         old_estado = None
         old_resultado = None
+        old_monto_recuperado = None
 
         # Capturar estado anterior si existe
         if not is_new:
@@ -660,6 +738,7 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
                 old_dispute = Dispute.objects.get(pk=self.pk)
                 old_estado = old_dispute.estado
                 old_resultado = old_dispute.resultado
+                old_monto_recuperado = old_dispute.monto_recuperado
             except Dispute.DoesNotExist:
                 pass
 
@@ -672,17 +751,23 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
         if not self.ot and self.invoice and self.invoice.ot:
             self.ot = self.invoice.ot
 
+        # CORRECCIÓN CRÍTICA: Guardar primero para que self.monto_recuperado esté actualizado
         super().save(*args, **kwargs)
 
-        # Actualizar estado de la factura a 'disputada' si es nueva disputa
+        # Actualizar estado de la factura si es nueva disputa
         if is_new and self.invoice:
-            self.invoice.estado_provision = 'disputada'
-            self.invoice.fecha_provision = None  # Limpiar fecha de provisión
-            self.invoice.save(update_fields=['estado_provision', 'fecha_provision'])
-            
-            # Sincronizar con OT si es costo vinculado
-            if self.invoice.debe_sincronizar_con_ot():
-                self.invoice._sincronizar_estado_con_ot()
+            # Si la disputa ya está resuelta al momento de creación, actualizar inmediatamente
+            if self.estado in ['resuelta', 'cerrada'] and self.resultado != 'pendiente':
+                self._actualizar_factura_por_resultado()
+            else:
+                # Si está activa, marcar factura como disputada
+                self.invoice.estado_provision = 'disputada'
+                self.invoice.fecha_provision = None  # Limpiar fecha de provisión
+                self.invoice.save(update_fields=['estado_provision', 'fecha_provision'])
+
+                # Sincronizar con OT si es costo vinculado
+                if self.invoice.debe_sincronizar_con_ot():
+                    self.invoice._sincronizar_estado_con_ot()
 
             # Crear evento inicial (solo si la tabla existe)
             try:
@@ -695,63 +780,115 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
             except Exception:
                 # Si la tabla no existe aún, ignorar
                 pass
-        
+
         # Manejar cambios de resultado y actualizar factura
-        if not is_new and old_resultado != self.resultado and self.resultado != 'pendiente':
-            self._actualizar_factura_por_resultado()
-            
-            # Crear evento de cambio de resultado
-            try:
-                DisputeEvent.objects.create(
-                    dispute=self,
-                    tipo='cambio_estado',
-                    descripcion=f'Resultado actualizado: {self.get_resultado_display()}',
-                    usuario='',
-                    monto_recuperado=self.monto_recuperado if self.monto_recuperado > 0 else None
-                )
-            except Exception:
-                pass
+        # AHORA self.monto_recuperado ya tiene el valor correcto porque se guardó arriba
+        if not is_new:
+            # Si cambió el resultado O el monto_recuperado, actualizar la factura
+            if (old_resultado != self.resultado and self.resultado != 'pendiente') or \
+               (self.resultado == 'aprobada_parcial' and old_monto_recuperado != self.monto_recuperado):
+                self._actualizar_factura_por_resultado()
+
+                # Crear evento de cambio de resultado
+                try:
+                    DisputeEvent.objects.create(
+                        dispute=self,
+                        tipo='cambio_estado',
+                        descripcion=f'Resultado actualizado: {self.get_resultado_display()}',
+                        usuario='',
+                        monto_recuperado=self.monto_recuperado if self.monto_recuperado and self.monto_recuperado > 0 else None
+                    )
+                except Exception:
+                    pass
     
     def _actualizar_factura_por_resultado(self):
-        """Actualiza el estado de la factura según el resultado de la disputa"""
+        """
+        Actualiza el estado de la factura según el resultado de la disputa.
+
+        LÓGICA CORRECTA (según especificación):
+        - Monto Anulado TOTAL = suma de TODAS las disputas RESUELTAS Y APROBADAS de esta factura
+        - Monto Aplicable = Monto Original - Monto Anulado Total
+        - Estado "Anulada": SOLO si Monto Anulado Total == Monto Original (100% anulado)
+        - Estado "Anulada Parcialmente": Si Monto Anulado Total > 0 pero < Monto Original
+        - Solo disputas RESUELTAS afectan el estado (estado='resuelta' o 'cerrada')
+
+        IMPORTANTE: Considera TODAS las disputas RESUELTAS de la factura, no solo la actual.
+        """
         if not self.invoice:
             return
-        
+
         from datetime import date
-        
-        if self.resultado == 'aprobada_total':
-            # Disputa aprobada 100% - Factura anulada completamente
-            self.invoice.estado_provision = 'anulada'
-            self.invoice.fecha_provision = None
-            self.invoice.monto_aplicable = Decimal('0.00')
-            self.invoice.notas += f"\n[{date.today()}] Disputa #{self.numero_caso} aprobada totalmente. Factura anulada."
-            
-        elif self.resultado == 'aprobada_parcial':
-            # Disputa aprobada parcialmente - Ajustar monto y marcar como anulada parcialmente
-            self.invoice.estado_provision = 'anulada_parcialmente'
-            self.invoice.fecha_provision = None
-            if self.invoice.monto_original is None:
-                self.invoice.monto_original = self.invoice.monto
-            # Calcular monto aplicable después del ajuste
-            self.invoice.monto_aplicable = self.invoice.monto - (self.monto_recuperado or Decimal('0.00'))
-            self.invoice.notas += f"\n[{date.today()}] Disputa #{self.numero_caso} aprobada parcialmente. Monto recuperado: ${self.monto_recuperado}. Monto aplicable: ${self.invoice.monto_aplicable}"
-            
-        elif self.resultado == 'rechazada':
-            # Disputa rechazada - Volver a pendiente para revisión y provisión
-            self.invoice.estado_provision = 'pendiente'
-            self.invoice.fecha_provision = None
-            self.invoice.monto_aplicable = self.invoice.monto
-            self.invoice.notas += f"\n[{date.today()}] Disputa #{self.numero_caso} rechazada por proveedor. Factura debe pagarse."
-            
-        elif self.resultado == 'anulada':
-            # Disputa anulada (error interno) - Volver a pendiente
-            self.invoice.estado_provision = 'pendiente'
-            self.invoice.fecha_provision = None
-            self.invoice.monto_aplicable = self.invoice.monto
-            self.invoice.notas += f"\n[{date.today()}] Disputa #{self.numero_caso} anulada (error interno). Factura en revisión."
-        
+        from django.db.models import Sum, Q
+
+        # CALCULAR MONTO ANULADO TOTAL DE TODAS LAS DISPUTAS APROBADAS Y RESUELTAS
+        # Solo incluir disputas que estén RESUELTAS (estado='resuelta' o 'cerrada')
+        # Y que tengan resultado aprobada_total o aprobada_parcial
+        disputas_aprobadas = Dispute.objects.filter(
+            invoice=self.invoice,
+            is_deleted=False,
+            estado__in=['resuelta', 'cerrada']  # ✅ CRÍTICO: Solo disputas resueltas
+        ).filter(
+            Q(resultado='aprobada_total') | Q(resultado='aprobada_parcial')
+        )
+
+        total_anulado = Decimal('0.00')
+        for disputa in disputas_aprobadas:
+            if disputa.resultado == 'aprobada_total':
+                # Aprobación total: se anula todo el monto disputado
+                total_anulado += disputa.monto_disputa
+            elif disputa.resultado == 'aprobada_parcial':
+                # Aprobación parcial: se anula solo el monto recuperado
+                total_anulado += (disputa.monto_recuperado or Decimal('0.00'))
+
+        # Normalizar a 2 decimales para evitar diferencias mínimas
+        total_anulado = total_anulado.quantize(Decimal('0.01'))
+        monto_original = self.invoice.monto.quantize(Decimal('0.01'))
+
+        # Calcular nuevo monto aplicable basado en el monto ORIGINAL
+        nuevo_monto_aplicable = (monto_original - total_anulado).quantize(Decimal('0.01'))
+
+        # Asegurar que no sea negativo
+        if nuevo_monto_aplicable < Decimal('0.00'):
+            nuevo_monto_aplicable = Decimal('0.00')
+
+        # Actualizar monto_aplicable
+        self.invoice.monto_aplicable = nuevo_monto_aplicable
+
+        # Verificar si hay disputas ACTIVAS (no resueltas) para mantener estado disputada
+        tiene_disputas_activas = Dispute.objects.filter(
+            invoice=self.invoice,
+            is_deleted=False,
+            estado__in=['abierta', 'en_revision']
+        ).exists()
+
+        # Determinar estado según especificación
+        # REGLA: Anulada SOLO si el total anulado es IGUAL al monto original Y no hay disputas activas
+        if not tiene_disputas_activas:
+            if total_anulado > Decimal('0.00'):
+                if total_anulado >= monto_original:
+                    # Anulación TOTAL de la factura
+                    self.invoice.estado_provision = 'anulada'
+                    self.invoice.fecha_provision = None
+                else:
+                    # Anulación PARCIAL
+                    self.invoice.estado_provision = 'anulada_parcialmente'
+                    self.invoice.fecha_provision = None
+            else:
+                # No hay anulaciones y no hay disputas activas
+                # Si la disputa actual fue rechazada o anulada, volver a pendiente
+                if self.resultado in ['rechazada', 'anulada']:
+                    self.invoice.estado_provision = 'pendiente'
+                    self.invoice.fecha_provision = None
+                    # Restaurar monto aplicable al monto original
+                    self.invoice.monto_aplicable = self.invoice.monto
+        else:
+            # Aún hay disputas activas, mantener estado disputada
+            if self.invoice.estado_provision != 'disputada':
+                self.invoice.estado_provision = 'disputada'
+                self.invoice.fecha_provision = None
+
         self.invoice.save()
-        
+
         # Si la factura es de tipo vinculado a OT, sincronizar el cambio
         if self.invoice.debe_sincronizar_con_ot():
             self.invoice._sincronizar_estado_con_ot()

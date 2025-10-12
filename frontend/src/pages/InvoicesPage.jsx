@@ -355,7 +355,7 @@ export function InvoicesPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">
-                                Requieren Revisión
+                                Disputas
                             </CardTitle>
                             <AlertCircle className="w-5 h-5 text-red-600" />
                         </CardHeader>
@@ -364,7 +364,7 @@ export function InvoicesPage() {
                                 {stats.pendientes_revision || 0}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                                Con problemas
+                                Facturas con disputa activa
                             </p>
                         </CardContent>
                     </Card>

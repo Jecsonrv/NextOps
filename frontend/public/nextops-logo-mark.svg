@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">NextOps ship mark</title>
+  <desc id="desc">Stylized ship bow with waves representing NextOps</desc>
+  <circle cx="80" cy="80" r="68" fill="none" stroke="#0F1F3D" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path fill="#0F1F3D" d="M80 32l28 48h-14l-14 40L66 80H52z"/>
+  <path fill="#1EC2E7" d="M80 44l18 32h-8l-10 20-10-20h-8z"/>
+  <rect x="72" y="36" width="16" height="12" rx="3" fill="#0F1F3D"/>
+  <path fill="#0F1F3D" opacity=".16" d="M80 44l12 24h-3l-9 16-9-16h-3z"/>
+  <path d="M44 116c12-12 24 12 36 0s24-12 36 0" fill="none" stroke="#1EC2E7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M52 132c10-10 20 10 30 0s20-10 30 0" fill="none" stroke="#0F1F3D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+</svg>

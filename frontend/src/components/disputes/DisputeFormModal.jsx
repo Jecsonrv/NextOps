@@ -48,9 +48,20 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
             toast.success(dispute ? "Disputa actualizada correctamente" : "Disputa creada correctamente");
             queryClient.invalidateQueries(["disputes"]);
             queryClient.invalidateQueries(["dispute-stats"]);
+            
+            // ✅ CRÍTICO: Invalidar la factura asociada para que se actualice el estado
             if (invoice) {
                 queryClient.invalidateQueries(["invoice", invoice.id]);
             }
+            // También invalidar por el ID del formData (cuando se crea desde modal)
+            if (formData.invoice_id) {
+                queryClient.invalidateQueries(["invoice", formData.invoice_id]);
+            }
+            // Invalidar lista de facturas para que se actualice el estado en la tabla
+            queryClient.invalidateQueries(["invoices"]);
+            // Invalidar también las OTs por si hay sincronización
+            queryClient.invalidateQueries(["ots"]);
+            
             onClose();
         },
         onError: (error) => {
@@ -159,6 +170,24 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
         mutation.mutate(formData);
     };
 
+    // Determinar si el botón de guardar debe estar deshabilitado
+    const isSaveDisabled = () => {
+        // En modo edición, siempre permitir guardar
+        if (dispute) return false;
+
+        // Si la factura está anulada (total o parcialmente), deshabilitar
+        if (selectedInvoice && (selectedInvoice.estado_provision === 'anulada' || selectedInvoice.estado_provision === 'anulada_parcialmente')) {
+            return true;
+        }
+
+        // Si tiene disputa activa, deshabilitar
+        if (selectedInvoice && selectedInvoice.has_disputes && selectedInvoice.dispute_id) {
+            return true;
+        }
+
+        return false;
+    };
+
     if (!isOpen) return null;
 
     const modalContent = (
@@ -181,6 +210,46 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             <div className="flex items-start">
                                 <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
                                 <p className="text-red-800 text-sm">{errors.non_field_errors.join(", ")}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {errors.invoice_id && Array.isArray(errors.invoice_id) && errors.invoice_id.length > 0 && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                            <div className="flex items-start">
+                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
+                                <p className="text-red-800 text-sm">{errors.invoice_id[0]}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Advertencia si la factura ya está anulada */}
+                    {selectedInvoice && (selectedInvoice.estado_provision === 'anulada' || selectedInvoice.estado_provision === 'anulada_parcialmente') && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                            <div className="flex items-start">
+                                <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 mr-3" />
+                                <div>
+                                    <p className="text-yellow-800 text-sm font-semibold">Factura Anulada</p>
+                                    <p className="text-yellow-700 text-sm mt-1">
+                                        Esta factura ya ha sido {selectedInvoice.estado_provision === 'anulada' ? 'anulada totalmente' : 'anulada parcialmente'}
+                                        por una disputa anterior. No es posible crear nuevas disputas.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Advertencia si tiene disputas activas */}
+                    {selectedInvoice && selectedInvoice.has_disputes && selectedInvoice.dispute_id && (
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                            <div className="flex items-start">
+                                <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 mr-3" />
+                                <div>
+                                    <p className="text-yellow-800 text-sm font-semibold">Disputa Activa</p>
+                                    <p className="text-yellow-700 text-sm mt-1">
+                                        Esta factura ya tiene una disputa activa. Debes resolver la disputa existente antes de crear una nueva.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -351,7 +420,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
                         Cancelar
                     </Button>
-                    <Button onClick={handleSave} disabled={mutation.isPending}>
+                    <Button onClick={handleSave} disabled={mutation.isPending || isSaveDisabled()}>
                         {mutation.isPending ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

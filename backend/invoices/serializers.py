@@ -193,7 +193,8 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     
     confidence_level = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
-    
+    monto_anulado = serializers.SerializerMethodField()
+
     # Campos computados para términos de pago
     dias_hasta_vencimiento = serializers.SerializerMethodField()
     esta_vencida = serializers.SerializerMethodField()
@@ -296,6 +297,10 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     def get_esta_proxima_a_vencer(self, obj):
         """Si está próxima a vencer"""
         return obj.esta_proxima_a_vencer()
+
+    def get_monto_anulado(self, obj):
+        """Retorna el monto anulado calculado (Monto Total - Monto Aplicable)"""
+        return float(obj.get_monto_anulado())
 
 
 class InvoiceCreateSerializer(serializers.ModelSerializer):
@@ -521,18 +526,18 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
 
 class InvoiceUpdateSerializer(serializers.ModelSerializer):
     """Serializer para actualizar facturas"""
-    
+
     ot_id = serializers.PrimaryKeyRelatedField(
         queryset=OT.objects.all(),
         source='ot',
         required=False,
         allow_null=True
     )
-    
+
     # Forzar que las fechas NO se conviertan a timezone (ni en lectura ni escritura)
     fecha_provision = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
     fecha_facturacion = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
-    
+
     class Meta:
         model = Invoice
         fields = [
@@ -543,7 +548,22 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
             'fecha_facturacion',
             'requiere_revision',
             'notas',
+            'monto_aplicable',  # Permitir edición manual de monto_aplicable
         ]
+
+    def validate_monto_aplicable(self, value):
+        """Validar que monto_aplicable sea válido"""
+        if value is not None:
+            if value < Decimal('0.00'):
+                raise serializers.ValidationError("El monto aplicable no puede ser negativo")
+
+            # Validar contra monto original si la instancia existe
+            instance = self.instance
+            if instance and value > instance.monto:
+                raise serializers.ValidationError(
+                    f"El monto aplicable (${value}) no puede ser mayor que el monto original (${instance.monto})"
+                )
+        return value
     
     def update(self, instance, validated_data):
         """
@@ -679,6 +699,8 @@ class InvoiceStatsSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     pendientes_revision = serializers.IntegerField()
     provisionadas = serializers.IntegerField()
+    pendientes_provision = serializers.IntegerField()
+    sin_fecha_provision = serializers.IntegerField()
     facturadas = serializers.IntegerField()
     sin_ot = serializers.IntegerField()
     total_monto = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -810,21 +832,43 @@ class DisputeCreateSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate(self, data):
-        """Validar que no exista una disputa activa para la misma factura"""
+        """
+        Validar que la factura permita crear nuevas disputas.
+
+        REGLAS:
+        1. NO permitir nuevas disputas si el estado es 'anulada' o 'anulada_parcialmente'
+        2. NO permitir nuevas disputas si ya existe una disputa ACTIVA (abierta o en_revision)
+        3. SÍ permitir nuevas disputas si todas las disputas anteriores están RESUELTAS (resuelta/cerrada)
+           incluso si fueron rechazadas
+        """
         invoice = data.get('invoice')
         if invoice:
-            # Verificar si ya existe una disputa activa (no resuelta ni cerrada)
+            # REGLA 1: Verificar si el estado actual de la factura permite nuevas disputas
+            # No permitir disputas en facturas ya anuladas (total o parcialmente)
+            if invoice.estado_provision in ['anulada', 'anulada_parcialmente']:
+                raise serializers.ValidationError({
+                    'invoice_id': 'No es posible crear nuevas disputas para facturas que ya han sido anuladas total o parcialmente. '
+                                 'Si desea disputar nuevamente, primero debe revertir la anulación.'
+                })
+
+            # REGLA 2: Verificar si ya existe una disputa ACTIVA (no resuelta ni cerrada)
             disputas_activas = Dispute.objects.filter(
                 invoice=invoice,
                 estado__in=['abierta', 'en_revision'],
                 is_deleted=False
             ).exists()
-            
+
             if disputas_activas:
                 raise serializers.ValidationError({
-                    'invoice_id': 'Ya existe una disputa activa para esta factura. Debe resolverse o cerrarse antes de crear una nueva.'
+                    'invoice_id': 'Ya existe una disputa activa para esta factura. '
+                                 'Debe resolverse o cerrarse antes de crear una nueva.'
                 })
-        
+
+            # REGLA 3: Si existen disputas anteriores RESUELTAS, verificar que al menos
+            # alguna haya sido rechazada (para permitir re-disputar)
+            # Si todas fueron aprobadas, la factura debería estar anulada (regla 1)
+            # Así que no necesitamos validación adicional aquí
+
         return data
 
 
@@ -834,11 +878,43 @@ class DisputeUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dispute
         fields = [
-            'estado', 'resultado', 'resolucion', 'notas', 
-            'fecha_resolucion', 'numero_caso', 'operativo', 
+            'estado', 'resultado', 'resolucion', 'notas',
+            'fecha_resolucion', 'numero_caso', 'operativo',
             'monto_recuperado'
         ]
-    
+
+    def validate_monto_recuperado(self, value):
+        """Validar monto recuperado"""
+        if value is not None and value < Decimal('0.00'):
+            raise serializers.ValidationError("El monto recuperado no puede ser negativo")
+        return value
+
+    def validate(self, data):
+        """
+        Validaciones adicionales
+
+        NOTA: La validación de monto_recuperado para aprobada_parcial es OPCIONAL
+        para permitir guardar el resultado primero y luego editar el monto.
+        La validación real se hace en el modelo cuando se calcula monto_aplicable.
+        """
+        resultado = data.get('resultado', self.instance.resultado if self.instance else None)
+
+        # Si el resultado es aprobada_total, auto-asignar monto_recuperado = monto_disputa
+        if resultado == 'aprobada_total' and self.instance:
+            # Auto-asignar monto_disputa como monto_recuperado si no viene en los datos
+            if 'monto_recuperado' not in data:
+                data['monto_recuperado'] = self.instance.monto_disputa
+
+        # Para aprobada_parcial, SOLO validar si se está enviando explícitamente un valor inválido
+        if resultado == 'aprobada_parcial' and 'monto_recuperado' in data:
+            monto_recuperado = data['monto_recuperado']
+            if monto_recuperado is not None and monto_recuperado <= Decimal('0.00'):
+                raise serializers.ValidationError({
+                    'monto_recuperado': 'Para una disputa aprobada parcialmente, el monto recuperado debe ser mayor que 0'
+                })
+
+        return data
+
     def update(self, instance, validated_data):
         old_estado = instance.estado
         old_resultado = instance.resultado

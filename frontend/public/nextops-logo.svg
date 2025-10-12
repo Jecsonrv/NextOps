@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" role="img" aria-labelledby="title desc">
+  <title id="title">NextOps logo</title>
+  <desc id="desc">Ship-inspired monogram for NextOps with maritime waves</desc>
+  <g transform="translate(18 10)">
+    <circle cx="78" cy="50" r="46" fill="none" stroke="#0F1F3D" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path fill="#0F1F3D" d="M78 12L104 58H92L78 92L64 58H52Z"/>
+    <path fill="#1EC2E7" d="M78 26L96 58H88L78 76L68 58H60Z"/>
+    <rect x="70" y="18" width="16" height="12" rx="3" fill="#0F1F3D"/>
+    <path fill="#0F1F3D" opacity=".16" d="M78 26L88 58H86L78 72L70 58H68Z"/>
+    <path d="M36 92c12-12 24 12 36 0s24-12 36 0" fill="none" stroke="#1EC2E7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M44 104c10-10 20 10 30 0s20-10 30 0" fill="none" stroke="#0F1F3D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+  </g>
+  <text x="168" y="72" fill="#0F1F3D" font-family="'Montserrat', 'Poppins', 'Segoe UI', sans-serif" font-size="36" font-weight="700" letter-spacing="0.8">
+    NEXT<tspan fill="#1EC2E7">OPS</tspan>
+  </text>
+</svg>

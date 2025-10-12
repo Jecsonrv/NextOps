@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(mv:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(docker-compose exec backend python manage.py migrate:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(docker-compose logs:*)"
     ],
     "deny": [],
     "ask": []

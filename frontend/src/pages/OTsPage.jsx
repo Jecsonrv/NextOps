@@ -1298,7 +1298,7 @@ export function OTsPage() {
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle>Órdenes de Transporte</CardTitle>
+                        <CardTitle>Órdenes de Trabajo</CardTitle>
                         {data?.count > 0 && (
                             <span className="text-sm text-gray-500">
                                 Mostrando {data.results.length} de {data.count}{" "}

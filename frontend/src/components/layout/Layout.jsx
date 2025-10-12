@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import {
     LayoutDashboard,
     FileText,
-    Truck,
+    Ship,
     Users,
     Building2,
     Mail,
@@ -27,7 +27,7 @@ import { useState } from "react";
 
 const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "OTs", href: "/ots", icon: Truck },
+    { name: "OTs", href: "/ots", icon: Ship },
     { name: "Facturas", href: "/invoices", icon: FileText },
     { name: "Disputas", href: "/disputes", icon: AlertCircle },
     { name: "Notas de Crédito", href: "/invoices/credit-notes", icon: FileMinus },
@@ -100,9 +100,13 @@ export function Layout({ children }) {
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-                        <h1 className="text-xl font-bold text-blue-600">
-                            NextOps
-                        </h1>
+                        <Link to="/" className="flex items-center">
+                            <img
+                                src="/nextops-logo.svg"
+                                alt="NextOps"
+                                className="h-14 w-auto"
+                            />
+                        </Link>
                         <button
                             className="lg:hidden"
                             onClick={() => setSidebarOpen(false)}

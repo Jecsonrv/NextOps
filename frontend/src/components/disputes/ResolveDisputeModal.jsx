@@ -28,13 +28,21 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
 
     const mutation = useMutation({
         mutationFn: async (data) => {
-            // Actualizar estado y campos de la disputa
-            await apiClient.patch(`/invoices/disputes/${dispute.id}/`, {
+            // ✅ CORREGIDO: Incluir monto_recuperado en el PATCH para que se actualice la factura
+            const patchData = {
                 estado: data.estado,
                 resultado: data.resultado,
                 numero_caso: data.numero_caso,
                 operativo: data.operativo,
-            });
+                resolucion: data.resolucion,
+            };
+            
+            // Solo agregar monto_recuperado si tiene valor
+            if (data.monto_recuperado) {
+                patchData.monto_recuperado = parseFloat(data.monto_recuperado);
+            }
+            
+            await apiClient.patch(`/invoices/disputes/${dispute.id}/`, patchData);
 
             // Agregar evento de resolución
             await apiClient.post(`/invoices/disputes/${dispute.id}/add_evento/`, {
@@ -50,6 +58,16 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
             queryClient.invalidateQueries(["disputes"]);
             queryClient.invalidateQueries(["dispute", dispute?.id]);
             queryClient.invalidateQueries(["dispute-stats"]);
+            // ✅ IMPORTANTE: Invalidar también la factura para que se actualice el estado y monto
+            if (dispute?.invoice) {
+                queryClient.invalidateQueries(["invoice", dispute.invoice]);
+            }
+            queryClient.invalidateQueries(["invoices"]);
+            // ✅ Invalidar OTs por sincronización
+            queryClient.invalidateQueries(["ots"]);
+            if (dispute?.ot) {
+                queryClient.invalidateQueries(["ot", dispute.ot]);
+            }
             onClose();
         },
         onError: (error) => {

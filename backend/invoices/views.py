@@ -600,13 +600,20 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         # Calcular estadísticas
         total = queryset.count()
-        pendientes_revision = queryset.filter(requiere_revision=True).count()
         provisionadas = queryset.filter(estado_provision='provisionada').count()
+        disputadas = Invoice.objects.filter(is_deleted=False, estado_provision='disputada').count()
+        pendientes_queryset = Invoice.objects.filter(
+            is_deleted=False,
+            estado_provision='pendiente',
+            fecha_provision__isnull=True
+        )
+        pendientes_provision = pendientes_queryset.count()
+        facturas_sin_fecha_provision = pendientes_provision
         facturadas = queryset.filter(estado_facturacion='facturada').count()
         sin_ot = queryset.filter(ot__isnull=True).count()
-        
+
         # Estadísticas adicionales de disputas y anulaciones
-        total_disputadas = Invoice.objects.filter(is_deleted=False, estado_provision='disputada').count()
+        total_disputadas = disputadas
         total_anuladas = Invoice.objects.filter(is_deleted=False, estado_provision='anulada').count()
         total_anuladas_parcial = Invoice.objects.filter(is_deleted=False, estado_provision='anulada_parcialmente').count()
         
@@ -644,8 +651,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         data = {
             'total': total,
-            'pendientes_revision': pendientes_revision,
+            'pendientes_revision': disputadas,
             'provisionadas': provisionadas,
+            'pendientes_provision': pendientes_provision,
+            'sin_fecha_provision': facturas_sin_fecha_provision,
             'facturadas': facturadas,
             'sin_ot': sin_ot,
             'total_monto': total_monto,

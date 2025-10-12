@@ -43,15 +43,14 @@ export function LoginPage() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
             <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span className="text-2xl font-bold text-white">
-                                N
-                            </span>
-                        </div>
+                <CardHeader className="space-y-2 text-center">
+                    <div className="flex justify-center mb-2">
+                        <img
+                            src="/nextops-logo.svg"
+                            alt="NextOps"
+                            className="h-20 w-auto"
+                        />
                     </div>
-                    <CardTitle className="text-2xl">NextOps</CardTitle>
                     <CardDescription>
                         Ingresa tus credenciales para acceder al sistema
                     </CardDescription>
