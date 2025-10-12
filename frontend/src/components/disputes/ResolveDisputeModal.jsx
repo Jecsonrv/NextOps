@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { X, CheckCircle, Loader2 } from "lucide-react";
+import { X, CheckCircle, Loader2, Upload } from "lucide-react";
 import apiClient from "../../lib/api";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -23,35 +23,52 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
         resultado: "pendiente",
         numero_caso: "",
         operativo: "",
+        tiene_nota_credito: false,
+        nota_credito_numero: "",
+        nota_credito_monto: "",
     });
+    const [notaCreditoFile, setNotaCreditoFile] = useState(null);
     const [errors, setErrors] = useState({});
 
     const mutation = useMutation({
         mutationFn: async (data) => {
-            // ✅ CORREGIDO: Incluir monto_recuperado en el PATCH para que se actualice la factura
-            const patchData = {
-                estado: data.estado,
-                resultado: data.resultado,
-                numero_caso: data.numero_caso,
-                operativo: data.operativo,
-                resolucion: data.resolucion,
-            };
-            
-            // Solo agregar monto_recuperado si tiene valor
+            // Usar el nuevo endpoint /resolve/ que maneja todo en una transacción
+            const formDataToSend = new FormData();
+
+            formDataToSend.append('estado', data.estado);
+            formDataToSend.append('resultado', data.resultado);
+            formDataToSend.append('resolucion', data.resolucion || '');
+
             if (data.monto_recuperado) {
-                patchData.monto_recuperado = parseFloat(data.monto_recuperado);
+                formDataToSend.append('monto_recuperado', parseFloat(data.monto_recuperado));
             }
-            
-            await apiClient.patch(`/invoices/disputes/${dispute.id}/`, patchData);
 
-            // Agregar evento de resolución
-            await apiClient.post(`/invoices/disputes/${dispute.id}/add_evento/`, {
-                tipo: "resolucion",
-                descripcion: data.resolucion,
-                monto_recuperado: data.monto_recuperado ? parseFloat(data.monto_recuperado) : null,
-            });
+            // Campos de nota de crédito
+            formDataToSend.append('tiene_nota_credito', data.tiene_nota_credito);
 
-            return data;
+            if (data.tiene_nota_credito) {
+                if (data.nota_credito_numero) {
+                    formDataToSend.append('nota_credito_numero', data.nota_credito_numero);
+                }
+                if (data.nota_credito_monto) {
+                    formDataToSend.append('nota_credito_monto', parseFloat(data.nota_credito_monto));
+                }
+                if (data.nota_credito_archivo) {
+                    formDataToSend.append('nota_credito_archivo', data.nota_credito_archivo);
+                }
+            }
+
+            const response = await apiClient.post(
+                `/invoices/disputes/${dispute.id}/resolve/`,
+                formDataToSend,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+
+            return response.data;
         },
         onSuccess: () => {
             toast.success("Disputa resuelta correctamente");
@@ -86,16 +103,66 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                 resultado: dispute.resultado || "pendiente",
                 numero_caso: dispute.numero_caso || "",
                 operativo: dispute.operativo || "",
+                tiene_nota_credito: false,
+                nota_credito_numero: "",
+                nota_credito_monto: "",
             });
+            setNotaCreditoFile(null);
             setErrors({});
         }
     }, [isOpen, dispute]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        const newValue = type === 'checkbox' ? checked : value;
+
+        // Si el resultado cambia a pendiente, rechazada o anulada, desmarcar nota de crédito
+        if (name === "resultado" && !["aprobada_total", "aprobada_parcial"].includes(value)) {
+            setFormData((prev) => ({
+                ...prev,
+                [name]: newValue,
+                tiene_nota_credito: false,
+                nota_credito_numero: "",
+                nota_credito_monto: "",
+            }));
+            setNotaCreditoFile(null);
+        }
+        // Si se marca el checkbox de nota de crédito, autocompletar el monto según el tipo
+        else if (name === "tiene_nota_credito" && checked) {
+            let montoSugerido = "";
+            if (formData.resultado === "aprobada_total") {
+                montoSugerido = dispute.monto_disputa?.toString() || "";
+            } else if (formData.resultado === "aprobada_parcial" && formData.monto_recuperado) {
+                montoSugerido = formData.monto_recuperado;
+            }
+            setFormData((prev) => ({
+                ...prev,
+                [name]: newValue,
+                nota_credito_monto: montoSugerido,
+            }));
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: newValue }));
+        }
+
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: null }));
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validar que sea PDF
+            if (file.type !== 'application/pdf') {
+                toast.error('Solo se permiten archivos PDF');
+                return;
+            }
+            // Validar tamaño (máximo 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error('El archivo no puede superar los 10MB');
+                return;
+            }
+            setNotaCreditoFile(file);
         }
     };
 
@@ -106,10 +173,42 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
             newErrors.resolucion = ["La descripción de la resolución es obligatoria"];
         }
 
-        if (formData.estado === "resuelta" && formData.monto_recuperado) {
+        if (formData.resultado === "aprobada_parcial") {
             const monto = parseFloat(formData.monto_recuperado);
-            if (isNaN(monto) || monto < 0) {
-                newErrors.monto_recuperado = ["El monto debe ser un número válido"];
+            if (!formData.monto_recuperado || isNaN(monto) || monto <= 0) {
+                newErrors.monto_recuperado = ["El monto recuperado es obligatorio para aprobación parcial"];
+            } else if (monto > dispute.monto_disputa) {
+                newErrors.monto_recuperado = [`El monto recuperado no puede exceder el monto en disputa ($${dispute.monto_disputa?.toLocaleString("es-MX", { minimumFractionDigits: 2 })})`];
+            }
+        }
+
+        // Validar campos de nota de crédito si está marcado
+        if (formData.tiene_nota_credito) {
+            if (!formData.nota_credito_numero?.trim()) {
+                newErrors.nota_credito_numero = ["El número de nota de crédito es obligatorio"];
+            }
+
+            const montoNC = parseFloat(formData.nota_credito_monto);
+            if (!formData.nota_credito_monto || isNaN(montoNC) || montoNC <= 0) {
+                newErrors.nota_credito_monto = ["El monto de la nota de crédito es obligatorio"];
+            } else {
+                // Validar que el monto de NC coincida según el tipo de aprobación
+                if (formData.resultado === "aprobada_total") {
+                    // Para aprobación total, el monto NC debe ser igual al monto disputado
+                    if (Math.abs(montoNC - dispute.monto_disputa) > 0.01) {
+                        newErrors.nota_credito_monto = [
+                            `Para aprobación total, el monto debe ser igual al monto disputado: $${dispute.monto_disputa?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
+                        ];
+                    }
+                } else if (formData.resultado === "aprobada_parcial") {
+                    // Para aprobación parcial, el monto NC debe coincidir con el monto recuperado
+                    const montoRecuperado = parseFloat(formData.monto_recuperado);
+                    if (montoRecuperado && Math.abs(montoNC - montoRecuperado) > 0.01) {
+                        newErrors.nota_credito_monto = [
+                            `El monto debe coincidir con el monto recuperado: $${montoRecuperado.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`
+                        ];
+                    }
+                }
             }
         }
 
@@ -122,7 +221,14 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
             toast.error("Por favor completa los campos obligatorios");
             return;
         }
-        mutation.mutate(formData);
+
+        // Agregar el archivo al formData si existe
+        const dataToSubmit = { ...formData };
+        if (notaCreditoFile) {
+            dataToSubmit.nota_credito_archivo = notaCreditoFile;
+        }
+
+        mutation.mutate(dataToSubmit);
     };
 
     if (!isOpen || !dispute) return null;
@@ -330,6 +436,113 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
                         )}
                     </div>
+
+                    {/* Sección de Nota de Crédito - Solo para aprobadas */}
+                    {(formData.resultado === "aprobada_total" || formData.resultado === "aprobada_parcial") && (
+                        <div className="border-t pt-4">
+                            <div className="flex items-center gap-3 mb-4">
+                                <input
+                                    type="checkbox"
+                                    id="tiene_nota_credito"
+                                    name="tiene_nota_credito"
+                                    checked={formData.tiene_nota_credito}
+                                    onChange={handleChange}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <label htmlFor="tiene_nota_credito" className="text-sm font-medium text-gray-700">
+                                    ¿Tiene nota de crédito?
+                                </label>
+                            </div>
+
+                            {formData.tiene_nota_credito && (
+                            <div className="space-y-4 pl-7 border-l-2 border-blue-200">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="nota_credito_numero" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Número de Nota de Crédito <span className="text-red-500">*</span>
+                                        </label>
+                                        <Input
+                                            type="text"
+                                            id="nota_credito_numero"
+                                            name="nota_credito_numero"
+                                            value={formData.nota_credito_numero}
+                                            onChange={handleChange}
+                                            placeholder="Ej: NC-2024-001"
+                                            className={errors.nota_credito_numero ? "border-red-500" : ""}
+                                        />
+                                        {errors.nota_credito_numero && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.nota_credito_numero[0]}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="nota_credito_monto" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Monto (USD) <span className="text-red-500">*</span>
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            id="nota_credito_monto"
+                                            name="nota_credito_monto"
+                                            value={formData.nota_credito_monto}
+                                            onChange={handleChange}
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            min="0.01"
+                                            className={errors.nota_credito_monto ? "border-red-500" : ""}
+                                        />
+                                        {errors.nota_credito_monto && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.nota_credito_monto[0]}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="nota_credito_file" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Archivo PDF (Opcional)
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors">
+                                            <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                                            <span className="text-sm text-gray-600">
+                                                {notaCreditoFile ? notaCreditoFile.name : 'Seleccionar archivo PDF'}
+                                            </span>
+                                            <input
+                                                type="file"
+                                                id="nota_credito_file"
+                                                accept=".pdf"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        {notaCreditoFile && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setNotaCreditoFile(null)}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Sube el PDF de la nota de crédito (máximo 10MB)
+                                    </p>
+                                </div>
+
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                    <p className="text-sm text-blue-800">
+                                        La nota de crédito se creará automáticamente asociada a la factura{" "}
+                                        <strong>{dispute.invoice_data?.numero_factura}</strong>
+                                        {dispute.ot_data?.referencia && (
+                                            <> y a la OT <strong>{dispute.ot_data.referencia}</strong></>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Advertencia */}
                     {formData.resultado !== 'pendiente' && (

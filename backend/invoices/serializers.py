@@ -946,6 +946,66 @@ class DisputeUpdateSerializer(serializers.ModelSerializer):
         return dispute
 
 
+class DisputeResolveSerializer(serializers.Serializer):
+    """
+    Serializer para resolver disputas con opción de crear nota de crédito.
+    Se usa en el endpoint /api/disputes/{id}/resolve/
+    """
+    estado = serializers.ChoiceField(
+        choices=[('resuelta', 'Resuelta'), ('cerrada', 'Cerrada')],
+        required=True
+    )
+    resultado = serializers.ChoiceField(
+        choices=Dispute.RESULTADO_CHOICES,
+        required=True
+    )
+    monto_recuperado = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
+        min_value=Decimal('0.00')
+    )
+    resolucion = serializers.CharField(required=False, allow_blank=True)
+
+    # Campos para nota de crédito (opcionales)
+    tiene_nota_credito = serializers.BooleanField(default=False, required=False)
+    nota_credito_numero = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    nota_credito_monto = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
+        min_value=Decimal('0.01')
+    )
+    nota_credito_archivo = serializers.FileField(required=False, allow_null=True)
+
+    def validate(self, data):
+        """Validar campos según resultado y nota de crédito"""
+        resultado = data.get('resultado')
+
+        # Si es aprobada_parcial, requiere monto_recuperado
+        if resultado == 'aprobada_parcial':
+            monto_recuperado = data.get('monto_recuperado')
+            if not monto_recuperado or monto_recuperado <= Decimal('0.00'):
+                raise serializers.ValidationError({
+                    'monto_recuperado': 'Requerido y debe ser mayor a 0 para aprobación parcial'
+                })
+
+        # Si tiene nota de crédito, validar campos requeridos
+        if data.get('tiene_nota_credito'):
+            if not data.get('nota_credito_numero'):
+                raise serializers.ValidationError({
+                    'nota_credito_numero': 'Requerido si hay nota de crédito'
+                })
+            if not data.get('nota_credito_monto') or data.get('nota_credito_monto') <= Decimal('0.00'):
+                raise serializers.ValidationError({
+                    'nota_credito_monto': 'Requerido y debe ser mayor a 0 si hay nota de crédito'
+                })
+
+        return data
+
+
 class DisputeEventSerializer(serializers.ModelSerializer):
     """Serializer para eventos de disputas"""
 

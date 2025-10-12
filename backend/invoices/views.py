@@ -1308,6 +1308,111 @@ class DisputeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        """
+        Resolver disputa con opción de crear nota de crédito.
+
+        Este endpoint permite:
+        1. Resolver una disputa (estado, resultado, monto_recuperado)
+        2. Opcionalmente crear una nota de crédito asociada
+
+        Body:
+        {
+            "estado": "resuelta",
+            "resultado": "aprobada_total" | "aprobada_parcial" | "rechazada",
+            "monto_recuperado": 5000.00,  // requerido para aprobada_parcial
+            "resolucion": "Descripción de la resolución",
+
+            // Campos opcionales para nota de crédito
+            "tiene_nota_credito": true,
+            "nota_credito_numero": "NC-2024-001",
+            "nota_credito_monto": 5000.00,
+            "nota_credito_archivo": <file>  // multipart/form-data
+        }
+        """
+        from .serializers import DisputeResolveSerializer
+
+        dispute = self.get_object()
+
+        # Validar datos
+        serializer = DisputeResolveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Actualizar disputa
+        dispute.estado = serializer.validated_data['estado']
+        dispute.resultado = serializer.validated_data['resultado']
+        dispute.monto_recuperado = serializer.validated_data.get('monto_recuperado', Decimal('0.00'))
+        dispute.resolucion = serializer.validated_data.get('resolucion', '')
+
+        # Si es aprobada_total, auto-asignar monto_disputa como monto_recuperado
+        if dispute.resultado == 'aprobada_total':
+            dispute.monto_recuperado = dispute.monto_disputa
+
+        dispute.save()
+
+        # Crear nota de crédito si aplica
+        if serializer.validated_data.get('tiene_nota_credito'):
+            uploaded_file = None
+            nota_credito_archivo = request.FILES.get('nota_credito_archivo')
+
+            # Procesar archivo si se proporcionó
+            if nota_credito_archivo:
+                # Calcular hash
+                nota_credito_archivo.seek(0)
+                file_content = nota_credito_archivo.read()
+                file_hash = UploadedFile.calculate_hash(file_content)
+
+                # Verificar si ya existe
+                existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
+
+                if existing_file:
+                    uploaded_file = existing_file
+                else:
+                    # Guardar archivo nuevo
+                    nota_credito_archivo.seek(0)
+                    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                    safe_filename = f"{timestamp}_{nota_credito_archivo.name}"
+                    path = default_storage.save(f'credit_notes/{safe_filename}', nota_credito_archivo)
+
+                    uploaded_file = UploadedFile.objects.create(
+                        filename=nota_credito_archivo.name,
+                        path=path,
+                        sha256=file_hash,
+                        size=nota_credito_archivo.size,
+                        content_type=nota_credito_archivo.content_type
+                    )
+
+            # Crear nota de crédito
+            monto_nc = serializer.validated_data['nota_credito_monto']
+            CreditNote.objects.create(
+                numero_nota=serializer.validated_data['nota_credito_numero'],
+                invoice_relacionada=dispute.invoice,
+                proveedor=dispute.invoice.proveedor,
+                proveedor_nombre=dispute.invoice.proveedor_nombre,
+                fecha_emision=date.today(),
+                monto=-abs(monto_nc),  # Asegurar que sea negativo
+                motivo=f'Nota de crédito por disputa {dispute.numero_caso} - {dispute.get_resultado_display()}',
+                estado='aplicada',  # Aplicar automáticamente
+                uploaded_file=uploaded_file,
+                processed_by=request.user.username if request.user else 'system',
+                processed_at=timezone.now(),
+                processing_source='manual_entry'
+            )
+
+        # Crear evento de resolución
+        DisputeEvent.objects.create(
+            dispute=dispute,
+            tipo='resolucion',
+            descripcion=f'Disputa resuelta: {dispute.get_resultado_display()}. {dispute.resolucion}',
+            usuario=request.user.username if request.user else '',
+            monto_recuperado=dispute.monto_recuperado if dispute.monto_recuperado > 0 else None
+        )
+
+        # Retornar disputa actualizada
+        from .serializers import DisputeDetailSerializer
+        return Response(DisputeDetailSerializer(dispute).data)
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """
@@ -1529,6 +1634,106 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
             'results': results,
         })
 
+    @action(detail=False, methods=['post'], url_path='manual')
+    def manual(self, request):
+        """
+        Crear nota de crédito manualmente.
+
+        Permite asociar nota de crédito a una factura, auto-completa OT si la factura la tiene.
+        No requiere validaciones complejas - es un flujo manual supervisado.
+
+        Body (multipart/form-data):
+        {
+            "numero_nota": "NC-2024-001",
+            "invoice_id": 123,
+            "monto": 5000.00,
+            "motivo": "Descripción",
+            "fecha_emision": "2025-01-15",
+            "file": <archivo PDF opcional>
+        }
+        """
+        logger = logging.getLogger(__name__)
+
+        # Validar campos requeridos
+        numero_nota = request.data.get('numero_nota')
+        invoice_id = request.data.get('invoice_id')
+        monto = request.data.get('monto')
+        motivo = request.data.get('motivo')
+        fecha_emision = request.data.get('fecha_emision', timezone.now().date())
+
+        if not numero_nota:
+            return Response({'error': 'El número de nota es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+        if not invoice_id:
+            return Response({'error': 'Debe seleccionar una factura'}, status=status.HTTP_400_BAD_REQUEST)
+        if not monto:
+            return Response({'error': 'El monto es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+        if not motivo:
+            return Response({'error': 'El motivo es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Obtener factura
+        try:
+            invoice = Invoice.objects.get(id=invoice_id, is_deleted=False)
+        except Invoice.DoesNotExist:
+            return Response({'error': 'Factura no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Procesar archivo si se proporcionó
+        uploaded_file = None
+        file = request.FILES.get('file')
+        if file:
+            try:
+                # Calcular hash
+                file.seek(0)
+                file_content = file.read()
+                file_hash = UploadedFile.calculate_hash(file_content)
+
+                # Verificar si ya existe
+                existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
+
+                if existing_file:
+                    uploaded_file = existing_file
+                else:
+                    # Guardar archivo nuevo
+                    file.seek(0)
+                    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                    safe_filename = f"{timestamp}_{file.name}"
+                    path = default_storage.save(f'credit_notes/{safe_filename}', file)
+
+                    uploaded_file = UploadedFile.objects.create(
+                        filename=file.name,
+                        path=path,
+                        sha256=file_hash,
+                        size=file.size,
+                        content_type=file.content_type
+                    )
+            except Exception as e:
+                logger.error(f"Error procesando archivo: {e}")
+                return Response({'error': 'Error al procesar el archivo'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Crear nota de crédito
+        try:
+            monto_decimal = Decimal(str(monto))
+            credit_note = CreditNote.objects.create(
+                numero_nota=numero_nota,
+                invoice_relacionada=invoice,
+                proveedor=invoice.proveedor,
+                proveedor_nombre=invoice.proveedor_nombre,
+                fecha_emision=fecha_emision,
+                monto=-abs(monto_decimal),  # Asegurar que sea negativo
+                motivo=motivo,
+                estado='aplicada',  # Aplicar automáticamente en entrada manual
+                uploaded_file=uploaded_file,
+                processed_by=request.user.username if request.user else 'system',
+                processed_at=timezone.now(),
+                processing_source='manual_entry'
+            )
+
+            from .serializers import CreditNoteDetailSerializer
+            return Response(CreditNoteDetailSerializer(credit_note).data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.error(f"Error creando nota de crédito: {e}", exc_info=True)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['get'], url_path='file')
     def retrieve_file(self, request, pk=None):
         credit_note = self.get_object()
@@ -1553,15 +1758,58 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
+        """
+        Estadísticas de notas de crédito.
+
+        Query params opcionales:
+        - fecha_desde: YYYY-MM-DD
+        - fecha_hasta: YYYY-MM-DD
+        - proveedor_id: filtrar por proveedor
+        """
         queryset = self.get_queryset()
-        total = queryset.count()
+
+        # Filtros opcionales
+        fecha_desde = request.query_params.get('fecha_desde')
+        if fecha_desde:
+            queryset = queryset.filter(fecha_emision__gte=fecha_desde)
+
+        fecha_hasta = request.query_params.get('fecha_hasta')
+        if fecha_hasta:
+            queryset = queryset.filter(fecha_emision__lte=fecha_hasta)
+
+        proveedor_id = request.query_params.get('proveedor_id')
+        if proveedor_id:
+            queryset = queryset.filter(proveedor_id=proveedor_id)
+
+        # Contadores por estado
+        total_notas = queryset.count()
         pendientes = queryset.filter(estado='pendiente').count()
         aplicadas = queryset.filter(estado='aplicada').count()
         rechazadas = queryset.filter(estado='rechazada').count()
-        total_monto = queryset.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        por_proveedor = list(queryset.values('proveedor__nombre').annotate(count=Count('id'), total_monto=Sum('monto')).order_by('total_monto')[:10])
+
+        # Montos (recordar que son negativos)
+        monto_total = abs(queryset.aggregate(total=Sum('monto'))['total'] or Decimal('0.00'))
+        monto_aplicadas = abs(queryset.filter(estado='aplicada').aggregate(total=Sum('monto'))['total'] or Decimal('0.00'))
+        monto_pendientes = abs(queryset.filter(estado='pendiente').aggregate(total=Sum('monto'))['total'] or Decimal('0.00'))
+
+        # Por proveedor (top 10)
+        por_proveedor = list(
+            queryset.values('proveedor_nombre')
+            .annotate(
+                count=Count('id'),
+                total_monto=Sum('monto')
+            )
+            .order_by('total_monto')[:10]  # Ordenar ascendente porque son negativos
+        )
+
         data = {
-            'total': total, 'pendientes': pendientes, 'aplicadas': aplicadas, 'rechazadas': rechazadas,
-            'total_monto': float(total_monto), 'por_proveedor': por_proveedor,
+            'total_notas': total_notas,
+            'pendientes': pendientes,
+            'aplicadas': aplicadas,
+            'rechazadas': rechazadas,
+            'monto_total': float(monto_total),
+            'monto_aplicadas': float(monto_aplicadas),
+            'monto_pendientes': float(monto_pendientes),
+            'por_proveedor': por_proveedor,
         }
         return Response(data)

@@ -231,8 +231,8 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                                 <div>
                                     <p className="text-yellow-800 text-sm font-semibold">Factura Anulada</p>
                                     <p className="text-yellow-700 text-sm mt-1">
-                                        Esta factura ya ha sido {selectedInvoice.estado_provision === 'anulada' ? 'anulada totalmente' : 'anulada parcialmente'}
-                                        por una disputa anterior. No es posible crear nuevas disputas.
+                                        Esta factura ya ha sido {selectedInvoice.estado_provision === 'anulada' ? 'anulada totalmente' : 'anulada parcialmente'}{" "}
+                                          por una disputa anterior. No es posible crear nuevas disputas.
                                     </p>
                                 </div>
                             </div>

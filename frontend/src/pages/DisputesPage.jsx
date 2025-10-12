@@ -31,7 +31,6 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Filter,
     ChevronDown,
     ChevronUp,
     Edit,
@@ -135,25 +134,6 @@ export function DisputesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-bold text-gray-900">
-                        Disputas
-                    </h1>
-                    <p className="text-gray-600 mt-2">
-                        Gestión de disputas de facturas
-                    </p>
-                </div>
-                <Button onClick={() => {
-                    setSelectedDispute(null);
-                    setIsModalOpen(true);
-                }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Disputa
-                </Button>
-            </div>
-
             {/* Stats Cards */}
             {stats && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -273,7 +253,11 @@ export function DisputesPage() {
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={showFilters ? "bg-blue-50 border-blue-300" : ""}
                             >
-                                <Filter className="w-4 h-4 mr-2" />
+                                {showFilters ? (
+                                    <ChevronUp className="w-4 h-4 mr-2" />
+                                ) : (
+                                    <ChevronDown className="w-4 h-4 mr-2" />
+                                )}
                                 Filtros
                                 {(filters.estado || filters.tipo_disputa || filters.resultado) && (
                                     <Badge variant="default" className="ml-2 px-1.5 py-0.5 text-xs">
@@ -284,6 +268,16 @@ export function DisputesPage() {
                                         ].reduce((a, b) => a + b, 0)}
                                     </Badge>
                                 )}
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    setSelectedDispute(null);
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Nueva Disputa
                             </Button>
                         </div>
                     </div>

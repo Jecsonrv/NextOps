@@ -478,10 +478,11 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
                 fields_to_update.append('fecha_provision')
 
         elif self.estado_provision in ['anulada', 'anulada_parcialmente']:
-            # IMPORTANTE: OT no tiene estos estados. Enviar a 'revision' para revisión manual
-            # Esto permite que el equipo revise si toda la OT debe cambiar de estado
-            if self.ot.estado_provision != 'revision':
-                self.ot.estado_provision = 'revision'
+            # NUEVO COMPORTAMIENTO: La OT vuelve a 'pendiente' para esperar la nueva factura del proveedor
+            # La factura anulada queda registrada para histórico, pero la OT debe estar lista para
+            # recibir la nueva factura que emita el proveedor
+            if self.ot.estado_provision != 'pendiente':
+                self.ot.estado_provision = 'pendiente'
                 fields_to_update.append('estado_provision')
 
             # Limpiar fecha_provision de la OT
@@ -579,7 +580,14 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         """
         Determina si los cambios de estado deben sincronizarse con la OT.
         Solo se sincronizan costos vinculados (Flete/Cargos Naviera) que tengan OT asignada.
+
+        IMPORTANTE: Facturas anuladas NO sincronizan (están desvinculadas funcionalmente).
+        La nueva factura que emita el proveedor será la que se vincule a la OT.
         """
+        # Facturas anuladas NO sincronizan - están desvinculadas
+        if self.estado_provision in ['anulada', 'anulada_parcialmente']:
+            return False
+
         return self.es_costo_vinculado_ot() and self.ot is not None
     
     def debe_excluirse_de_estadisticas(self):

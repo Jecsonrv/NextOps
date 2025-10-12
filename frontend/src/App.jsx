@@ -22,6 +22,7 @@ import { InvoiceDetailPage } from "./pages/InvoiceDetailPage";
 import { InvoiceUploadPage } from "./pages/InvoiceUploadPage";
 import { CreditNoteUploadPage } from "./pages/CreditNoteUploadPage";
 import { CreditNotesPage } from "./pages/CreditNotesPage";
+import { CreditNoteDetailPage } from "./pages/CreditNoteDetailPage";
 import { InvoiceEditPage } from "./pages/InvoiceEditPage";
 import ClientsPage from "./pages/ClientsPage";
 import ProviderPatternsPage from "./pages/ProviderPatternsPage";
@@ -216,6 +217,16 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <CreditNotesPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/invoices/credit-notes/:id"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <CreditNoteDetailPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }

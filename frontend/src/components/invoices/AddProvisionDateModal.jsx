@@ -96,13 +96,16 @@ export function AddProvisionDateModal({ isOpen, onClose, invoice }) {
                     {/* Advertencia */}
                     <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                         <p className="text-sm text-yellow-800">
-                            <strong>Nota:</strong> Al agregar la fecha de provisión, el estado{" "}
-                            <strong>NO cambiará</strong>. La factura permanecerá como{" "}
+                            <strong>Nota:</strong> Esta fecha es solo para reportes contables. Al agregarla:
+                        </p>
+                        <ul className="text-sm text-yellow-800 mt-2 ml-4 list-disc space-y-1">
+                            <li>El estado de la factura <strong>NO cambiará</strong> (permanecerá como{" "}
                             {invoice.estado_provision === "anulada_parcialmente"
                                 ? '"Anulada Parcialmente"'
-                                : '"Anulada"'}
-                            .
-                        </p>
+                                : '"Anulada"'})</li>
+                            <li><strong>NO se sincronizará</strong> con la OT asociada</li>
+                            <li>Será visible en reportes contables solamente</li>
+                        </ul>
                     </div>
 
                     {/* Campo de fecha */}

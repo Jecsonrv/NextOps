@@ -147,7 +147,7 @@ class TestDisputeSystem:
         Resultado esperado:
         - Factura.estado_provision = 'anulada'
         - Factura.monto_aplicable = 0.00
-        - OT.estado_provision = 'revision'
+        - OT.estado_provision = 'pendiente' (NUEVO: espera nueva factura del proveedor)
         """
         self.log("\n=== ESCENARIO 1: Disputa Aprobada Total ===")
 
@@ -194,8 +194,8 @@ class TestDisputeSystem:
 
         self.assert_equal(
             self.ot.estado_provision,
-            'revision',
-            "OT debe estar en 'revision' (factura anulada)"
+            'pendiente',
+            "OT debe volver a 'pendiente' (espera nueva factura del proveedor)"
         )
 
         # Limpiar
@@ -209,7 +209,7 @@ class TestDisputeSystem:
         Resultado esperado:
         - Factura.estado_provision = 'anulada_parcialmente'
         - Factura.monto_aplicable = 5000.00 (50% del original)
-        - OT.estado_provision = 'revision'
+        - OT.estado_provision = 'pendiente' (NUEVO: espera nueva factura del proveedor)
         """
         self.log("\n=== ESCENARIO 2: Disputa Aprobada Parcial ===")
 
@@ -257,8 +257,8 @@ class TestDisputeSystem:
 
         self.assert_equal(
             self.ot.estado_provision,
-            'revision',
-            "OT debe estar en 'revision'"
+            'pendiente',
+            "OT debe volver a 'pendiente' (espera nueva factura del proveedor)"
         )
 
         # Limpiar
@@ -542,6 +542,159 @@ class TestDisputeSystem:
         self.ot.fecha_provision = None
         self.ot.save()
 
+    def test_scenario_8_anulada_no_sincroniza_ot(self):
+        """
+        ESCENARIO 8: Facturas anuladas NO sincronizan con OT
+
+        Verificar que:
+        - Factura anulada puede actualizar fecha_provision sin afectar OT
+        - El método debe_sincronizar_con_ot() retorna False para anuladas
+        """
+        self.log("\n=== ESCENARIO 8: Anuladas NO Sincronizan con OT ===")
+
+        # Crear factura de prueba
+        invoice = self.create_test_invoice('ANULADA_NO_SYNC', 10000.00)
+
+        # Anular la factura mediante disputa
+        dispute = Dispute.objects.create(
+            numero_caso='CASE-008',
+            operativo='Operativo Test',
+            invoice=invoice,
+            ot=self.ot,
+            tipo_disputa='flete',
+            detalle='Anular factura',
+            monto_disputa=Decimal('10000.00'),
+            estado='resuelta',
+            resultado='aprobada_total',
+            fecha_resolucion=date.today()
+        )
+
+        invoice.refresh_from_db()
+        self.ot.refresh_from_db()
+
+        # Verificar que está anulada y OT volvió a pendiente
+        self.assert_equal(
+            invoice.estado_provision,
+            'anulada',
+            "Factura debe estar 'anulada'"
+        )
+
+        self.assert_equal(
+            self.ot.estado_provision,
+            'pendiente',
+            "OT debe estar en 'pendiente'"
+        )
+
+        # Ahora actualizar fecha_provision de la factura anulada
+        fecha_prov = date.today() + timedelta(days=5)
+        invoice.fecha_provision = fecha_prov
+        invoice.save()
+
+        # Refrescar OT
+        self.ot.refresh_from_db()
+
+        # Verificar que la OT NO cambió
+        self.assert_equal(
+            self.ot.estado_provision,
+            'pendiente',
+            "OT debe seguir en 'pendiente' (factura anulada no sincroniza)"
+        )
+
+        # Verificar que fecha_provision de OT NO cambió
+        self.assert_equal(
+            self.ot.fecha_provision,
+            None,
+            "fecha_provision de OT NO debe cambiar (factura anulada no sincroniza)"
+        )
+
+        # Verificar método debe_sincronizar_con_ot()
+        self.assert_equal(
+            invoice.debe_sincronizar_con_ot(),
+            False,
+            "debe_sincronizar_con_ot() debe retornar False para facturas anuladas"
+        )
+
+        # Limpiar
+        dispute.delete()
+        invoice.delete()
+
+        # Restaurar OT
+        self.ot.estado_provision = 'pendiente'
+        self.ot.fecha_provision = None
+        self.ot.save()
+
+    def test_scenario_9_fecha_provision_anulada(self):
+        """
+        ESCENARIO 9: Agregar fecha_provision a factura anulada (solo para reportes)
+
+        Verificar que:
+        - Factura anulada puede tener fecha_provision
+        - Estado NO cambia al agregar fecha_provision
+        - OT NO se afecta
+        """
+        self.log("\n=== ESCENARIO 9: Fecha Provisión en Anulada (Solo Reportes) ===")
+
+        # Crear factura de prueba
+        invoice = self.create_test_invoice('FECHA_PROV_ANULADA', 10000.00)
+
+        # Anular la factura
+        dispute = Dispute.objects.create(
+            numero_caso='CASE-009',
+            operativo='Operativo Test',
+            invoice=invoice,
+            ot=self.ot,
+            tipo_disputa='flete',
+            detalle='Anular factura',
+            monto_disputa=Decimal('10000.00'),
+            estado='resuelta',
+            resultado='aprobada_total',
+            fecha_resolucion=date.today()
+        )
+
+        invoice.refresh_from_db()
+
+        # Agregar fecha_provision a factura anulada
+        fecha_prov = date.today() + timedelta(days=3)
+        invoice.fecha_provision = fecha_prov
+        invoice.save()
+
+        invoice.refresh_from_db()
+        self.ot.refresh_from_db()
+
+        # Verificaciones
+        self.assert_equal(
+            invoice.fecha_provision,
+            fecha_prov,
+            "Factura anulada debe poder tener fecha_provision"
+        )
+
+        self.assert_equal(
+            invoice.estado_provision,
+            'anulada',
+            "Estado debe seguir siendo 'anulada' (no cambia al agregar fecha)"
+        )
+
+        self.assert_equal(
+            self.ot.estado_provision,
+            'pendiente',
+            "OT debe seguir en 'pendiente' (no se afecta por fecha_provision de anulada)"
+        )
+
+        self.assert_equal(
+            self.ot.fecha_provision,
+            None,
+            "OT NO debe heredar fecha_provision de factura anulada"
+        )
+
+        # Limpiar
+        dispute.delete()
+        invoice.delete()
+
+        # Restaurar OT
+        self.ot.estado_provision = 'pendiente'
+        self.ot.fecha_provision = None
+        self.ot.save()
+
     def run_all_tests(self):
         """Ejecutar todos los tests"""
         self.log("\n" + "="*60)
@@ -558,6 +711,8 @@ class TestDisputeSystem:
             self.test_scenario_5_no_disputar_anulada()
             self.test_scenario_6_disputa_activa()
             self.test_scenario_7_sync_ot_to_invoice()
+            self.test_scenario_8_anulada_no_sincroniza_ot()
+            self.test_scenario_9_fecha_provision_anulada()
 
         except Exception as e:
             self.log(f"ERROR CRÍTICO: {str(e)}", 'ERROR')
