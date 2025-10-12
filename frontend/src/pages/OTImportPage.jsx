@@ -1,32 +1,3 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "../lib/api";
-import { ConflictResolutionModal } from "../components/ot/ConflictResolutionModal";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
-import {
-    ArrowLeft,
-    Upload,
-    FileSpreadsheet,
-    CheckCircle,
-    XCircle,
-    AlertCircle,
-    Loader2,
-    FileText,
-    X,
-} from "lucide-react";
-
-/**
- * Página para importar OTs desde archivos Excel
- * Soporta múltiples archivos simultáneos y resolución de conflictos
- */
 export function OTImportPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -865,3 +836,296 @@ export function OTImportPage() {
         </div>
     );
 }
+
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import apiClient from "../lib/api";
+
+import { formatDate } from "../lib/dateUtils";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../components/ui/Select";
+import { MultiSelect } from "../components/ui/multi-select";
+import {
+    Truck,
+    Search,
+    Filter,
+    Download,
+    Upload,
+    Eye,
+    Edit,
+    Trash2,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    Layers,
+    X,
+} from "lucide-react";
+
+const createInitialFilters = () => ({
+    estados: [],
+    clientes: [],
+    operativos: [],
+    proveedores: [],
+    estado_provision: "",
+    estado_facturado: "",
+    tipo_operacion: "",
+    bulk_search_type: "", // mbl, contenedor, ot
+    bulk_search_values: [],
+});
+
+const normalizeMultiValues = (values) =>
+    Array.from(
+        new Set(
+            (Array.isArray(values) ? values : [])
+                .map((value) => (typeof value === "string" ? value.trim() : ""))
+                .filter(Boolean)
+        )
+    );
+
+const arraysAreEqual = (a = [], b = []) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    return a.every((value, index) => value === b[index]);
+};
+
+const normalizeSingleValue = (value) =>
+    typeof value === "string" ? value.trim() : "";
+
+const SINGLE_SELECT_CLEAR_VALUE = "__all__";
+
+const estadoColors = {
+    almacenadora: "secondary",
+    bodega: "default",
+    cerrada: "success",
+    desprendimiento: "warning",
+    disputa: "destructive",
+    en_rada: "info",
+    fact_adicionales: "warning",
+    finalizada: "success",
+    puerto: "info",
+    transito: "default",
+    // Estados legacy
+    pendiente: "warning",
+    en_transito: "default",
+    entregado: "success",
+    facturado: "success",
+    cerrado: "success",
+    cancelado: "destructive",
+};
+
+// Función helper para formatear nombres de estados
+const formatEstadoDisplay = (estado) => {
+    if (!estado) return "";
+    // Reemplazar guiones bajos con espacios y capitalizar cada palabra
+    return estado
+        .split("_")
+        .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ");
+};
+
+// Modal para importar Provisión Acajutla
+// eslint-disable-next-line react/prop-types
+function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
+    const [file, setFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            if (!selectedFile.name.endsWith(".csv")) {
+                setError("El archivo debe ser un CSV");
+                setFile(null);
+                return;
+            }
+            setFile(selectedFile);
+            setError(null);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            setError("Por favor selecciona un archivo CSV");
+            return;
+        }
+
+        setUploading(true);
+        setError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await apiClient.post(
+                "/ots/import-provision-acajutla/",
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            toast.success(
+                response.data.message ||
+                    "Provisión Acajutla importada correctamente"
+            );
+
+            if (
+                response.data.stats &&
+                response.data.stats.errors &&
+                response.data.stats.errors.length > 0
+            ) {
+                const errorCount = response.data.stats.errors.length;
+                toast.warning(
+                    `Se encontraron ${errorCount} errores durante la importación`
+                );
+            }
+
+            onSuccess();
+        } catch (err) {
+            const errorMsg =
+                err.response?.data?.error || "Error al importar el CSV";
+            setError(errorMsg);
+            toast.error(errorMsg);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleClose = () => {
+        if (!uploading) {
+            setFile(null);
+            setError(null);
+            onClose();
+        }
+    };
+
+    if (!isOpen) return null;
+
+    const modalContent = (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={handleClose}
+        >
+            <div
+                className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="px-6 py-4 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        Importar Provisión Acajutla
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                        Carga el CSV con fechas de provisión y barcos
+                    </p>
+                </div>
+
+                <div className="px-6 py-4">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Archivo CSV
+                            </label>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleFileChange}
+                                disabled={uploading}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                            />
+                            {file && (
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Archivo seleccionado:{" "}
+                                    <span className="font-medium">
+                                        {file.name}
+                                    </span>
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                                ℹ️ Información Importante
+                            </h3>
+                            <ul className="text-xs text-blue-800 space-y-1">
+                                <li>
+                                    • Solo se actualizarán:{" "}
+                                    <strong>Fecha de Provisión</strong> y{" "}
+                                    <strong>Barco</strong>
+                                </li>
+                                <li>
+                                    • Prioridad:{" "}
+                                    <strong>
+                                        MANUAL {">"} CSV {">"} EXCEL
+                                    </strong>
+                                </li>
+                                <li>
+                                    • Los datos manuales NO se sobreescriben
+                                </li>
+                                <li>
+                                    • Se ignoran valores: N/A, SOLICITUD DE PAGO
+                                </li>
+                            </ul>
+                        </div>
+
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p className="text-sm text-red-800">{error}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={handleClose}
+                        disabled={uploading}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleUpload}
+                        disabled={!file || uploading}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {uploading ? (
+                            <>
+                                <span className="mr-2">Importando...</span>
+                                <span className="animate-spin">⏳</span>
+                            </>
+                        ) : (
+                            <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Importar
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+
+    return createPortal(modalContent, document.body);
+}
+

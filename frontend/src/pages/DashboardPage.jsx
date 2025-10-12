@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import apiClient from "../lib/api";
 import {
     Card,
     CardContent,
@@ -8,125 +11,107 @@ import {
 import { Badge } from "../components/ui/Badge";
 import {
     FileText,
-    Truck,
     TrendingUp,
     Clock,
     CheckCircle,
     AlertCircle,
+    Truck,
+    Loader2,
+    DollarSign,
+    Layers,
+    XCircle,
+    AlertTriangle,
 } from "lucide-react";
-
-const stats = [
-    {
-        name: "Total OTs",
-        value: "48",
-        change: "+12%",
-        trend: "up",
-        icon: Truck,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50",
-    },
-    {
-        name: "Facturas Pendientes",
-        value: "23",
-        change: "-8%",
-        trend: "down",
-        icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50",
-    },
-    {
-        name: "Facturas Procesadas",
-        value: "156",
-        change: "+24%",
-        trend: "up",
-        icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-50",
-    },
-    {
-        name: "Requieren Revisión",
-        value: "5",
-        change: "0%",
-        trend: "neutral",
-        icon: AlertCircle,
-        color: "text-red-600",
-        bgColor: "bg-red-50",
-    },
-];
-
-const recentInvoices = [
-    {
-        id: 1,
-        numero: "FAC-001-2025",
-        proveedor: "Naviera XYZ",
-        monto: "$1,500.00",
-        estado: "pendiente",
-    },
-    {
-        id: 2,
-        numero: "FAC-002-2025",
-        proveedor: "Transporte ABC",
-        monto: "$2,300.00",
-        estado: "procesada",
-    },
-    {
-        id: 3,
-        numero: "FAC-003-2025",
-        proveedor: "Agente Aduanal",
-        monto: "$890.00",
-        estado: "procesada",
-    },
-    {
-        id: 4,
-        numero: "FAC-004-2025",
-        proveedor: "Almacén DEF",
-        monto: "$1,200.00",
-        estado: "revision",
-    },
-];
 
 const estadoBadgeVariant = {
     pendiente: "warning",
-    procesada: "success",
-    revision: "destructive",
+    provisionada: "success",
+    revision: "warning",
+    disputada: "destructive",
 };
 
 export function DashboardPage() {
+    // Obtener estadísticas de OTs
+    const { data: otsStats } = useQuery({
+        queryKey: ["ots-statistics"],
+        queryFn: async () => {
+            const response = await apiClient.get("/ots/statistics/");
+            return response.data;
+        },
+    });
+
+    // Obtener estadísticas de facturas
+    const { data: invoicesStats } = useQuery({
+        queryKey: ["invoices-stats"],
+        queryFn: async () => {
+            const response = await apiClient.get("/invoices/stats/");
+            return response.data;
+        },
+    });
+
+    // Obtener facturas recientes
+    const { data: recentInvoices, isLoading: loadingInvoices } = useQuery({
+        queryKey: ["recent-invoices"],
+        queryFn: async () => {
+            const response = await apiClient.get(
+                "/invoices/?page=1&page_size=5"
+            );
+            return response.data.results || [];
+        },
+    });
+
+    // Estadísticas principales con el mismo estilo de OTsPage
+    const stats = [
+        {
+            name: "Total OT's",
+            value: otsStats?.total_ots || 0,
+            subtitle: `${otsStats?.total_contenedores || 0} contenedores`,
+            icon: Layers,
+            color: "text-blue-600",
+        },
+        {
+            name: "Total Facturas",
+            value: invoicesStats?.total || 0,
+            subtitle: `$${(invoicesStats?.total_monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            icon: FileText,
+            color: "text-green-600",
+        },
+        {
+            name: "Facturas Provisionadas",
+            value: invoicesStats?.provisionadas || 0,
+            subtitle: "Estado provisionado",
+            icon: CheckCircle,
+            color: "text-green-600",
+        },
+        {
+            name: "Requieren Revisión",
+            value: invoicesStats?.pendientes_revision || 0,
+            subtitle: "Facturas pendientes",
+            icon: AlertCircle,
+            color: "text-yellow-600",
+        },
+    ];
+
     return (
         <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Stats Cards - Mismo estilo que OTsPage */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat) => {
                     const Icon = stat.icon;
                     return (
-                        <Card key={stat.name}>
+                        <Card key={stat.name} className="hover:shadow-lg transition-shadow">
                             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                                 <CardTitle className="text-sm font-medium text-gray-600">
                                     {stat.name}
                                 </CardTitle>
-                                <div
-                                    className={`p-2 rounded-lg ${stat.bgColor}`}
-                                >
-                                    <Icon className={`w-4 h-4 ${stat.color}`} />
-                                </div>
+                                <Icon className={`w-5 h-5 ${stat.color}`} />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-3xl font-bold text-gray-900">
                                     {stat.value}
                                 </div>
-                                <p className="text-xs text-gray-600 mt-1">
-                                    <span
-                                        className={
-                                            stat.trend === "up"
-                                                ? "text-green-600"
-                                                : stat.trend === "down"
-                                                ? "text-red-600"
-                                                : "text-gray-600"
-                                        }
-                                    >
-                                        {stat.change}
-                                    </span>{" "}
-                                    vs. mes anterior
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {stat.subtitle}
                                 </p>
                             </CardContent>
                         </Card>
@@ -145,43 +130,68 @@ export function DashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {recentInvoices.map((invoice) => (
-                                <div
-                                    key={invoice.id}
-                                    className="flex items-center justify-between pb-4 border-b last:border-b-0 last:pb-0"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <div className="p-2 bg-blue-50 rounded-lg">
-                                            <FileText className="w-4 h-4 text-blue-600" />
+                        {loadingInvoices ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                            </div>
+                        ) : recentInvoices && recentInvoices.length > 0 ? (
+                            <div className="space-y-4">
+                                {recentInvoices.map((invoice) => (
+                                    <Link
+                                        key={invoice.id}
+                                        to={`/invoices/${invoice.id}`}
+                                        className="flex items-center justify-between pb-4 border-b last:border-b-0 last:pb-0 hover:bg-gray-50 transition-colors rounded-lg p-2"
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className="p-2 bg-blue-50 rounded-lg">
+                                                <FileText className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {invoice.numero_factura ||
+                                                        "SIN NÚMERO"}
+                                                </p>
+                                                <p className="text-xs text-gray-600">
+                                                    {invoice.proveedor_data
+                                                        ?.nombre ||
+                                                        invoice.proveedor_nombre ||
+                                                        "Sin proveedor"}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {invoice.numero}
-                                            </p>
-                                            <p className="text-xs text-gray-600">
-                                                {invoice.proveedor}
-                                            </p>
+                                        <div className="text-right">
+                                            <div className="flex items-center justify-end">
+                                                <DollarSign className="w-4 h-4 text-gray-500 mr-1" />
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {invoice.monto?.toLocaleString(
+                                                        "es-MX",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        }
+                                                    ) || "0.00"}
+                                                </p>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    estadoBadgeVariant[
+                                                        invoice.estado_provision
+                                                    ] || "secondary"
+                                                }
+                                                className="mt-1"
+                                            >
+                                                {invoice.estado_provision_display ||
+                                                    invoice.estado_provision}
+                                            </Badge>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {invoice.monto}
-                                        </p>
-                                        <Badge
-                                            variant={
-                                                estadoBadgeVariant[
-                                                    invoice.estado
-                                                ]
-                                            }
-                                            className="mt-1"
-                                        >
-                                            {invoice.estado}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">
+                                No hay facturas recientes
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -195,41 +205,50 @@ export function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-3">
-                            <button className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <Link
+                                to="/invoices/new"
+                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
                                 <FileText className="w-5 h-5 mr-3 text-blue-600" />
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                        Nueva Factura
+                                        Subir Facturas
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        Registrar manualmente
+                                        Cargar facturas al sistema
                                     </p>
                                 </div>
-                            </button>
+                            </Link>
 
-                            <button className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-                                <Truck className="w-5 h-5 mr-3 text-blue-600" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                        Nueva OT
-                                    </p>
-                                    <p className="text-xs text-gray-600">
-                                        Crear orden de transporte
-                                    </p>
-                                </div>
-                            </button>
-
-                            <button className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <Link
+                                to="/invoices"
+                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
                                 <TrendingUp className="w-5 h-5 mr-3 text-blue-600" />
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                        Ver Reportes
+                                        Ver Facturas
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        Estadísticas y análisis
+                                        Revisar y gestionar facturas
                                     </p>
                                 </div>
-                            </button>
+                            </Link>
+
+                            <Link
+                                to="/ots"
+                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                                <Truck className="w-5 h-5 mr-3 text-blue-600" />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        Ver OTs
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        Revisar órdenes de transporte
+                                    </p>
+                                </div>
+                            </Link>
                         </div>
                     </CardContent>
                 </Card>

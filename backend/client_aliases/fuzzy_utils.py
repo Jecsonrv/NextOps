@@ -152,29 +152,32 @@ def has_common_keywords(tokens1, tokens2, min_common=1):
         min_common (int): Mínimo de palabras comunes requeridas
 
     Returns:
-        bool: True si tienen al menos min_common palabras en común
+        tuple: (bool: cumple mínimo, int: cantidad de palabras comunes)
     """
     if not tokens1 or not tokens2:
-        return False
+        return False, 0
 
     # Convertir a sets para intersección
     set1 = set(tokens1)
     set2 = set(tokens2)
 
     common = set1 & set2
-    return len(common) >= min_common
+    common_count = len(common)
+
+    return common_count >= min_common, common_count
 
 
 def calculate_smart_similarity(name1, name2):
     """
     Calcula similitud inteligente entre dos nombres usando múltiples capas.
 
-    Algoritmo mejorado:
+    Algoritmo mejorado con protección anti-falsos positivos:
     1. Extrae sufijos legales y detecta razones sociales diferentes
     2. Compara partes de negocio sin sufijos
     3. Detecta errores de captura (S.A. vs LTDA con mismo nombre base)
-    4. Valida palabras clave comunes
-    5. Combina múltiples métricas de fuzzy matching
+    4. Valida palabras clave comunes (mínimo 2 para nombres largos)
+    5. Valida similitud del primer token (nombre principal del negocio)
+    6. Combina múltiples métricas de fuzzy matching con penalizaciones estrictas
 
     Args:
         name1 (str): Primer nombre
@@ -183,7 +186,7 @@ def calculate_smart_similarity(name1, name2):
     Returns:
         dict: {
             'score': float (0-100),
-            'confidence': str ('high'|'medium'|'low'),
+            'confidence': str ('high'|'medium'|'low'|'very_low'),
             'details': {
                 'business_part1': str,
                 'business_part2': str,
@@ -194,6 +197,8 @@ def calculate_smart_similarity(name1, name2):
                 'suffix_mismatch': bool,
                 'society_type_only_diff': bool,
                 'has_common_keywords': bool,
+                'common_keywords_count': int,
+                'first_token_similar': bool,
                 'penalties_applied': list
             }
         }
@@ -260,8 +265,35 @@ def calculate_smart_similarity(name1, name2):
             }
         }
 
-    # Paso 4: Validaciones de similitud
-    has_keywords = has_common_keywords(tokens1, tokens2, min_common=1)
+    # Paso 4: Validaciones de similitud con requisitos más estrictos
+
+    # 4.1: Determinar mínimo de palabras comunes según longitud
+    # Para nombres con 3+ tokens, requerir al menos 2 en común
+    max_tokens = max(len(tokens1), len(tokens2))
+    min_required_common = 2 if max_tokens >= 3 else 1
+
+    has_keywords, common_count = has_common_keywords(tokens1, tokens2, min_common=min_required_common)
+
+    # 4.2: Validar similitud del primer token (nombre principal del negocio)
+    # Esto previene casos como "JUGUESAL" vs "EAL" o "DIMEGA" vs "KANGURO"
+    first_token_similar = False
+    first_token_score = 0
+
+    if tokens1 and tokens2:
+        first1 = tokens1[0]
+        first2 = tokens2[0]
+
+        # Calcular similitud del primer token
+        first_token_score = fuzz.ratio(first1, first2)
+
+        # Considerar similar si:
+        # - Score >= 80, O
+        # - Uno está contenido en el otro (ej: "WALMART" y "WALMART MEXICO")
+        first_token_similar = (
+            first_token_score >= 80 or
+            first1 in first2 or
+            first2 in first1
+        )
 
     # Reconstruir nombres de negocio sin stop words
     clean_b1 = ' '.join(tokens1)
@@ -275,7 +307,7 @@ def calculate_smart_similarity(name1, name2):
     # Combinar métricas con pesos
     base_score = (token_sort * 0.5) + (partial * 0.3) + (exact * 0.2)
 
-    # Paso 5: Aplicar penalizaciones y ajustes
+    # Paso 5: Aplicar penalizaciones y ajustes ESTRICTOS
 
     # Penalización 1: Sufijos incompatibles
     if suffix_mismatch:
@@ -283,19 +315,33 @@ def calculate_smart_similarity(name1, name2):
         base_score *= 0.3  # Penalizar un 70% - ALERTA de que son diferentes
         penalties.append('different_legal_entities')
 
-    # Penalización 2: Sin palabras clave comunes
+    # Penalización 2: Sin palabras clave comunes (MÁS ESTRICTA)
     if not has_keywords:
-        base_score *= 0.5
+        # Reducir score drásticamente si no hay palabras comunes
+        base_score *= 0.2  # Era 0.5, ahora 0.2 para ser más estricto
         penalties.append('no_common_keywords')
+    elif common_count == 1 and max_tokens >= 3:
+        # Solo 1 palabra común en nombres largos → probablemente diferentes
+        base_score *= 0.4
+        penalties.append('insufficient_common_keywords')
+
+    # Penalización 3 (NUEVA): Primer token muy diferente
+    if not first_token_similar:
+        # El nombre principal del negocio es diferente → MUY probablemente diferentes
+        # Ejemplos que esto previene:
+        # - "JUGUESAL" vs "EAL"
+        # - "DIMEGA" vs "KANGURO"
+        base_score *= 0.3
+        penalties.append('first_token_mismatch')
 
     # Ajuste positivo: Solo difiere tipo societario con nombre base igual
-    if society_type_only_diff and token_sort >= 90:
+    if society_type_only_diff and token_sort >= 90 and first_token_similar:
         # Probablemente error de captura (S.A. vs LTDA pero mismo nombre)
         # Mantener score alto si el nombre base es muy similar
         base_score = max(base_score, 85.0)  # Garantizar al menos 85%
         penalties.append('society_type_variation_detected')
 
-    # Penalización 3: Longitud muy diferente
+    # Penalización 4: Longitud muy diferente
     len1 = len(clean_b1)
     len2 = len(clean_b2)
     length_ratio = min(len1, len2) / max(len1, len2) if max(len1, len2) > 0 else 0
@@ -329,6 +375,9 @@ def calculate_smart_similarity(name1, name2):
             'tokens1': tokens1,
             'tokens2': tokens2,
             'has_common_keywords': has_keywords,
+            'common_keywords_count': common_count,
+            'first_token_similar': first_token_similar,
+            'first_token_score': first_token_score,
             'length_ratio': round(length_ratio, 2),
             'token_sort': token_sort,
             'partial': partial,

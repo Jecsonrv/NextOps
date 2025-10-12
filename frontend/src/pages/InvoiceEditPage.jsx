@@ -1,8 +1,3 @@
-/**
- * Página para editar una factura existente
- * Permite actualizar todos los campos editables y estados
- */
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -298,7 +293,7 @@ export function InvoiceEditPage() {
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-4xl font-bold text-gray-900">
                             Editar Factura
                         </h1>
                         <p className="text-gray-600 mt-1">
@@ -491,10 +486,11 @@ export function InvoiceEditPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="estado_provision" className="block text-sm font-medium text-gray-700 mb-1">
                                     Estado de Provisión
                                 </label>
                                 <select
+                                    id="estado_provision"
                                     name="estado_provision"
                                     value={formData.estado_provision}
                                     onChange={handleChange}

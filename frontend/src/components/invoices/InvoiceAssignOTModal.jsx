@@ -33,20 +33,15 @@ export function InvoiceAssignOTModal({ isOpen, onClose, invoice, onAssign }) {
         setIsSearching(true);
         setError(null);
         try {
-            console.log("🔍 Buscando OTs con término:", searchValue);
             const response = await apiClient.get("/ots/", {
                 params: {
                     search: searchValue,
-                    page_size: 100, // Aumentado a 100 resultados
+                    page_size: 100,
                 },
             });
-            console.log("Respuesta de búsqueda:", response.data);
             const results = response.data.results || response.data || [];
             setSearchResults(results);
-            console.log(`✅ ${results.length} OTs encontradas`);
         } catch (error) {
-            console.error("❌ Error al buscar OTs:", error);
-            console.error("Detalles del error:", error.response?.data);
             const errorMsg =
                 error.response?.data?.detail ||
                 error.response?.data?.message ||
@@ -92,14 +87,7 @@ export function InvoiceAssignOTModal({ isOpen, onClose, invoice, onAssign }) {
         setSuccessMessage(null);
 
         try {
-            console.log(
-                "🔄 Asignando OT",
-                selectedOT.numero_ot,
-                "a factura",
-                invoice.numero_factura
-            );
             await onAssign(selectedOT.id);
-            console.log("✅ OT asignada exitosamente");
 
             // Mostrar mensaje de éxito
             setSuccessMessage(
@@ -111,7 +99,6 @@ export function InvoiceAssignOTModal({ isOpen, onClose, invoice, onAssign }) {
                 onClose();
             }, 1500);
         } catch (error) {
-            console.error("❌ Error al asignar OT:", error);
             const errorMsg =
                 error.response?.data?.detail ||
                 error.response?.data?.message ||

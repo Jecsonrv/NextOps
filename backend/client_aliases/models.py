@@ -5,8 +5,8 @@ El sistema detecta clientes similares usando fuzzy matching pero NUNCA fusiona
 automáticamente. Siempre requiere aprobación manual del administrador.
 
 Casos contemplados:
-- ALMACENES SIMAN, S.A. DE C.V. (El Salvador) ≠ ALMACENES SIMAN, S.A. (Nicaragua)
 - Variaciones de formato: mayúsculas/minúsculas, puntuación, espacios extras
+- Nombres similares que corresponden a empresas diferentes
 """
 
 from django.db import models
@@ -45,15 +45,7 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
         db_index=True,
         help_text="Alias corto para usar en nombres de archivos (ej: 'SIMAN', 'WALMART', 'PRICESMART')"
     )
-    
-    # País para diferenciar entidades similares de diferentes países
-    country = models.CharField(
-        max_length=3,
-        blank=True,
-        null=True,
-        help_text="Código ISO del país (GT, SV, NI, etc) - ayuda a diferenciar empresas similares"
-    )
-    
+
     # Proveedor asociado (si aplica)
     provider = models.ForeignKey(
         Provider,
@@ -114,17 +106,13 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
         ordering = ['-usage_count', 'normalized_name']
         indexes = [
             models.Index(fields=['normalized_name']),
-            models.Index(fields=['country', 'normalized_name']),
             models.Index(fields=['is_verified']),
         ]
-        # Un nombre normalizado puede repetirse SOLO si son de diferentes países
-        # o si uno está fusionado
         unique_together = []  # No forzamos unicidad aquí
     
     def __str__(self):
-        country_str = f" ({self.country})" if self.country else ""
         merged_str = " [FUSIONADO]" if self.merged_into else ""
-        return f"{self.original_name}{country_str}{merged_str}"
+        return f"{self.original_name}{merged_str}"
     
     def clean(self):
         """Validaciones antes de guardar"""

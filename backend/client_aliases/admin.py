@@ -14,7 +14,6 @@ class ClientAliasAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'original_name',
-        'country_flag',
         'provider_link',
         'usage_badge',
         'verified_badge',
@@ -23,7 +22,6 @@ class ClientAliasAdmin(admin.ModelAdmin):
     ]
     
     list_filter = [
-        'country',
         'is_verified',
         'provider',
         ('merged_into', admin.EmptyFieldListFilter),
@@ -53,8 +51,7 @@ class ClientAliasAdmin(admin.ModelAdmin):
             'fields': (
                 'id',
                 'original_name',
-                'normalized_name',
-                'country'
+                'normalized_name'
             )
         }),
         ('Asociaciones', {
@@ -92,30 +89,7 @@ class ClientAliasAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Incluir soft deleted para que el admin pueda verlos"""
         return ClientAlias.all_objects.all()
-    
-    def country_flag(self, obj):
-        """Muestra bandera del país"""
-        if obj.country:
-            return format_html(
-                '<span style="font-size: 1.2em;" title="{}">{}</span>',
-                obj.country,
-                self._get_flag_emoji(obj.country)
-            )
-        return '-'
-    country_flag.short_description = 'País'
-    
-    def _get_flag_emoji(self, country_code):
-        """Convierte código de país a emoji de bandera"""
-        flags = {
-            'GT': '🇬🇹',
-            'SV': '🇸🇻',
-            'NI': '🇳🇮',
-            'HN': '🇭🇳',
-            'CR': '🇨🇷',
-            'PA': '🇵🇦',
-        }
-        return flags.get(country_code.upper(), '🌐')
-    
+
     def provider_link(self, obj):
         """Link al proveedor"""
         if obj.provider:
@@ -284,8 +258,7 @@ class SimilarityMatchAdmin(admin.ModelAdmin):
     def alias_1_link(self, obj):
         """Link al primer alias"""
         url = reverse('admin:client_aliases_clientalias_change', args=[obj.alias_1.id])
-        country = f" 🇬🇹" if obj.alias_1.country == 'GT' else f" 🇸🇻" if obj.alias_1.country == 'SV' else ""
-        return format_html('<a href="{}">{}</a>{}', url, obj.alias_1.original_name[:40], country)
+        return format_html('<a href="{}">{}</a>', url, obj.alias_1.original_name[:40])
     alias_1_link.short_description = 'Alias 1'
     
     def similarity_arrow(self, obj):
@@ -296,8 +269,7 @@ class SimilarityMatchAdmin(admin.ModelAdmin):
     def alias_2_link(self, obj):
         """Link al segundo alias"""
         url = reverse('admin:client_aliases_clientalias_change', args=[obj.alias_2.id])
-        country = f" 🇬🇹" if obj.alias_2.country == 'GT' else f" 🇸🇻" if obj.alias_2.country == 'SV' else ""
-        return format_html('<a href="{}">{}</a>{}', url, obj.alias_2.original_name[:40], country)
+        return format_html('<a href="{}">{}</a>', url, obj.alias_2.original_name[:40])
     alias_2_link.short_description = 'Alias 2'
     
     def score_badge(self, obj):

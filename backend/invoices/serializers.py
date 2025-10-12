@@ -5,7 +5,7 @@ Maneja la serialización de facturas y archivos subidos.
 
 from rest_framework import serializers
 from decimal import Decimal
-from .models import Invoice, UploadedFile
+from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
 from ots.models import OT
 from catalogs.models import Provider
 
@@ -57,6 +57,12 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     esta_vencida = serializers.SerializerMethodField()
     esta_proxima_a_vencer = serializers.SerializerMethodField()
     
+    has_disputes = serializers.SerializerMethodField()
+    dispute_id = serializers.SerializerMethodField()
+    has_credit_notes = serializers.SerializerMethodField()
+    es_costo_vinculado_ot = serializers.SerializerMethodField()
+    debe_excluirse_estadisticas = serializers.SerializerMethodField()
+
     class Meta:
         model = Invoice
         fields = [
@@ -73,6 +79,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'esta_vencida',
             'esta_proxima_a_vencer',
             'monto',
+            'monto_aplicable',
             'tipo_costo',
             'tipo_costo_display',
             'proveedor_nombre',
@@ -88,6 +95,11 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'assignment_method',
             'file_url',
             'created_at',
+            'has_disputes',
+            'dispute_id',
+            'has_credit_notes',
+            'es_costo_vinculado_ot',
+            'debe_excluirse_estadisticas',
         ]
     
     def get_proveedor_data(self, obj):
@@ -142,6 +154,27 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         """Si está próxima a vencer"""
         return obj.esta_proxima_a_vencer()
 
+    def get_has_disputes(self, obj):
+        return obj.disputas.exists()
+    
+    def get_dispute_id(self, obj):
+        """Retorna el ID de la disputa activa (abierta o en revisión)"""
+        disputa_activa = obj.disputas.filter(
+            estado__in=['abierta', 'en_revision']
+        ).first()
+        return disputa_activa.id if disputa_activa else None
+
+    def get_has_credit_notes(self, obj):
+        return obj.notas_credito.exists()
+    
+    def get_es_costo_vinculado_ot(self, obj):
+        """Indica si es un costo vinculado a OT (Flete/Cargos Naviera)"""
+        return obj.es_costo_vinculado_ot()
+    
+    def get_debe_excluirse_estadisticas(self, obj):
+        """Indica si debe excluirse de estadísticas (anulada, rechazada, disputada)"""
+        return obj.debe_excluirse_de_estadisticas()
+
 
 class InvoiceDetailSerializer(serializers.ModelSerializer):
     """
@@ -150,6 +183,10 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     """
     
     uploaded_file_data = UploadedFileSerializer(source='uploaded_file', read_only=True)
+    # Use SerializerMethodField for related serializers to avoid import-time NameError
+    # (DisputeListSerializer and CreditNoteListSerializer are defined later in this module)
+    disputas = serializers.SerializerMethodField()
+    notas_credito = serializers.SerializerMethodField()
     
     proveedor_data = serializers.SerializerMethodField()
     ot_data = serializers.SerializerMethodField()
@@ -204,6 +241,21 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
                 'tipo': obj.proveedor.tipo,
             }
         return None
+
+    def get_disputas(self, obj):
+        """Serializar disputas relacionadas usando DisputeListSerializer definida más abajo"""
+        try:
+            return DisputeListSerializer(obj.disputas.all(), many=True).data
+        except NameError:
+            # If serializer is not yet defined for some reason, return empty list
+            return []
+
+    def get_notas_credito(self, obj):
+        """Serializar notas de crédito relacionadas usando CreditNoteListSerializer"""
+        try:
+            return CreditNoteListSerializer(obj.notas_credito.all(), many=True).data
+        except NameError:
+            return []
     
     def get_ot_data(self, obj):
         """Datos completos de la OT para display"""
@@ -623,7 +675,7 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
 
 class InvoiceStatsSerializer(serializers.Serializer):
     """Serializer para estadísticas de facturas"""
-    
+
     total = serializers.IntegerField()
     pendientes_revision = serializers.IntegerField()
     provisionadas = serializers.IntegerField()
@@ -632,3 +684,387 @@ class InvoiceStatsSerializer(serializers.Serializer):
     total_monto = serializers.DecimalField(max_digits=12, decimal_places=2)
     por_tipo_costo = serializers.DictField()
     por_proveedor = serializers.ListField()
+    # Estadísticas de facturas excluidas
+    total_disputadas = serializers.IntegerField()
+    total_anuladas = serializers.IntegerField()
+    total_anuladas_parcial = serializers.IntegerField()
+
+
+# ==================== DISPUTE SERIALIZERS ====================
+
+class DisputeListSerializer(serializers.ModelSerializer):
+    """Serializer para listas de disputas"""
+
+    invoice_data = serializers.SerializerMethodField()
+    ot_data = serializers.SerializerMethodField()
+    tipo_disputa_display = serializers.CharField(source='get_tipo_disputa_display', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    resultado_display = serializers.CharField(source='get_resultado_display', read_only=True)
+
+    class Meta:
+        model = Dispute
+        fields = [
+            'id', 'numero_caso', 'operativo', 'invoice', 'invoice_data', 'ot', 'ot_data',
+            'tipo_disputa', 'tipo_disputa_display', 'detalle',
+            'estado', 'estado_display', 'resultado', 'resultado_display',
+            'monto_disputa', 'monto_recuperado',
+            'fecha_resolucion', 'created_at', 'updated_at'
+        ]
+
+    def get_invoice_data(self, obj):
+        """Datos básicos de la factura"""
+        if obj.invoice:
+            return {
+                'id': obj.invoice.id,
+                'numero_factura': obj.invoice.numero_factura,
+                'proveedor_nombre': obj.invoice.proveedor_nombre,
+                'monto': float(obj.invoice.monto),
+            }
+        return None
+
+    def get_ot_data(self, obj):
+        """Datos básicos de la OT"""
+        if obj.ot:
+            return {
+                'id': obj.ot.id,
+                'numero_ot': obj.ot.numero_ot,
+                'cliente_nombre': obj.ot.cliente.original_name if obj.ot.cliente else None,
+                'operativo': obj.ot.operativo,
+            }
+        return None
+
+
+class DisputeDetailSerializer(serializers.ModelSerializer):
+    """Serializer completo para detalle de disputa"""
+
+    invoice_data = serializers.SerializerMethodField()
+    ot_data = serializers.SerializerMethodField()
+    tipo_disputa_display = serializers.CharField(source='get_tipo_disputa_display', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    resultado_display = serializers.CharField(source='get_resultado_display', read_only=True)
+
+    class Meta:
+        model = Dispute
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
+
+    def get_invoice_data(self, obj):
+        """Datos completos de la factura"""
+        if obj.invoice:
+            return {
+                'id': obj.invoice.id,
+                'numero_factura': obj.invoice.numero_factura,
+                'proveedor_nombre': obj.invoice.proveedor_nombre,
+                'monto': float(obj.invoice.monto),
+                'fecha_emision': obj.invoice.fecha_emision.isoformat() if obj.invoice.fecha_emision else None,
+                'estado_provision': obj.invoice.estado_provision,
+            }
+        return None
+
+    def get_ot_data(self, obj):
+        """Datos completos de la OT"""
+        if obj.ot:
+            return {
+                'id': obj.ot.id,
+                'numero_ot': obj.ot.numero_ot,
+                'cliente_nombre': obj.ot.cliente.original_name if obj.ot.cliente else None,
+                'operativo': obj.ot.operativo,
+                'master_bl': obj.ot.master_bl,
+            }
+        return None
+
+
+class DisputeCreateSerializer(serializers.ModelSerializer):
+    """Serializer para crear disputas"""
+
+    invoice_id = serializers.PrimaryKeyRelatedField(
+        queryset=Invoice.objects.filter(is_deleted=False),
+        source='invoice',
+        required=True
+    )
+
+    ot_id = serializers.PrimaryKeyRelatedField(
+        queryset=OT.objects.filter(is_deleted=False),
+        source='ot',
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = Dispute
+        fields = [
+            'invoice_id', 'ot_id', 'tipo_disputa', 'detalle',
+            'monto_disputa', 'monto_recuperado', 'numero_caso', 'operativo'
+        ]
+
+    def validate_monto_disputa(self, value):
+        """Validar monto de disputa"""
+        if value < 0:
+            raise serializers.ValidationError("El monto de disputa debe ser positivo")
+        return value
+    
+    def validate_numero_caso(self, value):
+        """Validar que numero_caso no esté vacío"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El número de caso es obligatorio")
+        return value.strip()
+    
+    def validate(self, data):
+        """Validar que no exista una disputa activa para la misma factura"""
+        invoice = data.get('invoice')
+        if invoice:
+            # Verificar si ya existe una disputa activa (no resuelta ni cerrada)
+            disputas_activas = Dispute.objects.filter(
+                invoice=invoice,
+                estado__in=['abierta', 'en_revision'],
+                is_deleted=False
+            ).exists()
+            
+            if disputas_activas:
+                raise serializers.ValidationError({
+                    'invoice_id': 'Ya existe una disputa activa para esta factura. Debe resolverse o cerrarse antes de crear una nueva.'
+                })
+        
+        return data
+
+
+class DisputeUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para actualizar disputas"""
+
+    class Meta:
+        model = Dispute
+        fields = [
+            'estado', 'resultado', 'resolucion', 'notas', 
+            'fecha_resolucion', 'numero_caso', 'operativo', 
+            'monto_recuperado'
+        ]
+    
+    def update(self, instance, validated_data):
+        old_estado = instance.estado
+        old_resultado = instance.resultado
+        new_estado = validated_data.get('estado', old_estado)
+        new_resultado = validated_data.get('resultado', old_resultado)
+        
+        # Actualizar la disputa
+        dispute = super().update(instance, validated_data)
+        
+        # Si cambió el estado, crear evento
+        if old_estado != new_estado:
+            DisputeEvent.objects.create(
+                dispute=dispute,
+                tipo='cambio_estado',
+                descripcion=f'Estado cambiado de {dict(Dispute.ESTADO_CHOICES)[old_estado]} a {dict(Dispute.ESTADO_CHOICES)[new_estado]}',
+                usuario=self.context.get('request').user.username if self.context.get('request') else ''
+            )
+        
+        # Si cambió el resultado, crear evento (ya se maneja en el modelo pero agregamos uno adicional)
+        if old_resultado != new_resultado and new_resultado != 'pendiente':
+            DisputeEvent.objects.create(
+                dispute=dispute,
+                tipo='resolucion',
+                descripcion=f'Resultado: {dict(Dispute.RESULTADO_CHOICES)[new_resultado]}. {validated_data.get("resolucion", "")}',
+                usuario=self.context.get('request').user.username if self.context.get('request') else '',
+                monto_recuperado=validated_data.get('monto_recuperado')
+            )
+        
+        return dispute
+
+
+class DisputeEventSerializer(serializers.ModelSerializer):
+    """Serializer para eventos de disputas"""
+
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = DisputeEvent
+        fields = [
+            'id', 'tipo', 'tipo_display', 'descripcion',
+            'usuario', 'monto_recuperado', 'metadata', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
+# ==================== CREDIT NOTE SERIALIZERS ====================
+
+class CreditNoteListSerializer(serializers.ModelSerializer):
+    """Serializer para listas de notas de crédito"""
+
+    proveedor_data = serializers.SerializerMethodField()
+    invoice_data = serializers.SerializerMethodField()
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = CreditNote
+        fields = [
+            'id', 'numero_nota', 'proveedor', 'proveedor_nombre', 'proveedor_data',
+            'invoice_relacionada', 'invoice_data', 'fecha_emision', 'monto',
+            'motivo', 'estado', 'estado_display', 'fecha_aplicacion',
+            'created_at', 'updated_at'
+        ]
+
+    def get_proveedor_data(self, obj):
+        """Datos del proveedor"""
+        if obj.proveedor:
+            return {
+                'id': obj.proveedor.id,
+                'nombre': obj.proveedor.nombre,
+                'tipo': obj.proveedor.tipo,
+            }
+        return None
+
+    def get_invoice_data(self, obj):
+        """Datos de la factura relacionada"""
+        if obj.invoice_relacionada:
+            return {
+                'id': obj.invoice_relacionada.id,
+                'numero_factura': obj.invoice_relacionada.numero_factura,
+                'monto': float(obj.invoice_relacionada.monto),
+            }
+        return None
+
+
+class CreditNoteDetailSerializer(serializers.ModelSerializer):
+    """Serializer completo para detalle de nota de crédito"""
+
+    proveedor_data = serializers.SerializerMethodField()
+    invoice_data = serializers.SerializerMethodField()
+    uploaded_file_data = UploadedFileSerializer(source='uploaded_file', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CreditNote
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
+
+    def get_proveedor_data(self, obj):
+        """Datos completos del proveedor"""
+        if obj.proveedor:
+            return {
+                'id': obj.proveedor.id,
+                'nombre': obj.proveedor.nombre,
+                'tipo': obj.proveedor.tipo,
+                'tipo_display': obj.proveedor.get_tipo_display(),
+                'payment_terms': obj.proveedor.payment_terms,
+            }
+        return None
+
+    def get_invoice_data(self, obj):
+        """Datos completos de la factura relacionada"""
+        if obj.invoice_relacionada:
+            return {
+                'id': obj.invoice_relacionada.id,
+                'numero_factura': obj.invoice_relacionada.numero_factura,
+                'monto': float(obj.invoice_relacionada.monto),
+                'fecha_emision': obj.invoice_relacionada.fecha_emision.isoformat() if obj.invoice_relacionada.fecha_emision else None,
+                'proveedor_nombre': obj.invoice_relacionada.proveedor_nombre,
+            }
+        return None
+
+    def get_file_url(self, obj):
+        """URL del archivo"""
+        if obj.uploaded_file:
+            return f"/media/{obj.uploaded_file.path}"
+        return None
+
+
+class CreditNoteCreateSerializer(serializers.ModelSerializer):
+    """Serializer para crear notas de crédito"""
+
+    proveedor_id = serializers.PrimaryKeyRelatedField(
+        queryset=Provider.objects.all(),
+        source='proveedor',
+        required=True
+    )
+
+    invoice_relacionada_id = serializers.PrimaryKeyRelatedField(
+        queryset=Invoice.objects.filter(is_deleted=False),
+        source='invoice_relacionada',
+        required=False,
+        allow_null=True
+    )
+
+    file = serializers.FileField(write_only=True, required=False)
+
+    class Meta:
+        model = CreditNote
+        fields = [
+            'numero_nota', 'proveedor_id', 'invoice_relacionada_id',
+            'fecha_emision', 'monto', 'motivo', 'notas', 'file'
+        ]
+
+    def validate_numero_nota(self, value):
+        """Validar que el número de nota no exista"""
+        if CreditNote.objects.filter(numero_nota=value, is_deleted=False).exists():
+            raise serializers.ValidationError(
+                f"Ya existe una nota de crédito con el número {value}"
+            )
+        return value
+
+    def validate_monto(self, value):
+        """El monto debe ser negativo"""
+        if value > 0:
+            # Auto-convertir a negativo
+            return -abs(value)
+        return value
+
+    def create(self, validated_data):
+        """Crear nota de crédito con archivo opcional"""
+        from django.core.files.storage import default_storage
+        from django.utils import timezone
+
+        file = validated_data.pop('file', None)
+        uploaded_file = None
+
+        # Procesar archivo si se proporcionó
+        if file:
+            # Calcular hash
+            file.seek(0)
+            file_content = file.read()
+            file_hash = UploadedFile.calculate_hash(file_content)
+
+            # Verificar si ya existe
+            existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
+
+            if existing_file:
+                uploaded_file = existing_file
+            else:
+                # Guardar archivo nuevo
+                file.seek(0)
+                timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                safe_filename = f"{timestamp}_{file.name}"
+                path = default_storage.save(f'credit_notes/{safe_filename}', file)
+
+                uploaded_file = UploadedFile.objects.create(
+                    filename=file.name,
+                    path=path,
+                    sha256=file_hash,
+                    size=file.size,
+                    content_type=file.content_type
+                )
+
+        # Crear nota de crédito
+        credit_note = CreditNote.objects.create(
+            uploaded_file=uploaded_file,
+            processing_source='upload_manual',
+            processed_by=self.context['request'].user.username if self.context.get('request') else 'system',
+            processed_at=timezone.now(),
+            **validated_data
+        )
+
+        return credit_note
+
+
+class CreditNoteUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para actualizar notas de crédito"""
+
+    invoice_relacionada_id = serializers.PrimaryKeyRelatedField(
+        queryset=Invoice.objects.filter(is_deleted=False),
+        source='invoice_relacionada',
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = CreditNote
+        fields = ['estado', 'invoice_relacionada_id', 'fecha_aplicacion', 'notas']

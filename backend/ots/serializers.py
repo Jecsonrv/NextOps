@@ -163,7 +163,7 @@ class ProvisionHierarchySerializer(serializers.Serializer):
 
 class OTListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listar OTs"""
-    
+
     proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True, allow_null=True)
     cliente_nombre = serializers.CharField(source='cliente.original_name', read_only=True)
     total_contenedores = serializers.SerializerMethodField()
@@ -173,10 +173,15 @@ class OTListSerializer(serializers.ModelSerializer):
     tiempo_transito = serializers.SerializerMethodField()
     estado_display = serializers.SerializerMethodField()
     mbl = serializers.CharField(source='master_bl', read_only=True)
-    
+
+    # Campos relacionados con disputas de facturas
+    has_disputed_invoices = serializers.SerializerMethodField()
+    disputed_invoices_count = serializers.SerializerMethodField()
+    disputed_invoices_amount = serializers.SerializerMethodField()
+
     # Incluir contenedores como array para el frontend
     contenedores = ContenedoresField(read_only=True)
-    
+
     # Forzar que las fechas NO se conviertan a timezone en lectura
     fecha_eta = serializers.DateField(format='%Y-%m-%d', allow_null=True)
     fecha_provision = serializers.DateField(format='%Y-%m-%d', allow_null=True)
@@ -211,6 +216,10 @@ class OTListSerializer(serializers.ModelSerializer):
             'provision_total',
             'fecha_provision',
             'fecha_recepcion_factura',
+            # Campos de disputas
+            'has_disputed_invoices',
+            'disputed_invoices_count',
+            'disputed_invoices_amount',
             'created_at',
         ]
     
@@ -233,9 +242,36 @@ class OTListSerializer(serializers.ModelSerializer):
     
     def get_provision_total(self, obj):
         return obj.get_provision_total()
-    
+
     def get_tiempo_transito(self, obj):
         return obj.get_tiempo_transito_display()
+
+    def get_has_disputed_invoices(self, obj):
+        """Indica si hay facturas de FLETE/CARGOS_NAVIERA disputadas"""
+        return obj.facturas.filter(
+            tipo_costo__in=['FLETE', 'CARGOS_NAVIERA'],
+            estado_provision='disputada',
+            is_deleted=False
+        ).exists()
+
+    def get_disputed_invoices_count(self, obj):
+        """Cuenta de facturas vinculadas disputadas"""
+        return obj.facturas.filter(
+            tipo_costo__in=['FLETE', 'CARGOS_NAVIERA'],
+            estado_provision='disputada',
+            is_deleted=False
+        ).count()
+
+    def get_disputed_invoices_amount(self, obj):
+        """Monto total de facturas vinculadas disputadas"""
+        from decimal import Decimal
+        from django.db.models import Sum
+        amount = obj.facturas.filter(
+            tipo_costo__in=['FLETE', 'CARGOS_NAVIERA'],
+            estado_provision='disputada',
+            is_deleted=False
+        ).aggregate(total=Sum('monto'))['total']
+        return float(amount) if amount else 0.0
 
 
 class OTDetailSerializer(serializers.ModelSerializer):

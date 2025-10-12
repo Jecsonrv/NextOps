@@ -1015,3 +1015,185 @@ class OTViewSet(viewsets.ModelViewSet):
                 {'error': f'Error procesando CSV: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'], url_path='export-excel')
+    def export_excel(self, request):
+        """
+        Exportar OTs a Excel con formato profesional.
+        Respeta todos los filtros aplicados en get_queryset().
+        EXPORTA TODOS LOS REGISTROS FILTRADOS (no solo la página actual).
+
+        Query params: Los mismos que el listado (estado, proveedor, cliente, etc.)
+
+        Retorna un archivo Excel con:
+        - Fechas en formato dd/mm/yyyy
+        - Montos con formato contable
+        - Encabezados con estilo profesional
+        - Anchos de columna ajustados
+        - Colores y formato de tabla
+        """
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+        from openpyxl.utils import get_column_letter
+        from django.http import HttpResponse
+        from datetime import datetime
+
+        # Obtener queryset filtrado SIN PAGINACIÓN (todos los registros)
+        # Desactivar paginación temporalmente
+        self.pagination_class = None
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Crear workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "OTs"
+
+        # Definir headers
+        headers = [
+            'Número OT', 'Estado', 'Cliente', 'Operativo', 'MBL', 'Contenedores',
+            'Naviera', 'Barco', 'Fecha Provisión', 'Fecha Facturación',
+            'Tipo Embarque', 'Puerto Origen', 'Puerto Destino', 'ETD', 'ETA',
+            'ETA Confirmada', 'House BLs', 'Estado Provisión', 'Estado Facturado',
+            'Express Release', 'Contra Entrega', 'Solicitud Facturación',
+            'Envío Cierre OT', 'Fecha Creación', 'Última Actualización', 'Comentarios'
+        ]
+
+        # Estilos profesionales
+        header_fill = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")  # Azul oscuro
+        header_font = Font(color="FFFFFF", bold=True, size=12, name='Calibri')
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        # Estilo para filas alternas
+        alt_fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")  # Gris claro
+        
+        # Bordes
+        thin_border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB')
+        )
+        
+        # Fuente para datos
+        data_font = Font(size=11, name='Calibri')
+        data_alignment = Alignment(horizontal="left", vertical="center")
+
+        # Escribir encabezados
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        # Escribir datos
+        row_num = 2
+        for ot in queryset:
+            # Formatear contenedores
+            contenedores_str = ', '.join(ot.get_contenedores_numeros()) if ot.contenedores else ''
+
+            # Formatear House BLs
+            house_bls_str = ', '.join(ot.house_bls) if ot.house_bls else ''
+
+            row_data = [
+                ot.numero_ot or '',
+                ot.get_estado_display() or '',
+                ot.cliente.original_name if ot.cliente else '',
+                ot.operativo or '',
+                ot.master_bl or '',
+                contenedores_str,
+                ot.proveedor.nombre if ot.proveedor else '',
+                ot.barco or '',
+                ot.fecha_provision,
+                ot.fecha_recepcion_factura,
+                ot.tipo_embarque or '',
+                ot.puerto_origen or '',
+                ot.puerto_destino or '',
+                ot.etd,
+                ot.fecha_eta,
+                ot.fecha_llegada,
+                house_bls_str,
+                ot.get_estado_provision_display() or '',
+                ot.get_estado_facturado_display() or '',
+                ot.express_release_fecha,
+                ot.contra_entrega_fecha,
+                ot.fecha_solicitud_facturacion,
+                ot.envio_cierre_ot,
+                ot.created_at.date() if ot.created_at else None,
+                ot.updated_at.date() if ot.updated_at else None,
+                ot.comentarios or ''
+            ]
+
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num)
+                cell.value = value
+                cell.border = thin_border
+                cell.font = data_font
+                cell.alignment = data_alignment
+                
+                # Aplicar fondo alterno para mejor legibilidad
+                if row_num % 2 == 0:
+                    cell.fill = alt_fill
+
+                # Aplicar formato de fecha para columnas de fecha (DD/MM/YYYY)
+                if col_num in [9, 10, 14, 15, 16, 20, 21, 22, 23, 24, 25]:  # Columnas de fecha
+                    if value:
+                        cell.number_format = 'DD/MM/YYYY'
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            row_num += 1
+
+        # Ajustar anchos de columna
+        column_widths = {
+            1: 15,   # Número OT
+            2: 18,   # Estado
+            3: 30,   # Cliente
+            4: 20,   # Operativo
+            5: 20,   # MBL
+            6: 40,   # Contenedores
+            7: 25,   # Naviera
+            8: 25,   # Barco
+            9: 15,   # Fecha Provisión
+            10: 15,  # Fecha Facturación
+            11: 15,  # Tipo Embarque
+            12: 25,  # Puerto Origen
+            13: 25,  # Puerto Destino
+            14: 12,  # ETD
+            15: 12,  # ETA
+            16: 15,  # ETA Confirmada
+            17: 35,  # House BLs
+            18: 18,  # Estado Provisión
+            19: 18,  # Estado Facturado
+            20: 15,  # Express Release
+            21: 15,  # Contra Entrega
+            22: 18,  # Solicitud Facturación
+            23: 15,  # Envío Cierre OT
+            24: 15,  # Fecha Creación
+            25: 18,  # Última Actualización
+            26: 40   # Comentarios
+        }
+
+        for col_num, width in column_widths.items():
+            ws.column_dimensions[get_column_letter(col_num)].width = width
+
+        # Congelar primera fila
+        ws.freeze_panes = 'A2'
+
+        # Agregar filtros de Excel (autofilter)
+        ws.auto_filter.ref = ws.dimensions
+        
+        # Preparar respuesta HTTP
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        total_records = queryset.count()
+        filename = f'OTs_{total_records}_registros_{timestamp}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+
+        # Guardar workbook en la respuesta
+        wb.save(response)
+
+        return response

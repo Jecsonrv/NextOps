@@ -203,11 +203,6 @@ export function NormalizationModal({
                                             {alias.original_name}
                                         </p>
                                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                            {alias.country && (
-                                                <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium">
-                                                    País: {alias.country}
-                                                </span>
-                                            )}
                                             <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium">
                                                 {alias.usage_count || 0} usos
                                             </span>
@@ -347,14 +342,12 @@ NormalizationModal.propTypes = {
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
             .isRequired,
         original_name: PropTypes.string,
-        country: PropTypes.string,
         usage_count: PropTypes.number,
     }).isRequired,
     targetAlias: PropTypes.shape({
         id: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
             .isRequired,
         original_name: PropTypes.string,
-        country: PropTypes.string,
         usage_count: PropTypes.number,
     }).isRequired,
     similarityScore: PropTypes.number.isRequired,

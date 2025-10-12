@@ -19,6 +19,8 @@ import {
     Regex,
     Target,
     Layers,
+    FileMinus,
+    AlertCircle,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useState } from "react";
@@ -27,6 +29,8 @@ const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "OTs", href: "/ots", icon: Truck },
     { name: "Facturas", href: "/invoices", icon: FileText },
+    { name: "Disputas", href: "/disputes", icon: AlertCircle },
+    { name: "Notas de Crédito", href: "/invoices/credit-notes", icon: FileMinus },
     { name: "Clientes", href: "/clients", icon: Users },
     {
         name: "Catálogos",

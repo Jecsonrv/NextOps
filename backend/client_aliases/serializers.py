@@ -31,7 +31,6 @@ class ClientAliasListSerializer(serializers.ModelSerializer):
             'original_name',
             'normalized_name',
             'short_name',
-            'country',
             'provider_name',
             'is_verified',
             'is_merged',
@@ -81,7 +80,6 @@ class ClientAliasSerializer(serializers.ModelSerializer):
             'original_name',
             'normalized_name',
             'short_name',
-            'country',
             'provider',
             'provider_id',
             'notes',
@@ -156,14 +154,6 @@ class ClientAliasSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"El alias corto '{value}' ya existe")
         
         return value
-    
-    def validate_country(self, value):
-        """Valida que el código de país sea válido"""
-        if value and len(value) > 3:
-            raise serializers.ValidationError(
-                "El código de país debe ser máximo 3 caracteres (ISO 3166)"
-            )
-        return value.upper() if value else None
 
 
 class SimilarityMatchSerializer(serializers.ModelSerializer):
@@ -219,15 +209,7 @@ class FindSimilarSerializer(serializers.Serializer):
         max_value=100.0,
         help_text="Umbral mínimo de similitud (0-100)"
     )
-    
-    country = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-        max_length=3,
-        help_text="Filtrar por país (opcional)"
-    )
-    
+
     limit = serializers.IntegerField(
         default=10,
         min_value=1,

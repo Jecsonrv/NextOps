@@ -40,7 +40,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
     
     queryset = ClientAlias.objects.filter(deleted_at__isnull=True)
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['country', 'is_verified', 'provider']
+    filterset_fields = ['is_verified', 'provider']
     search_fields = ['original_name', 'normalized_name']
     ordering_fields = ['usage_count', 'created_at', 'normalized_name']
     ordering = ['-usage_count', 'normalized_name']
@@ -90,7 +90,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         {
             "name": "ALMACENES SIMAN SA",
             "threshold": 80.0,
-            "country": "GT",  // opcional
             "limit": 10
         }
         """
@@ -99,18 +98,13 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         
         name = serializer.validated_data['name']
         threshold = serializer.validated_data['threshold']
-        country = serializer.validated_data.get('country')
         limit = serializer.validated_data['limit']
-        
+
         # Normalizar el nombre de búsqueda
         normalized = ClientAlias.normalize_name(name)
-        
+
         # Obtener todos los aliases activos
         queryset = self.get_queryset().filter(merged_into__isnull=True)
-        
-        # Filtrar por país si se especifica
-        if country:
-            queryset = queryset.filter(country=country.upper())
         
         # Calcular similitud para cada alias usando algoritmo mejorado
         results = []
@@ -139,7 +133,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             'query': name,
             'normalized_query': normalized,
             'threshold': threshold,
-            'country_filter': country,
             'total_matches': len(results),
             'matches': results[:limit]
         })
@@ -307,39 +300,42 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
     def suggest_all_matches(self, request):
         """
         Genera sugerencias de similitud para TODOS los aliases sin fusionar.
-        
+
         Útil para hacer una revisión inicial masiva.
         Solo genera sugerencias, NO fusiona nada.
-        
+
         Query params:
         - threshold: umbral mínimo (default: 85)
         - limit_per_alias: máximo de sugerencias por alias (default: 5)
         """
         threshold = float(request.query_params.get('threshold', 85.0))
         limit_per_alias = int(request.query_params.get('limit_per_alias', 5))
-        
-        # Obtener aliases sin fusionar
+
+        # PASO 1: Limpiar sugerencias obsoletas (falsos positivos del algoritmo anterior)
+        obsolete_removed = self._clean_obsolete_suggestions(threshold, request.user)
+
+        # PASO 2: Obtener aliases sin fusionar
         aliases = self.get_queryset().filter(
             merged_into__isnull=True
         ).order_by('id')
-        
+
         suggestions_created = 0
         suggestions_skipped = 0
-        
+
         # Comparar cada alias con los siguientes
         aliases_list = list(aliases)
         for i, alias_1 in enumerate(aliases_list):
             suggestions_for_this = 0
-            
+
             for alias_2 in aliases_list[i+1:]:
                 if suggestions_for_this >= limit_per_alias:
                     break
-                
+
                 # Verificar si ya existe una sugerencia (aprobada o rechazada)
                 existing = SimilarityMatch.objects.filter(
                     Q(alias_1=alias_1, alias_2=alias_2) | Q(alias_1=alias_2, alias_2=alias_1)
                 ).exists()
-                
+
                 if existing:
                     suggestions_skipped += 1
                     continue
@@ -360,14 +356,63 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
                     )
                     suggestions_created += 1
                     suggestions_for_this += 1
-        
+
         return Response({
             'message': 'Proceso de sugerencias completado',
             'total_aliases_analyzed': len(aliases_list),
             'suggestions_created': suggestions_created,
             'suggestions_skipped': suggestions_skipped,
+            'obsolete_removed': obsolete_removed,
             'threshold_used': threshold
         }, status=status.HTTP_200_OK)
+
+    def _clean_obsolete_suggestions(self, current_threshold, user):
+        """
+        Limpia sugerencias obsoletas que ya no cumplen con el nuevo algoritmo.
+
+        Esto elimina falsos positivos antiguos cuando mejoramos el algoritmo de
+        fuzzy matching.
+
+        Args:
+            current_threshold: Umbral mínimo de similitud
+            user: Usuario que ejecuta la operación
+
+        Returns:
+            int: Cantidad de sugerencias eliminadas/rechazadas
+        """
+        # Obtener todas las sugerencias pendientes con aliases activos
+        pending_matches = SimilarityMatch.objects.filter(
+            status='pending',
+            alias_1__deleted_at__isnull=True,
+            alias_2__deleted_at__isnull=True,
+            alias_1__merged_into__isnull=True,
+            alias_2__merged_into__isnull=True
+        ).select_related('alias_1', 'alias_2')
+
+        obsolete_count = 0
+
+        for match in pending_matches:
+            # Recalcular similitud con el algoritmo mejorado actual
+            similarity_result = calculate_smart_similarity(
+                match.alias_1.original_name,
+                match.alias_2.original_name
+            )
+
+            new_score = similarity_result['score']
+
+            # Si el nuevo score está por debajo del umbral, rechazar la sugerencia
+            if new_score < current_threshold:
+                match.status = 'rejected'
+                match.review_notes = (
+                    f'Auto-rechazado: el algoritmo mejorado calculó {new_score:.1f}% '
+                    f'(umbral: {current_threshold}%). Penalizaciones: {similarity_result["details"].get("penalties_applied", [])}'
+                )
+                match.reviewed_by = user
+                match.reviewed_at = timezone.now()
+                match.save()
+                obsolete_count += 1
+
+        return obsolete_count
     
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
     def apply_normalization(self, request):
@@ -537,15 +582,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         top_clients = list(
             active_aliases
             .order_by('-usage_count')[:10]
-            .values('id', 'original_name', 'usage_count', 'country')
-        )
-        
-        # Distribución por país
-        by_country = list(
-            active_aliases
-            .values('country')
-            .annotate(count=Count('id'))
-            .order_by('-count')
+            .values('id', 'original_name', 'usage_count')
         )
         
         return Response({
@@ -556,7 +593,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             'approved_matches': approved_matches,
             'rejected_matches': rejected_matches,
             'top_clients': top_clients,
-            'by_country': by_country,
         }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
@@ -632,19 +668,19 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
     def regenerate_short_name(self, request, pk=None):
         """
         Regenera el short_name de un alias específico.
-        
+
         Útil cuando el usuario no está satisfecho con el alias autogenerado
         y quiere que el sistema intente generar uno nuevo antes de personalizarlo.
         """
         alias = self.get_object()
-        
+
         old_short_name = alias.short_name
-        
+
         try:
             # Limpiar y forzar regeneración
             alias.short_name = None
             alias.save()
-            
+
             return Response({
                 'message': 'Short name regenerado exitosamente',
                 'alias_id': alias.id,
@@ -656,6 +692,99 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': f'Error al regenerar short name: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsJefeOperaciones])
+    def rename_client(self, request, pk=None):
+        """
+        Renombra un cliente directamente y actualiza todas las OTs que lo usan.
+
+        Esta función permite cambiar el nombre de un cliente sin necesidad de fusionarlo
+        con otro alias. Es útil para corregir ortografía o estandarizar formatos.
+
+        Body:
+        {
+            "new_name": "NUEVO NOMBRE, S.A. DE C.V.",
+            "notes": "Razón del cambio"
+        }
+
+        Response:
+        {
+            "message": "...",
+            "old_name": "...",
+            "new_name": "...",
+            "ots_count": 25,
+            "alias": {...}
+        }
+        """
+        from ots.models import OT
+
+        alias = self.get_object()
+
+        # Validar campos requeridos
+        new_name = request.data.get('new_name', '').strip()
+        notes = request.data.get('notes', '').strip() or ''
+
+        if not new_name:
+            return Response({
+                'error': 'El nuevo nombre es requerido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validar que el nuevo nombre sea diferente
+        if new_name.upper() == alias.original_name.upper():
+            return Response({
+                'error': 'El nuevo nombre es igual al actual'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar si ya existe un alias con ese nombre
+        normalized_new = ClientAlias.normalize_name(new_name)
+        existing_with_name = ClientAlias.objects.filter(
+            normalized_name=normalized_new,
+            deleted_at__isnull=True
+        ).exclude(pk=alias.pk).first()
+
+        if existing_with_name:
+            return Response({
+                'error': f'Ya existe un cliente con el nombre "{existing_with_name.original_name}". '
+                        f'Si deseas fusionarlos, usa la función de normalización en su lugar.',
+                'existing_alias_id': existing_with_name.id
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Guardar nombre anterior para auditoría
+        old_name = alias.original_name
+
+        # Contar OTs afectadas
+        ots_count = OT.objects.filter(cliente=alias, deleted_at__isnull=True).count()
+
+        # Actualizar el alias
+        alias.original_name = new_name
+        alias.normalized_name = normalized_new
+        alias.save()
+
+        # Registrar en historial (crear un registro manual en SimilarityMatch para auditoría)
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO similarity_matches
+                (alias_1_id, alias_2_id, similarity_score, detection_method, status, reviewed_by_id, reviewed_at, review_notes, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            """, [
+                alias.id,
+                alias.id,  # Mismo alias, indica renombrado
+                100.0,
+                'manual_rename',
+                'approved',
+                request.user.id,
+                timezone.now(),
+                f"Renombrado de '{old_name}' a '{new_name}'. Motivo: {notes}. OTs afectadas: {ots_count}"
+            ])
+
+        return Response({
+            'message': f'Cliente renombrado exitosamente. {ots_count} OTs actualizadas.',
+            'old_name': old_name,
+            'new_name': new_name,
+            'ots_count': ots_count,
+            'alias': ClientAliasSerializer(alias).data
+        }, status=status.HTTP_200_OK)
 
 
 class SimilarityMatchViewSet(viewsets.ReadOnlyModelViewSet):

@@ -4,19 +4,23 @@ Maneja CRUD de facturas, upload de archivos, matching y estadísticas.
 """
 
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.core.files.storage import default_storage
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from decimal import Decimal
 from datetime import datetime, date
 import uuid
 import os
+import re
+import zipfile
+from io import BytesIO
+import logging
 
-from .models import Invoice, UploadedFile
+from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
 from ots.models import OT
 from catalogs.models import Provider
 from .serializers import (
@@ -26,6 +30,15 @@ from .serializers import (
     InvoiceUpdateSerializer,
     InvoiceStatsSerializer,
     UploadedFileSerializer,
+    DisputeListSerializer,
+    DisputeDetailSerializer,
+    DisputeCreateSerializer,
+    DisputeUpdateSerializer,
+    DisputeEventSerializer,
+    CreditNoteListSerializer,
+    CreditNoteDetailSerializer,
+    CreditNoteCreateSerializer,
+    CreditNoteUpdateSerializer,
 )
 from common.permissions import IsJefeOperaciones
 
@@ -171,61 +184,49 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def _generate_friendly_filename(self, invoice):
         """
         Genera un nombre de archivo amigable para la factura.
-        Formato: {CLIENTE_SHORT}_{PROVEEDOR}_{NUM_FACTURA}.pdf
+        Formato: FACTURA PROVEEDOR NUMERO ALIAS OT.pdf
+        (con espacios, sin guiones)
         
-        Ejemplo: SIMAN_MAERSK_INV-2024-001.pdf
+        Ejemplo: FACTURA MAERSK INV2024001 SIMAN OT2024123.pdf
         """
-        import re
-        from datetime import datetime
-        
         try:
-            parts = []
+            # Construir nombre de archivo limpio
+            proveedor_name = invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre
+            proveedor_name = re.sub(r'[^\w\s]', '', proveedor_name).strip()[:30]
+
+            numero_factura = re.sub(r'[^\w]', '', invoice.numero_factura)[:30]
             
-            # 1. Cliente (short_name si existe)
-            if invoice.ot and invoice.ot.cliente:
-                cliente = invoice.ot.cliente
-                if cliente.short_name:
-                    parts.append(cliente.short_name)
-                else:
-                    # Fallback: usar primeras palabras del nombre normalizado
-                    name_parts = cliente.normalized_name.split()[:2]
-                    parts.append('_'.join(name_parts))
+            cliente_short = ''
+            if invoice.ot and invoice.ot.cliente and invoice.ot.cliente.short_name:
+                cliente_short = re.sub(r'[^\w\s]', '', invoice.ot.cliente.short_name).strip()[:20]
             
-            # 2. Proveedor (primeras palabras)
-            if invoice.proveedor:
-                proveedor_name = invoice.proveedor.nombre.upper()
-            else:
-                proveedor_name = invoice.proveedor_nombre.upper()
-            
-            # Tomar primera palabra significativa del proveedor
-            proveedor_words = re.sub(r'[^\w\s]', '', proveedor_name).split()
-            proveedor_short = next(
-                (w for w in proveedor_words if len(w) > 3 and w not in ['S.A', 'LTDA', 'INC', 'CORP']),
-                proveedor_words[0] if proveedor_words else 'PROVEEDOR'
-            )[:15]
-            parts.append(proveedor_short)
-            
-            # 3. Número de factura (limpio)
-            numero_factura = re.sub(r'[^\w\-]', '', invoice.numero_factura)[:30]
-            parts.append(numero_factura)
-            
-            # 4. Extensión original
+            ot_number = ''
+            if invoice.ot:
+                ot_number = re.sub(r'[^\w]', '', invoice.ot.numero_ot)[:20]
+
+            # Obtener extensión
             original_filename = invoice.uploaded_file.filename or 'invoice.pdf'
-            ext = os.path.splitext(original_filename)[1] or '.pdf'
+            _, ext = os.path.splitext(original_filename)
+            if not ext:
+                ext = '.pdf'
             
-            # Construir filename
-            filename = '_'.join(parts) + ext
+            # Construir nombre con espacios (sin guiones)
+            parts = ['FACTURA', proveedor_name, numero_factura]
+            if cliente_short:
+                parts.append(cliente_short)
+            if ot_number:
+                parts.append(ot_number)
             
-            # Validar que no sea muy largo
-            if len(filename) > 200:
-                # Truncar manteniendo extensión
-                filename = filename[:196] + ext
+            filename = ' '.join(filter(None, parts)) + ext
+
+            # Si es muy largo (>150 chars), usar formato corto
+            if len(filename) > 150:
+                filename = f"{numero_factura} {ot_number}{ext}" if ot_number else f"{numero_factura}{ext}"
             
             return filename
             
         except Exception as e:
             # En caso de error, retornar None para usar el fallback
-            import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Error generando nombre amigable para factura {invoice.id}: {e}")
             return None
@@ -242,7 +243,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         4. Crear factura con campos auto-detectados
         5. Si se detecta contenedor, intentar match con OT
         """
-        import logging
         from .parsers.pdf_extractor import PDFExtractor
         from .parsers.pattern_service import PatternApplicationService
         
@@ -577,6 +577,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         Query params opcionales:
         - fecha_desde: YYYY-MM-DD
         - fecha_hasta: YYYY-MM-DD
+        - incluir_excluidas: true/false (por defecto false)
+        
+        NOTA: Por defecto se excluyen facturas anuladas, rechazadas y disputadas
+        de las estadísticas de cuentas por pagar.
         """
         queryset = self.get_queryset()
         
@@ -589,6 +593,11 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         if fecha_hasta:
             queryset = queryset.filter(fecha_emision__lte=fecha_hasta)
         
+        # EXCLUIR facturas que no deben contabilizarse (anuladas, rechazadas, disputadas)
+        incluir_excluidas = request.query_params.get('incluir_excluidas', 'false').lower() == 'true'
+        if not incluir_excluidas:
+            queryset = queryset.exclude(estado_provision__in=['anulada', 'rechazada', 'disputada'])
+        
         # Calcular estadísticas
         total = queryset.count()
         pendientes_revision = queryset.filter(requiere_revision=True).count()
@@ -596,14 +605,27 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         facturadas = queryset.filter(estado_facturacion='facturada').count()
         sin_ot = queryset.filter(ot__isnull=True).count()
         
-        # Monto total
-        total_monto = queryset.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        # Estadísticas adicionales de disputas y anulaciones
+        total_disputadas = Invoice.objects.filter(is_deleted=False, estado_provision='disputada').count()
+        total_anuladas = Invoice.objects.filter(is_deleted=False, estado_provision='anulada').count()
+        total_anuladas_parcial = Invoice.objects.filter(is_deleted=False, estado_provision='anulada_parcialmente').count()
+        
+        # Monto total (usar monto_aplicable si existe, sino monto)
+        # Usar Coalesce para obtener monto_aplicable si existe, sino monto
+        from django.db.models import F, Case, When
+        from django.db.models.functions import Coalesce
+        
+        total_monto = queryset.aggregate(
+            total=Sum(Coalesce('monto_aplicable', 'monto'))
+        )['total'] or Decimal('0.00')
         
         # Por tipo de costo
         por_tipo_costo = {}
         for tipo, label in Invoice.TIPO_COSTO_CHOICES:
             count = queryset.filter(tipo_costo=tipo).count()
-            monto = queryset.filter(tipo_costo=tipo).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+            monto = queryset.filter(tipo_costo=tipo).aggregate(
+                total=Sum(Coalesce('monto_aplicable', 'monto'))
+            )['total'] or Decimal('0.00')
             if count > 0:
                 por_tipo_costo[label] = {
                     'count': count,
@@ -615,7 +637,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             queryset.values('proveedor_nombre')
             .annotate(
                 count=Count('id'),
-                total_monto=Sum('monto')
+                total_monto=Sum(Coalesce('monto_aplicable', 'monto'))
             )
             .order_by('-total_monto')[:10]
         )
@@ -629,6 +651,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             'total_monto': total_monto,
             'por_tipo_costo': por_tipo_costo,
             'por_proveedor': por_proveedor,
+            # Estadísticas de facturas excluidas
+            'total_disputadas': total_disputadas,
+            'total_anuladas': total_anuladas,
+            'total_anuladas_parcial': total_anuladas_parcial,
         }
         
         serializer = InvoiceStatsSerializer(data)
@@ -690,13 +716,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def unassign_ot(self, request, pk=None):
         """Desasignar OT de una factura"""
         invoice = self.get_object()
-        
+
         invoice.ot = None
         invoice.ot_number = ''
         invoice.assignment_method = ''
         invoice.requiere_revision = True
         invoice.confianza_match = Decimal('0.000')
-        
+
         # Agregar nota
         notas = request.data.get('notas', 'OT desasignada')
         timestamp = timezone.now().strftime('%Y-%m-%d %H:%M')
@@ -706,11 +732,439 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             invoice.notas += f"\n{nueva_nota}"
         else:
             invoice.notas = nueva_nota
-        
+
         invoice.save()
-        
+
         serializer = InvoiceDetailSerializer(invoice)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='export-excel')
+    def export_excel(self, request):
+        """
+        Exportar facturas a Excel con formato profesional.
+        Respeta todos los filtros aplicados en get_queryset().
+        EXPORTA TODOS LOS REGISTROS FILTRADOS (no solo la página actual).
+        
+        Retorna un archivo Excel con:
+        - Fechas en formato dd/mm/yyyy
+        - Montos con formato contable ($)
+        - Encabezados con estilo profesional
+        - Anchos de columna ajustados
+        - Colores y formato de tabla
+        """
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+
+        # Obtener queryset filtrado SIN PAGINACIÓN (todos los registros)
+        self.pagination_class = None
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # Crear workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Facturas"
+
+        # Estilos profesionales
+        header_fill = PatternFill(start_color="1E40AF", end_color="1E40AF", fill_type="solid")  # Azul oscuro
+        header_font = Font(color="FFFFFF", bold=True, size=12, name='Calibri')
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        # Estilo para filas alternas
+        alt_fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")  # Gris claro
+        
+        # Bordes
+        thin_border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB')
+        )
+        
+        # Fuente para datos
+        data_font = Font(size=11, name='Calibri')
+        data_alignment = Alignment(horizontal="left", vertical="center")
+
+        headers = [
+            'ID', 'Número Factura', 'OT', 'Cliente', 'MBL', 'Contenedor',
+            'Naviera', 'Barco', 'Proveedor', 'NIT Proveedor', 'Tipo Proveedor',
+            'Tipo Costo', 'Monto (USD)', 'Fecha Emisión', 'Fecha Vencimiento',
+            'Fecha Provisión', 'Fecha Facturación', 'Estado Provisión',
+            'Estado Facturación', 'Método Asignación', 'Confianza Match',
+            'Requiere Revisión', 'Notas', 'Creado'
+        ]
+
+        # Escribir headers
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        # Escribir datos
+        for row_num, invoice in enumerate(queryset, 2):
+            # Obtener datos relacionados
+            ot_number = invoice.ot.numero_ot if invoice.ot else ''
+            cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''
+            mbl = invoice.ot.master_bl if invoice.ot else ''
+            contenedor = ', '.join(invoice.ot.contenedores) if invoice.ot and invoice.ot.contenedores else ''
+            naviera = invoice.ot.naviera if invoice.ot else ''
+            barco = invoice.ot.barco if invoice.ot else ''
+
+            row_data = [
+                invoice.id,
+                invoice.numero_factura or '',
+                ot_number,
+                cliente,
+                mbl,
+                contenedor,
+                naviera,
+                barco,
+                invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre,
+                invoice.proveedor_nit or '',
+                invoice.get_tipo_proveedor_display() if invoice.tipo_proveedor else '',
+                invoice.get_tipo_costo_display() if invoice.tipo_costo else '',
+                float(invoice.monto) if invoice.monto else 0.0,
+                invoice.fecha_emision,
+                invoice.fecha_vencimiento,
+                invoice.fecha_provision,
+                invoice.fecha_facturacion,
+                invoice.get_estado_provision_display() if invoice.estado_provision else '',
+                invoice.get_estado_facturacion_display() if invoice.estado_facturacion else '',
+                invoice.assignment_method or '',
+                float(invoice.confianza_match) if invoice.confianza_match else 0.0,
+                'Sí' if invoice.requiere_revision else 'No',
+                invoice.notas or '',
+                invoice.created_at,
+            ]
+
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num, value=value)
+                cell.border = thin_border
+                cell.font = data_font
+                cell.alignment = data_alignment
+                
+                # Aplicar fondo alterno para mejor legibilidad
+                if row_num % 2 == 0:
+                    cell.fill = alt_fill
+
+                # Formato de fechas (DD/MM/YYYY) - columnas 14, 15, 16, 17, 24
+                if col_num in [14, 15, 16, 17, 24]:
+                    if value:
+                        cell.number_format = 'DD/MM/YYYY'
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                # Formato de moneda contable - columna 13 (Monto USD)
+                if col_num == 13:
+                    cell.number_format = '$#,##0.00'
+                    cell.alignment = Alignment(horizontal="right", vertical="center")
+
+                # Formato de porcentaje - columna 21 (Confianza Match)
+                if col_num == 21:
+                    cell.number_format = '0.0%'
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Ajustar anchos de columna
+        column_widths = [
+            8, 20, 15, 25, 18, 15, 20, 20, 25, 15, 18, 15, 12,
+            15, 18, 18, 20, 18, 20, 20, 15, 15, 40, 20
+        ]
+        for col_num, width in enumerate(column_widths, 1):
+            ws.column_dimensions[ws.cell(row=1, column=col_num).column_letter].width = width
+
+        # Congelar primera fila
+        ws.freeze_panes = 'A2'
+        
+        # Agregar filtros de Excel (autofilter)
+        ws.auto_filter.ref = ws.dimensions
+
+        # Crear respuesta HTTP
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        total_records = queryset.count()
+        filename = f'Facturas_{total_records}_registros_{timestamp}.xlsx'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        wb.save(response)
+
+        return response
+
+    @action(detail=False, methods=['post'], url_path='bulk-pdf')
+    def bulk_pdf(self, request):
+        """
+        Descargar múltiples facturas como PDFs individuales.
+        Si es una sola factura, descarga el PDF directamente.
+        Si son múltiples, las empaqueta en un ZIP.
+        
+        Formato de nombres: FACTURA PROVEEDOR NUMERO ALIAS OT.pdf
+
+        Body:
+        {
+            "invoice_ids": [1, 2, 3, ...]
+        }
+        """
+        logger = logging.getLogger(__name__)
+
+        invoice_ids = request.data.get('invoice_ids', [])
+        if not invoice_ids:
+            return Response(
+                {'error': 'Debe proporcionar invoice_ids'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Obtener facturas
+        invoices = Invoice.objects.filter(
+            id__in=invoice_ids, 
+            is_deleted=False
+        ).select_related('ot', 'ot__cliente', 'proveedor', 'uploaded_file')
+
+        if not invoices.exists():
+            return Response(
+                {'error': 'No se encontraron facturas'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Si es solo una factura, descargarla directamente
+        if len(invoice_ids) == 1:
+            invoice = invoices.first()
+            
+            if not invoice.uploaded_file:
+                return Response(
+                    {'error': 'La factura no tiene archivo asociado'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            storage_path = invoice.uploaded_file.path
+            if not default_storage.exists(storage_path):
+                return Response(
+                    {'error': 'Archivo no encontrado'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            try:
+                file_handle = default_storage.open(storage_path, 'rb')
+                filename = self._generate_friendly_filename(invoice)
+                if not filename:
+                    filename = invoice.uploaded_file.filename or 'factura.pdf'
+                
+                content_type = invoice.uploaded_file.content_type or 'application/pdf'
+                response = FileResponse(file_handle, content_type=content_type)
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Length'] = invoice.uploaded_file.size
+                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+                
+                return response
+            except Exception as e:
+                logger.error(f"Error descargando factura {invoice.id}: {e}")
+                return Response(
+                    {'error': 'Error al descargar el archivo'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # Si son múltiples facturas, crear ZIP
+        zip_buffer = BytesIO()
+        processed_count = 0
+
+        try:
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                for invoice in invoices:
+                    if not invoice.uploaded_file:
+                        logger.warning(f"Factura {invoice.id} no tiene archivo asociado")
+                        continue
+
+                    storage_path = invoice.uploaded_file.path
+
+                    if not default_storage.exists(storage_path):
+                        logger.warning(f"Archivo no encontrado: {storage_path}")
+                        continue
+
+                    try:
+                        # Leer archivo del storage
+                        with default_storage.open(storage_path, 'rb') as file_handle:
+                            file_content = file_handle.read()
+
+                        # Generar nombre amigable
+                        filename = self._generate_friendly_filename(invoice)
+                        if not filename:
+                            filename = invoice.uploaded_file.filename or f'factura_{invoice.id}.pdf'
+
+                        # Agregar al ZIP
+                        zip_file.writestr(filename, file_content)
+                        processed_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error procesando factura {invoice.id}: {e}")
+                        continue
+
+            if processed_count == 0:
+                return Response(
+                    {'error': 'No se pudo procesar ninguna factura'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Preparar respuesta ZIP
+            zip_buffer.seek(0)
+            zip_content = zip_buffer.read()
+            
+            response = HttpResponse(zip_content, content_type='application/zip')
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            response['Content-Disposition'] = f'attachment; filename="Facturas_PDF_{timestamp}.zip"'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            response['Content-Length'] = len(zip_content)
+
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error creando ZIP: {e}")
+            return Response(
+                {'error': f'Error al crear archivo ZIP: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], url_path='bulk-zip')
+    def bulk_zip(self, request):
+        """
+        Exportar facturas seleccionadas en ZIP con estructura de carpetas:
+        CLIENTE/OT/FACTURA PROVEEDOR NUMERO_FACTURA ALIAS_CLIENTE OT.pdf
+        (con espacios, sin guiones)
+
+        Body:
+        {
+            "invoice_ids": [1, 2, 3, ...]
+        }
+        """
+        logger = logging.getLogger(__name__)
+
+        invoice_ids = request.data.get('invoice_ids', [])
+        if not invoice_ids:
+            return Response(
+                {'error': 'Debe proporcionar invoice_ids'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Obtener facturas
+        invoices = Invoice.objects.filter(
+            id__in=invoice_ids,
+            is_deleted=False
+        ).select_related('ot', 'ot__cliente', 'proveedor', 'uploaded_file')
+
+        if not invoices.exists():
+            return Response(
+                {'error': 'No se encontraron facturas'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Crear ZIP en memoria
+        zip_buffer = BytesIO()
+        processed_count = 0
+        skipped_no_ot = 0
+
+        try:
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                for invoice in invoices:
+                    if not invoice.uploaded_file:
+                        logger.warning(f"Factura {invoice.id} no tiene archivo asociado")
+                        continue
+
+                    if not invoice.ot:
+                        logger.warning(f"Factura {invoice.id} no tiene OT asignada, se omitirá")
+                        skipped_no_ot += 1
+                        continue
+
+                    storage_path = invoice.uploaded_file.path
+
+                    if not default_storage.exists(storage_path):
+                        logger.warning(f"Archivo no encontrado: {storage_path}")
+                        continue
+
+                    try:
+                        # Leer archivo del storage
+                        with default_storage.open(storage_path, 'rb') as file_handle:
+                            file_content = file_handle.read()
+
+                        # 1. Carpeta de Cliente (usar short_name o normalized_name)
+                        if invoice.ot.cliente:
+                            cliente_name = invoice.ot.cliente.short_name or invoice.ot.cliente.normalized_name
+                            # Limpiar y mantener espacios en carpetas
+                            cliente_folder = re.sub(r'[^\w\s]', '', cliente_name).strip()[:50]
+                        else:
+                            cliente_folder = 'SIN CLIENTE'
+
+                        # 2. Carpeta de OT (limpiar caracteres especiales)
+                        ot_folder = re.sub(r'[^\w]', '', invoice.ot.numero_ot)[:50]
+
+                        # 3. Nombre del archivo
+                        proveedor_name = invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre
+                        proveedor_name = re.sub(r'[^\w\s]', '', proveedor_name).strip()[:30]
+
+                        numero_factura = re.sub(r'[^\w]', '', invoice.numero_factura)[:30]
+                        
+                        cliente_short = ''
+                        if invoice.ot.cliente and invoice.ot.cliente.short_name:
+                            cliente_short = re.sub(r'[^\w\s]', '', invoice.ot.cliente.short_name).strip()[:20]
+                        
+                        ot_number = re.sub(r'[^\w]', '', invoice.ot.numero_ot)[:20]
+
+                        # Obtener extensión
+                        original_filename = invoice.uploaded_file.filename or 'invoice.pdf'
+                        _, ext = os.path.splitext(original_filename)
+                        if not ext:
+                            ext = '.pdf'
+
+                        # Construir nombre con espacios (sin guiones)
+                        parts = ['FACTURA', proveedor_name, numero_factura]
+                        if cliente_short:
+                            parts.append(cliente_short)
+                        if ot_number:
+                            parts.append(ot_number)
+                        
+                        filename = ' '.join(filter(None, parts)) + ext
+
+                        # Si es muy largo (>150 chars), usar formato corto
+                        if len(filename) > 150:
+                            filename = f"{numero_factura} {ot_number}{ext}"
+
+                        # Ruta completa en el ZIP (usar / para compatibilidad)
+                        zip_path = f"{cliente_folder}/{ot_folder}/{filename}"
+
+                        # Agregar al ZIP
+                        zip_file.writestr(zip_path, file_content)
+                        processed_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error procesando factura {invoice.id}: {e}")
+                        continue
+
+            if processed_count == 0:
+                error_msg = 'No se pudo procesar ninguna factura'
+                if skipped_no_ot > 0:
+                    error_msg += f'. {skipped_no_ot} factura(s) sin OT asignada'
+                return Response(
+                    {'error': error_msg},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Preparar respuesta (fuera del context manager)
+            zip_buffer.seek(0)
+            zip_content = zip_buffer.read()
+            
+            response = HttpResponse(zip_content, content_type='application/zip')
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            response['Content-Disposition'] = f'attachment; filename="Facturas_Estructuradas_{timestamp}.zip"'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            response['Content-Length'] = len(zip_content)
+
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error creando ZIP estructurado: {e}")
+            return Response(
+                {'error': f'Error al crear archivo ZIP: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
@@ -718,17 +1172,387 @@ class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet de solo lectura para archivos subidos.
     Útil para verificar duplicados y gestionar archivos.
     """
-    
+
     permission_classes = [IsAuthenticated]
     queryset = UploadedFile.objects.all()
     serializer_class = UploadedFileSerializer
-    
+
     def get_queryset(self):
         """Filtrar por hash si se proporciona"""
         queryset = super().get_queryset()
-        
+
         sha256 = self.request.query_params.get('sha256')
         if sha256:
             queryset = queryset.filter(sha256=sha256)
-        
+
         return queryset.order_by('-created_at')
+
+
+class DisputeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestión de disputas.
+
+    Endpoints:
+    - GET /disputes/ - Listar disputas
+    - POST /disputes/ - Crear disputa
+    - GET /disputes/{id}/ - Detalle de disputa
+    - PUT/PATCH /disputes/{id}/ - Actualizar disputa
+    - DELETE /disputes/{id}/ - Eliminar (soft delete) disputa
+    - GET /disputes/stats/ - Estadísticas
+    """
+
+    queryset = Dispute.objects.filter(is_deleted=False).select_related(
+        'invoice', 'ot', 'invoice__proveedor', 'ot__cliente'
+    )
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DisputeListSerializer
+        elif self.action == 'create':
+            return DisputeCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return DisputeUpdateSerializer
+        return DisputeDetailSerializer
+
+    def get_queryset(self):
+        """
+        Filtrado de disputas.
+        Query params:
+        - estado: abierta, en_revision, resuelta, cerrada
+        - tipo_disputa: cantidad, servicio, duplicada, precio, otro
+        - invoice_id: id de factura
+        - ot_id: id de OT
+        - search: búsqueda general
+        """
+        queryset = super().get_queryset()
+
+        # Filtros
+        estado = self.request.query_params.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+
+        tipo_disputa = self.request.query_params.get('tipo_disputa')
+        if tipo_disputa:
+            queryset = queryset.filter(tipo_disputa=tipo_disputa)
+
+        invoice_id = self.request.query_params.get('invoice_id')
+        if invoice_id:
+            queryset = queryset.filter(invoice_id=invoice_id)
+
+        ot_id = self.request.query_params.get('ot_id')
+        if ot_id:
+            queryset = queryset.filter(ot_id=ot_id)
+
+        # Filtro de resultado
+        resultado = self.request.query_params.get('resultado')
+        if resultado:
+            queryset = queryset.filter(resultado=resultado)
+
+        # Búsqueda general
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(numero_caso__icontains=search) |
+                Q(detalle__icontains=search) |
+                Q(invoice__numero_factura__icontains=search) |
+                Q(ot__numero_ot__icontains=search) |
+                Q(operativo__icontains=search) |
+                Q(ot__operativo__icontains=search)
+            )
+
+        return queryset.order_by('-created_at')
+
+    def create(self, request, *args, **kwargs):
+        """
+        Crear una nueva disputa.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    @action(detail=True, methods=['get'])
+    def eventos(self, request, pk=None):
+        """
+        Obtener timeline de eventos de una disputa.
+        """
+        dispute = self.get_object()
+        eventos = dispute.eventos.all()
+        serializer = DisputeEventSerializer(eventos, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def add_evento(self, request, pk=None):
+        """
+        Agregar un nuevo evento/comentario a la disputa.
+        """
+        dispute = self.get_object()
+        serializer = DisputeEventSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                dispute=dispute,
+                usuario=request.user.username if request.user else ''
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """
+        Estadísticas de disputas.
+        """
+        queryset = self.get_queryset()
+
+        # Calcular estadísticas
+        total = queryset.count()
+        abiertas = queryset.filter(estado='abierta').count()
+        en_revision = queryset.filter(estado='en_revision').count()
+        resueltas = queryset.filter(estado='resuelta').count()
+        cerradas = queryset.filter(estado='cerrada').count()
+
+        # Monto total en disputa
+        total_monto = queryset.filter(
+            estado__in=['abierta', 'en_revision']
+        ).aggregate(total=Sum('monto_disputa'))['total'] or Decimal('0.00')
+
+        # Por tipo de disputa
+        por_tipo = {}
+        for tipo, label in Dispute.TIPO_DISPUTA_CHOICES:
+            count = queryset.filter(tipo_disputa=tipo).count()
+            if count > 0:
+                por_tipo[label] = count
+
+        data = {
+            'total': total,
+            'abiertas': abiertas,
+            'en_revision': en_revision,
+            'resueltas': resueltas,
+            'cerradas': cerradas,
+            'total_monto_disputado': float(total_monto),
+            'por_tipo': por_tipo,
+        }
+
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def filter_values(self, request):
+        """
+        Obtener valores únicos para los filtros.
+        """
+        # Usar queryset base sin filtros aplicados para obtener todos los valores posibles
+        base_queryset = Dispute.objects.filter(is_deleted=False)
+        
+        # Obtener valores únicos de cada campo usando set para garantizar unicidad
+        estados = set(base_queryset.values_list('estado', flat=True))
+        tipos_disputa = set(base_queryset.values_list('tipo_disputa', flat=True))
+        resultados = set(base_queryset.exclude(resultado__isnull=True).values_list('resultado', flat=True))
+        
+        # Filtrar valores nulos y ordenar
+        data = {
+            'estados': sorted([e for e in estados if e]),
+            'tipos_disputa': sorted([t for t in tipos_disputa if t]),
+            'resultados': sorted([r for r in resultados if r]),
+        }
+        
+        return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_dispute(request):
+    """
+    Endpoint para crear disputas.
+    """
+    serializer = DisputeCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CreditNoteViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestión de notas de crédito.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = CreditNote.objects.filter(is_deleted=False).select_related(
+        'proveedor', 'invoice_relacionada', 'uploaded_file'
+    )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CreditNoteListSerializer
+        elif self.action == 'create':
+            return CreditNoteCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return CreditNoteUpdateSerializer
+        return CreditNoteDetailSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        estado = self.request.query_params.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        proveedor_id = self.request.query_params.get('proveedor_id')
+        if proveedor_id:
+            queryset = queryset.filter(proveedor_id=proveedor_id)
+        invoice_id = self.request.query_params.get('invoice_id')
+        if invoice_id:
+            queryset = queryset.filter(invoice_relacionada_id=invoice_id)
+        fecha_desde = self.request.query_params.get('fecha_desde')
+        if fecha_desde:
+            queryset = queryset.filter(fecha_emision__gte=fecha_desde)
+        fecha_hasta = self.request.query_params.get('fecha_hasta')
+        if fecha_hasta:
+            queryset = queryset.filter(fecha_emision__lte=fecha_hasta)
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(numero_nota__icontains=search) |
+                Q(proveedor_nombre__icontains=search) |
+                Q(motivo__icontains=search)
+            )
+        return queryset.order_by('-fecha_emision', '-created_at')
+
+    @action(detail=False, methods=['post'], url_path='upload')
+    def upload(self, request):
+        from .parsers.pdf_extractor import PDFExtractor
+        from .parsers.pattern_service import PatternApplicationService
+        
+        logger = logging.getLogger(__name__)
+        
+        files = request.FILES.getlist('files[]')
+        proveedor_id = request.data.get('proveedor_id')
+        auto_parse = request.data.get('auto_parse', 'true').lower() == 'true'
+        
+        if not files:
+            return Response({'error': 'No se enviaron archivos'}, status=status.HTTP_400_BAD_REQUEST)
+        if not proveedor_id:
+            return Response({'error': 'Debe seleccionar un proveedor'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            proveedor = Provider.objects.get(id=proveedor_id)
+        except Provider.DoesNotExist:
+            return Response({'error': 'Proveedor no encontrado'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        pdf_extractor = PDFExtractor()
+        pattern_service = PatternApplicationService(provider_id=int(proveedor_id))
+        
+        results = {'success': [], 'errors': [], 'duplicates': []}
+        
+        for file in files:
+            try:
+                file.seek(0)
+                file_content = file.read()
+                file_hash = UploadedFile.calculate_hash(file_content)
+                
+                existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
+                if existing_file and CreditNote.objects.filter(uploaded_file=existing_file, is_deleted=False).exists():
+                    results['duplicates'].append({'filename': file.name, 'reason': f'Archivo duplicado con nota de crédito activa'})
+                    continue
+
+                if not existing_file:
+                    file.seek(0)
+                    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+                    safe_filename = f"{timestamp}_{file.name}"
+                    path = default_storage.save(f'credit_notes/{safe_filename}', file)
+                    uploaded_file = UploadedFile.objects.create(
+                        filename=file.name, path=path, sha256=file_hash, size=file.size, content_type=file.content_type
+                    )
+                else:
+                    uploaded_file = existing_file
+                
+                extracted_data = {
+                    'numero_nota': None, 'fecha_emision': timezone.now().date(),
+                    'monto': Decimal('0.00'), 'invoice_relacionada': None
+                }
+                
+                if auto_parse and file.content_type == 'application/pdf':
+                    try:
+                        file.seek(0)
+                        text = pdf_extractor.extract(file.read()).text
+                        if text:
+                            pattern_results = pattern_service.apply_patterns(text)
+                            if 'numero_nota_credito' in pattern_results:
+                                extracted_data['numero_nota'] = pattern_results['numero_nota_credito']['value']
+                            if 'monto_total' in pattern_results:
+                                extracted_data['monto'] = pattern_results['monto_total']['value']
+                            if 'fecha_emision' in pattern_results:
+                                fecha = pattern_results['fecha_emision']['value']
+                                if isinstance(fecha, datetime):
+                                    extracted_data['fecha_emision'] = fecha.date()
+                                elif isinstance(fecha, date):
+                                    extracted_data['fecha_emision'] = fecha
+                            if 'numero_factura' in pattern_results:
+                                numero_factura_relacionada = pattern_results['numero_factura']['value']
+                                invoice_relacionada = Invoice.objects.filter(numero_factura=numero_factura_relacionada).first()
+                                if invoice_relacionada:
+                                    extracted_data['invoice_relacionada'] = invoice_relacionada
+                    except Exception as e:
+                        logger.error(f"Error en auto-parsing para {file.name}: {e}")
+
+                numero_nota = extracted_data['numero_nota'] or f"TEMP-NC-{uuid.uuid4().hex[:10].upper()}"
+
+                credit_note = CreditNote.objects.create(
+                    uploaded_file=uploaded_file, proveedor=proveedor, proveedor_nombre=proveedor.nombre,
+                    numero_nota=numero_nota, fecha_emision=extracted_data['fecha_emision'],
+                    monto=extracted_data['monto'], invoice_relacionada=extracted_data['invoice_relacionada'],
+                    motivo="Carga automática", estado='pendiente', processing_source='upload_auto',
+                    processed_by=str(request.user.id), processed_at=timezone.now(),
+                )
+                
+                results['success'].append({
+                    'filename': file.name, 'credit_note_id': credit_note.id,
+                    'numero_nota': credit_note.numero_nota, 'monto': float(credit_note.monto),
+                })
+                
+            except Exception as e:
+                logger.error(f"Error procesando {file.name}: {e}", exc_info=True)
+                results['errors'].append({'filename': file.name, 'error': str(e)})
+        
+        return Response({
+            'total': len(files), 'processed': len(results['success']),
+            'duplicates': len(results['duplicates']), 'errors': len(results['errors']),
+            'results': results,
+        })
+
+    @action(detail=True, methods=['get'], url_path='file')
+    def retrieve_file(self, request, pk=None):
+        credit_note = self.get_object()
+        if not credit_note.uploaded_file:
+            return Response({'detail': 'La nota de crédito no tiene archivo asociado.'}, status=status.HTTP_404_NOT_FOUND)
+        storage_path = credit_note.uploaded_file.path
+        if not default_storage.exists(storage_path):
+            return Response({'detail': 'Archivo no encontrado en el almacenamiento.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            file_handle = default_storage.open(storage_path, 'rb')
+        except Exception as exc:
+            return Response({'detail': f'No se pudo abrir el archivo: {exc}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
+        content_type = credit_note.uploaded_file.content_type or 'application/octet-stream'
+        response = FileResponse(file_handle, content_type=content_type)
+        download_flag = str(request.query_params.get('download', '')).lower()
+        disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
+        response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+        response['Content-Length'] = credit_note.uploaded_file.size
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        return response
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        queryset = self.get_queryset()
+        total = queryset.count()
+        pendientes = queryset.filter(estado='pendiente').count()
+        aplicadas = queryset.filter(estado='aplicada').count()
+        rechazadas = queryset.filter(estado='rechazada').count()
+        total_monto = queryset.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        por_proveedor = list(queryset.values('proveedor__nombre').annotate(count=Count('id'), total_monto=Sum('monto')).order_by('total_monto')[:10])
+        data = {
+            'total': total, 'pendientes': pendientes, 'aplicadas': aplicadas, 'rechazadas': rechazadas,
+            'total_monto': float(total_monto), 'por_proveedor': por_proveedor,
+        }
+        return Response(data)

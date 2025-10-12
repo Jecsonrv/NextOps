@@ -326,7 +326,6 @@ export function useClientAliases(filters = {}, options = {}) {
         page_size: "1000", // Traer todos los aliases
     });
 
-    if (filters.country) params.append("country", filters.country);
     if (filters.is_verified !== undefined)
         params.append("is_verified", filters.is_verified);
     if (filters.merged !== undefined) params.append("merged", filters.merged);
@@ -372,7 +371,6 @@ export function useFindSimilarAliases() {
         mutationFn: async ({
             name,
             threshold = 80,
-            country = null,
             limit = 10,
         }) => {
             const response = await apiClient.post(
@@ -380,7 +378,6 @@ export function useFindSimilarAliases() {
                 {
                     name,
                     threshold,
-                    country,
                     limit,
                 }
             );
@@ -683,6 +680,29 @@ export function useRegenerateShortName() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+        },
+    });
+}
+
+/**
+ * Hook para renombrar un cliente directamente
+ * Actualiza el nombre del cliente en todas sus OTs
+ */
+export function useRenameClient() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ aliasId, new_name, notes }) => {
+            const response = await apiClient.post(
+                `/clients/client-aliases/${aliasId}/rename_client/`,
+                { new_name, notes }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+            queryClient.invalidateQueries({ queryKey: ["ots"] });
+            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
         },
     });
 }

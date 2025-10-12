@@ -75,11 +75,6 @@ export function SimilarityMatchesTable({
                                     <div className="text-sm font-medium text-gray-900">
                                         {match.alias_1.original_name}
                                     </div>
-                                    {match.alias_1.country && (
-                                        <div className="text-xs text-gray-500">
-                                            {match.alias_1.country}
-                                        </div>
-                                    )}
                                     <div className="text-xs text-gray-500 mt-1">
                                         <FileText className="w-3 h-3 inline mr-1" />
                                         {match.alias_1.usage_count || 0} usos
@@ -91,11 +86,6 @@ export function SimilarityMatchesTable({
                                     <div className="text-sm font-medium text-gray-900">
                                         {match.alias_2.original_name}
                                     </div>
-                                    {match.alias_2.country && (
-                                        <div className="text-xs text-gray-500">
-                                            {match.alias_2.country}
-                                        </div>
-                                    )}
                                     <div className="text-xs text-gray-500 mt-1">
                                         <FileText className="w-3 h-3 inline mr-1" />
                                         {match.alias_2.usage_count || 0} usos
@@ -164,12 +154,10 @@ SimilarityMatchesTable.propTypes = {
                 .isRequired,
             alias_1: PropTypes.shape({
                 original_name: PropTypes.string.isRequired,
-                country: PropTypes.string,
                 usage_count: PropTypes.number,
             }).isRequired,
             alias_2: PropTypes.shape({
                 original_name: PropTypes.string.isRequired,
-                country: PropTypes.string,
                 usage_count: PropTypes.number,
             }).isRequired,
             similarity_score: PropTypes.number.isRequired,

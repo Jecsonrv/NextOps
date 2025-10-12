@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { X, PlayCircle, CheckCircle, AlertCircle, Code } from "lucide-react";
 import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
 import axios from "axios";
 
 const API_URL = "http://localhost:8000/api";
@@ -44,7 +43,6 @@ function ProviderPatternForm({ open, onClose, pattern }) {
             );
             setProviders(response.data.results || []);
         } catch (error) {
-            console.error("Error loading providers:", error);
             // Si hay error de autenticación, redirigir al login
             if (error.response?.status === 401) {
                 localStorage.removeItem("access_token");
@@ -62,7 +60,6 @@ function ProviderPatternForm({ open, onClose, pattern }) {
             );
             setTargetFields(response.data.results || []);
         } catch (error) {
-            console.error("Error loading target fields:", error);
             // Si hay error de autenticación, redirigir al login
             if (error.response?.status === 401) {
                 localStorage.removeItem("access_token");
@@ -152,23 +149,14 @@ function ProviderPatternForm({ open, onClose, pattern }) {
 
             const method = pattern ? "put" : "post";
 
-            // Debug: Ver qué datos se están enviando
-            console.log("📤 Enviando datos al backend:", formData);
-            console.log("📍 URL:", url);
-            console.log("🔧 Método:", method);
-
             const response = await axios[method](
                 url,
                 formData,
                 getAuthHeaders()
             );
 
-            console.log("✅ Respuesta del backend:", response.data);
-
             onClose(true); // true = saved successfully
         } catch (error) {
-            console.error("❌ Error saving pattern:", error);
-            console.error("📋 Error response:", error.response?.data);
             const errorMsg = error.response?.data?.error || error.message;
             setErrors({ submit: errorMsg });
         } finally {
@@ -192,7 +180,6 @@ function ProviderPatternForm({ open, onClose, pattern }) {
             );
             setTestResult(response.data);
         } catch (error) {
-            console.error("Error testing pattern:", error);
             setTestResult({
                 success: false,
                 error: error.response?.data?.error || error.message,

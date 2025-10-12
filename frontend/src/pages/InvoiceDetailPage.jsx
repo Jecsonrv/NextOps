@@ -3,9 +3,10 @@
  * Muestra información estructurada similar a OTDetailPage
  */
 
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
 import { useInvoiceDetail } from "../hooks/useInvoices";
 import {
@@ -15,6 +16,8 @@ import {
 } from "../lib/dateUtils";
 import { FilePreview } from "../components/ui/FilePreview";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
+import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
+import { AddProvisionDateModal } from "../components/invoices/AddProvisionDateModal";
 import {
     Card,
     CardContent,
@@ -40,6 +43,8 @@ import {
     Loader2,
     Ship,
     User,
+    AlertTriangle,
+    FileMinus,
 } from "lucide-react";
 
 const estadoProvisionColors = {
@@ -65,7 +70,11 @@ const confidenceLevelColors = {
 export function InvoiceDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
+
+    // Determinar página de origen para navegación contextual
+    const originPage = location.state?.from || "/invoices";
 
     const { data: invoice, isLoading, error } = useInvoiceDetail(id);
     const [isAssignOTModalOpen, setIsAssignOTModalOpen] = useState(false);
@@ -75,6 +84,8 @@ export function InvoiceDetailPage() {
         opening: false,
         error: null,
     });
+    const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+    const [isAddProvisionDateModalOpen, setIsAddProvisionDateModalOpen] = useState(false);
 
     useEffect(() => {
         setFileCache(null);
@@ -116,11 +127,26 @@ export function InvoiceDetailPage() {
         }));
 
         try {
-            const blob = await getInvoiceBlob();
+            // Usar el endpoint con download=true para obtener el nombre amigable
+            const response = await apiClient.get(
+                `/invoices/${id}/file/?download=true`,
+                {
+                    responseType: "blob",
+                }
+            );
+
+            const blob = new Blob([response.data]);
             const url = window.URL.createObjectURL(blob);
-            const filename =
-                invoice.uploaded_file_data.filename ||
-                `${invoice.numero_factura || `factura-${id}`}`;
+            
+            // Extraer nombre del archivo del header Content-Disposition
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = `${invoice.numero_factura || `factura-${id}`}.pdf`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
 
             const link = document.createElement("a");
             link.href = url;
@@ -130,10 +156,6 @@ export function InvoiceDetailPage() {
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (downloadError) {
-            console.error(
-                "Error descargando archivo de factura",
-                downloadError
-            );
             setFileActions((prev) => ({
                 ...prev,
                 error: "No pudimos descargar el archivo. Intenta nuevamente más tarde.",
@@ -160,7 +182,6 @@ export function InvoiceDetailPage() {
                 window.URL.revokeObjectURL(url);
             }, 60_000);
         } catch (openError) {
-            console.error("Error abriendo archivo de factura", openError);
             setFileActions((prev) => ({
                 ...prev,
                 error: "No pudimos abrir el archivo en el navegador. Descárgalo para revisarlo.",
@@ -191,21 +212,17 @@ export function InvoiceDetailPage() {
     // Mutation para asignar OT
     const assignOTMutation = useMutation({
         mutationFn: async (otId) => {
-            console.log("🔄 Enviando PATCH para asignar OT:", otId);
             const response = await apiClient.patch(`/invoices/${id}/`, {
-                ot_id: otId, // Cambiado: usar ot_id en lugar de ot
+                ot_id: otId,
             });
-            console.log("✅ Respuesta del servidor:", response.data);
             return response.data;
         },
-        onSuccess: (data) => {
-            console.log("✅ OT asignada exitosamente:", data);
+        onSuccess: () => {
             queryClient.invalidateQueries(["invoice", id]);
             queryClient.invalidateQueries(["invoices"]);
         },
-        onError: (error) => {
-            console.error("❌ Error al asignar OT:", error);
-            console.error("Detalles:", error.response?.data);
+        onError: () => {
+            toast.error("Error al asignar OT");
         },
     });
 
@@ -258,13 +275,14 @@ export function InvoiceDetailPage() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigate("/invoices")}
+                        onClick={() => navigate(originPage)}
+                        title="Volver"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-bold text-gray-900">
+                            <h1 className="text-4xl font-bold text-gray-900">
                                 {invoice.numero_factura || `Factura #${id}`}
                             </h1>
                             {invoice.requiere_revision && (
@@ -283,18 +301,15 @@ export function InvoiceDetailPage() {
                     </div>
                 </div>
 
-                {/* Botones de acción - Similar a OTDetailPage */}
+                {/* Botones de acción */}
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        onClick={handleDelete}
-                        disabled={deleteMutation.isPending}
+                        onClick={() => setIsAssignOTModalOpen(true)}
                     >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        {deleteMutation.isPending
-                            ? "Eliminando..."
-                            : "Eliminar"}
+                        <Link2 className="w-4 h-4 mr-2" />
+                        Asignar OT
                     </Button>
                     <Button
                         variant="outline"
@@ -307,12 +322,28 @@ export function InvoiceDetailPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setIsAssignOTModalOpen(true)}
+                        className="text-orange-600 hover:bg-orange-50"
+                        onClick={() => setIsDisputeModalOpen(true)}
+                        disabled={invoice.disputas?.some(d => ['abierta', 'en_revision'].includes(d.estado))}
+                        title={invoice.disputas?.some(d => ['abierta', 'en_revision'].includes(d.estado)) 
+                            ? 'Ya existe una disputa activa para esta factura' 
+                            : 'Crear nueva disputa'}
                     >
-                        <Link2 className="w-4 h-4 mr-2" />
-                        Asignar OT
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Crear Disputa
                     </Button>
-                    {invoice.file_url && (
+                    {['anulada', 'anulada_parcialmente'].includes(invoice.estado_provision) && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 hover:bg-blue-50"
+                            onClick={() => setIsAddProvisionDateModalOpen(true)}
+                        >
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {invoice.fecha_provision ? 'Actualizar' : 'Agregar'} Fecha de Provisión
+                        </Button>
+                    )}
+                    {invoice.uploaded_file_data && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -326,9 +357,18 @@ export function InvoiceDetailPage() {
                             )}
                             {fileActions.downloading
                                 ? "Descargando..."
-                                : "Descargar archivo"}
+                                : "Descargar"}
                         </Button>
                     )}
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Eliminar
+                    </Button>
                 </div>
             </div>
 
@@ -344,8 +384,8 @@ export function InvoiceDetailPage() {
                                 </h3>
                                 <p className="text-sm text-yellow-800">
                                     El matching automático tiene confianza{" "}
-                                    {invoice.confidence_level}(
-                                    {(invoice.confianza_match * 100).toFixed(1)}
+                                    {invoice.confidence_level} (
+                                    {invoice.confianza_match ? (invoice.confianza_match * 100).toFixed(1) : '0'}
                                     %). Por favor revisa los datos y asigna la
                                     OT manualmente si es necesario.
                                 </p>
@@ -361,24 +401,26 @@ export function InvoiceDetailPage() {
                     {/* Información de la OT Asignada */}
                     {invoice.ot_data && (
                         <Card className="border-blue-200">
-                            <CardHeader className="bg-blue-50">
+                            <CardHeader className="bg-blue-50 border-b border-blue-200">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-blue-900">
                                         <Package className="w-5 h-5" />
-                                        Orden de Transporte Asignada
+                                        Orden de Transporte
                                     </CardTitle>
-                                    <Button variant="outline" size="sm" asChild>
-                                        <Link to={`/ots/${invoice.ot_data.id}`}>
-                                            <Link2 className="w-4 h-4 mr-2" />
-                                            Ver OT Completa
-                                        </Link>
-                                    </Button>
+                                    <Link
+                                        to={`/ots/${invoice.ot_data.id}`}
+                                        state={{ from: `/invoices/${id}` }}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        Ver Detalle
+                                    </Link>
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Operativo
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
@@ -390,7 +432,7 @@ export function InvoiceDetailPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Número OT
                                         </label>
                                         <p className="text-lg font-bold text-blue-600 mt-1">
@@ -398,7 +440,7 @@ export function InvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Cliente
                                         </label>
                                         <p className="font-medium text-gray-900 mt-1">
@@ -406,7 +448,7 @@ export function InvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             MBL
                                         </label>
                                         <p className="font-mono text-sm text-gray-900 mt-1">
@@ -414,7 +456,7 @@ export function InvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Naviera
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
@@ -425,7 +467,7 @@ export function InvoiceDetailPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Barco
                                         </label>
                                         <p className="text-gray-900 mt-1">
@@ -437,7 +479,7 @@ export function InvoiceDetailPage() {
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <label className="text-xs font-semibold text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
                                                 Método de Asignación
                                             </label>
                                             <p className="text-sm text-gray-700 mt-1 capitalize">
@@ -450,10 +492,12 @@ export function InvoiceDetailPage() {
                                         <Button
                                             variant="outline"
                                             size="sm"
+                                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
                                             onClick={() =>
                                                 setIsAssignOTModalOpen(true)
                                             }
                                         >
+                                            <Link2 className="w-4 h-4 mr-2" />
                                             Cambiar OT
                                         </Button>
                                     </div>
@@ -497,9 +541,9 @@ export function InvoiceDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-2 gap-6 items-start">
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
                                         Número de Factura
                                     </label>
                                     <p className="text-lg font-bold text-gray-900 mt-1">
@@ -508,26 +552,51 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
-                                        Monto Total
-                                    </label>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <DollarSign className="w-5 h-5 text-green-600" />
-                                        <p className="text-2xl font-bold text-green-600">
-                                            $
-                                            {invoice.monto?.toLocaleString(
-                                                "es-MX",
-                                                {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
-                                                }
-                                            ) || "0.00"}
-                                        </p>
-                                    </div>
+                                    {invoice.estado_provision === 'anulada_parcialmente' ? (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Desglose de Montos
+                                            </label>
+                                            <div className="mt-2 space-y-1">
+                                                <p className="text-sm text-gray-600">
+                                                    Monto Original: <span className="font-semibold">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                                                </p>
+                                                <p className="text-sm text-red-600">
+                                                    Monto Anulado: <span className="font-semibold">-${(invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined ? (invoice.monto - invoice.monto_aplicable) : 0)?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
+                                                </p>
+                                                <div className="border-t border-gray-300 pt-1">
+                                                    <p className="text-lg font-bold text-green-600">
+                                                        Monto Aplicable: ${(invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined ? invoice.monto_aplicable : invoice.monto)?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : invoice.estado_provision === 'anulada' ? (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Monto Total
+                                            </label>
+                                            <p className="text-2xl font-bold text-red-600 mt-1 line-through">
+                                                ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
+                                            </p>
+                                            <p className="text-xs text-red-600 mt-1">
+                                                Factura anulada totalmente - No se paga
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Monto Total
+                                            </label>
+                                            <p className="text-2xl font-bold text-green-600 mt-1">
+                                                ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
                                         Fecha de Emisión
                                     </label>
                                     <div className="flex items-center gap-2 mt-1">
@@ -542,7 +611,7 @@ export function InvoiceDetailPage() {
 
                                 {invoice.fecha_vencimiento && (
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Fecha de Vencimiento
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
@@ -558,7 +627,7 @@ export function InvoiceDetailPage() {
 
                                 {invoice.fecha_provision && (
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Fecha de Provisión
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
@@ -573,33 +642,34 @@ export function InvoiceDetailPage() {
                                 )}
 
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
                                         Tipo de Costo
                                     </label>
-                                    <Badge variant="default" className="mt-2">
-                                        {invoice.tipo_costo_display ||
-                                            invoice.tipo_costo}
-                                    </Badge>
-                                </div>
-
-                                {invoice.tipo_proveedor && (
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                                            Tipo de Proveedor
-                                        </label>
-                                        <Badge
-                                            variant="secondary"
-                                            className="mt-2"
-                                        >
-                                            {invoice.tipo_proveedor_display ||
-                                                invoice.tipo_proveedor}
+                                    <div className="mt-2">
+                                        <Badge variant="default">
+                                            {invoice.tipo_costo_display ||
+                                                invoice.tipo_costo}
                                         </Badge>
                                     </div>
-                                )}
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                        Tipo de Proveedor
+                                    </label>
+                                    <div className="mt-2">
+                                        <Badge variant="secondary">
+                                            {(invoice.tipo_proveedor_display ||
+                                                invoice.tipo_proveedor ||
+                                                "N/A"
+                                            ).toUpperCase()}
+                                        </Badge>
+                                    </div>
+                                </div>
 
                                 {invoice.moneda && invoice.moneda !== "MXN" && (
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Moneda
                                         </label>
                                         <p className="text-gray-900 mt-1 font-medium">
@@ -610,6 +680,86 @@ export function InvoiceDetailPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Gestión de Disputas y Actividad */}
+                    {(invoice.disputas?.length > 0 || invoice.notas_credito?.length > 0) && (
+                        <Card className={invoice.disputas?.length > 0 ? "border-l-4 border-l-red-500" : ""}>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle>Disputas y Notas de Crédito</CardTitle>
+                                    {invoice.disputas?.length > 0 && (
+                                        <Badge variant="destructive" className="text-xs">
+                                            {invoice.disputas.length}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {invoice.disputas?.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Disputas Activas</h4>
+                                        <div className="space-y-3">
+                                            {invoice.disputas.map((dispute) => (
+                                                <Link 
+                                                    key={dispute.id} 
+                                                    to={`/disputes/${dispute.id}`}
+                                                    state={{ from: `/invoices/${id}` }}
+                                                    className="block p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-sm font-semibold text-gray-900">{dispute.tipo_disputa_display}</span>
+                                                                <Badge variant={estadoProvisionColors[dispute.estado]}>
+                                                                    {dispute.estado_display?.toUpperCase()}
+                                                                </Badge>
+                                                            </div>
+                                                            {dispute.numero_caso && (
+                                                                <p className="text-xs text-gray-600">
+                                                                    Caso: <span className="font-mono">{dispute.numero_caso}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-lg font-bold text-gray-900">
+                                                                ${parseFloat(dispute.monto_disputa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">{formatDate(dispute.created_at)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-sm text-gray-600 line-clamp-2">{dispute.detalle}</p>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {invoice.notas_credito?.length > 0 && (
+                                    <div className={invoice.disputas?.length > 0 ? "pt-6 border-t border-gray-200" : ""}>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Notas de Crédito</h4>
+                                        <div className="space-y-3">
+                                            {invoice.notas_credito.map((cn) => (
+                                                <div key={cn.id} className="p-4 border border-gray-200 rounded-lg">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900">{cn.numero_nota}</p>
+                                                            <p className="text-xs text-gray-600 mt-1">{cn.motivo}</p>
+                                                        </div>
+                                                        <Badge variant={cn.estado === 'aplicada' ? 'success' : 'default'}>
+                                                            {cn.estado_display?.toUpperCase()}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                                        <span className="text-xs text-gray-500">{formatDate(cn.fecha_emision)}</span>
+                                                        <span className="text-sm font-semibold text-gray-900">${cn.monto}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Información del Proveedor */}
                     <Card>
@@ -622,8 +772,8 @@ export function InvoiceDetailPage() {
                         <CardContent>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
-                                        Nombre del Proveedor
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                        Nombre
                                     </label>
                                     <p className="text-lg font-bold text-gray-900 mt-1">
                                         {invoice.proveedor_data?.nombre ||
@@ -641,31 +791,32 @@ export function InvoiceDetailPage() {
                                     )}
                                 </div>
 
-                                {(invoice.proveedor_data?.nit ||
-                                    invoice.proveedor_nit) && (
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                                            RFC / NIT
-                                        </label>
-                                        <p className="text-gray-900 mt-1 font-mono">
-                                            {invoice.proveedor_data?.nit ||
-                                                invoice.proveedor_nit}
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {invoice.proveedor_data?.tipo && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Categoría
+                                            </label>
+                                            <p className="text-gray-900 mt-1 capitalize">
+                                                {invoice.proveedor_data
+                                                    .tipo_display ||
+                                                    invoice.proveedor_data.tipo}
+                                            </p>
+                                        </div>
+                                    )}
 
-                                {invoice.proveedor_data?.tipo && (
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                                            Categoría
-                                        </label>
-                                        <p className="text-gray-900 mt-1 capitalize">
-                                            {invoice.proveedor_data
-                                                .tipo_display ||
-                                                invoice.proveedor_data.tipo}
-                                        </p>
-                                    </div>
-                                )}
+                                    {invoice.proveedor_data?.payment_terms && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Condiciones de Crédito
+                                            </label>
+                                            <p className="text-gray-900 mt-1">
+                                                {invoice.proveedor_data
+                                                    .payment_terms}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -708,19 +859,18 @@ export function InvoiceDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold text-gray-600 uppercase mb-2 block">
+                                <p className="text-sm font-medium text-gray-600 mb-2">
                                     Estado de Provisión
-                                </label>
+                                </p>
                                 <Badge
                                     variant={
                                         estadoProvisionColors[
                                             invoice.estado_provision
                                         ]
                                     }
-                                    className="text-sm px-3 py-1"
                                 >
-                                    {invoice.estado_provision_display ||
-                                        invoice.estado_provision}
+                                    {invoice.estado_provision_display?.toUpperCase() ||
+                                        invoice.estado_provision?.toUpperCase()}
                                 </Badge>
                                 {invoice.fecha_provision && (
                                     <p className="text-xs text-gray-500 mt-2">
@@ -731,19 +881,18 @@ export function InvoiceDetailPage() {
                             </div>
 
                             <div className="pt-3 border-t border-gray-200">
-                                <label className="text-xs font-semibold text-gray-600 uppercase mb-2 block">
+                                <p className="text-sm font-medium text-gray-600 mb-2">
                                     Estado de Facturación
-                                </label>
+                                </p>
                                 <Badge
                                     variant={
                                         estadoFacturacionColors[
                                             invoice.estado_facturacion
                                         ]
                                     }
-                                    className="text-sm px-3 py-1"
                                 >
-                                    {invoice.estado_facturacion_display ||
-                                        invoice.estado_facturacion}
+                                    {invoice.estado_facturacion_display?.toUpperCase() ||
+                                        invoice.estado_facturacion?.toUpperCase()}
                                 </Badge>
                                 {invoice.fecha_facturacion && (
                                     <p className="text-xs text-gray-500 mt-2">
@@ -754,22 +903,21 @@ export function InvoiceDetailPage() {
                             </div>
 
                             <div className="pt-3 border-t border-gray-200">
-                                <label className="text-xs font-semibold text-gray-600 uppercase mb-2 block">
+                                <p className="text-sm font-medium text-gray-600 mb-2">
                                     Confianza de Matching
-                                </label>
+                                </p>
                                 <Badge
                                     variant={
                                         confidenceLevelColors[
                                             invoice.confidence_level
                                         ]
                                     }
-                                    className="text-sm px-3 py-1"
                                 >
-                                    {invoice.confidence_level}
+                                    {invoice.confidence_level?.toUpperCase()}
                                 </Badge>
                                 <p className="text-xs text-gray-500 mt-2">
                                     Precisión:{" "}
-                                    {(invoice.confianza_match * 100).toFixed(1)}
+                                    {invoice.confianza_match ? (invoice.confianza_match * 100).toFixed(1) : '0'}
                                     %
                                 </p>
                             </div>
@@ -787,7 +935,7 @@ export function InvoiceDetailPage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-gray-600 uppercase">
                                         Nombre del Archivo
                                     </label>
                                     <p className="text-sm text-gray-900 mt-1 break-words font-mono">
@@ -797,7 +945,7 @@ export function InvoiceDetailPage() {
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Tamaño
                                         </label>
                                         <p className="text-sm text-gray-900 mt-1">
@@ -806,14 +954,16 @@ export function InvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
                                             Tipo
                                         </label>
-                                        <p className="text-xs text-gray-900 mt-1">
-                                            {
-                                                invoice.uploaded_file_data
-                                                    .content_type
-                                            }
+                                        <p className="text-sm text-gray-900 mt-1 font-medium">
+                                            {invoice.uploaded_file_data.content_type ===
+                                            "application/pdf"
+                                                ? "PDF"
+                                                : invoice.uploaded_file_data.content_type
+                                                      ?.split("/")[1]
+                                                      ?.toUpperCase() || "Archivo"}
                                         </p>
                                     </div>
                                 </div>
@@ -861,67 +1011,38 @@ export function InvoiceDetailPage() {
                         </Card>
                     )}
 
-                    {/* Metadata de Procesamiento */}
+                    {/* Metadata de Procesamiento - Simplificada */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Información de Procesamiento</CardTitle>
+                            <CardTitle>Metadata</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div>
                                 <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Origen
+                                    Método de Carga
                                 </label>
-                                <p className="text-gray-900 mt-1 capitalize">
-                                    {invoice.processing_source?.replace(
-                                        /_/g,
-                                        " "
-                                    ) || "Manual"}
-                                </p>
+                                <Badge variant="outline" className="mt-2">
+                                    {invoice.processing_source === "upload_auto"
+                                        ? "Automático"
+                                        : "Manual"}
+                                </Badge>
                             </div>
-
-                            {invoice.processed_by && (
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
-                                        Procesado por
-                                    </label>
-                                    <p className="text-gray-900 mt-1">
-                                        Usuario #{invoice.processed_by}
-                                    </p>
-                                </div>
-                            )}
-
-                            {invoice.processed_at && (
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase">
-                                        Fecha de Procesamiento
-                                    </label>
-                                    <p className="text-gray-900 mt-1">
-                                        {new Date(
-                                            invoice.processed_at
-                                        ).toLocaleString("es-MX")}
-                                    </p>
-                                </div>
-                            )}
 
                             <div className="pt-3 border-t border-gray-200">
                                 <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Creación
+                                    Creada
                                 </label>
                                 <p className="text-gray-900 mt-1">
-                                    {new Date(
-                                        invoice.created_at
-                                    ).toLocaleString("es-MX")}
+                                    {formatDateTime(invoice.created_at)}
                                 </p>
                             </div>
 
                             <div>
                                 <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Última Actualización
+                                    Actualizada
                                 </label>
                                 <p className="text-gray-900 mt-1">
-                                    {new Date(
-                                        invoice.updated_at
-                                    ).toLocaleString("es-MX")}
+                                    {formatDateTime(invoice.updated_at)}
                                 </p>
                             </div>
                         </CardContent>
@@ -935,21 +1056,27 @@ export function InvoiceDetailPage() {
                 onClose={() => setIsAssignOTModalOpen(false)}
                 invoice={invoice}
                 onAssign={async (otId) => {
-                    console.log(
-                        "🔄 Iniciando asignación de OT:",
-                        otId,
-                        "a factura:",
-                        id
-                    );
                     await assignOTMutation.mutateAsync(otId);
-                    console.log(
-                        "✅ Asignación completada, recargando datos..."
-                    );
-                    // Forzar recarga de datos
                     await queryClient.invalidateQueries(["invoice", id]);
                     await queryClient.refetchQueries(["invoice", id]);
                 }}
             />
+
+            {/* Modal para crear disputa */}
+            <DisputeFormModal
+                isOpen={isDisputeModalOpen}
+                onClose={() => setIsDisputeModalOpen(false)}
+                invoice={invoice}
+                dispute={null}
+            />
+
+            {/* Modal para agregar fecha de provisión */}
+            <AddProvisionDateModal
+                isOpen={isAddProvisionDateModalOpen}
+                onClose={() => setIsAddProvisionDateModalOpen(false)}
+                invoice={invoice}
+            />
         </div>
     );
 }
+

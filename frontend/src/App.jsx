@@ -15,9 +15,13 @@ import { OTsPage } from "./pages/OTsPage";
 import { OTEditPage } from "./pages/OTEditPage";
 import { OTDetailPage } from "./pages/OTDetailPage";
 import { OTImportPage } from "./pages/OTImportPage";
+import { DisputesPage } from "./pages/DisputesPage";
+import { DisputeDetailPage } from "./pages/DisputeDetailPage";
 import { InvoicesPage } from "./pages/InvoicesPage";
 import { InvoiceDetailPage } from "./pages/InvoiceDetailPage";
 import { InvoiceUploadPage } from "./pages/InvoiceUploadPage";
+import { CreditNoteUploadPage } from "./pages/CreditNoteUploadPage";
+import { CreditNotesPage } from "./pages/CreditNotesPage";
 import { InvoiceEditPage } from "./pages/InvoiceEditPage";
 import ClientsPage from "./pages/ClientsPage";
 import ProviderPatternsPage from "./pages/ProviderPatternsPage";
@@ -197,11 +201,51 @@ function App() {
                             }
                         />
                         <Route
+                            path="/invoices/credit-notes/new"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <CreditNoteUploadPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/invoices/credit-notes"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <CreditNotesPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
                             path="/clients"
                             element={
                                 <ProtectedRoute>
                                     <Layout>
                                         <ClientsPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/disputes"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <DisputesPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/disputes/:id"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <DisputeDetailPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }

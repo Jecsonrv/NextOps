@@ -332,14 +332,7 @@ class InvoiceSerializerTestCase(TestCase):
             tipo="naviera",
             categoria="internacional",
             email="msc@test.com"
-        )
-        
-        self.ot = OT.objects.create(
-            numero_ot="OT-2025-001",
-            cliente=self.cliente,
-            master_bl="MSCU1234567890",
             estado="en_transito"
-        )
     
     def _create_invoice(self, **kwargs):
         """Helper para crear facturas con uploaded_file por defecto"""
@@ -453,9 +446,7 @@ class InvoiceSerializerTestCase(TestCase):
         otra_ot = OT.objects.create(
             numero_ot="OT-2025-002",
             cliente=self.cliente,
-            master_bl="MSCU9876543210",
-            estado="en_transito"
-        )
+                        estado="en_transito"        )
 
         invoice = self._create_invoice(
             numero_factura="FAC-SYNC-003",
@@ -535,8 +526,6 @@ class InvoiceViewSetTestCase(APITestCase):
             estado="en_transito"
         )
         
-        # Crear uploaded file e invoice de prueba
-        content = b"Test invoice file"
         self.uploaded_file = UploadedFile.objects.create(
             filename="test_invoice.pdf",
             path="invoices/test/test_invoice.pdf",

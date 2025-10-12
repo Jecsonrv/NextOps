@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import Invoice, UploadedFile
+from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
 
 
 @admin.register(UploadedFile)
@@ -285,3 +285,71 @@ class InvoiceAdmin(admin.ModelAdmin):
         """Optimizar queries"""
         qs = super().get_queryset(request)
         return qs.select_related('ot', 'proveedor', 'uploaded_file')
+
+
+@admin.register(Dispute)
+class DisputeAdmin(admin.ModelAdmin):
+    """Admin para disputas"""
+
+    list_display = [
+        'numero_caso',
+        'invoice',
+        'ot',
+        'tipo_disputa',
+        'estado',
+        'operativo',
+        'monto_disputa',
+        'created_at',
+    ]
+
+    list_filter = ['estado', 'tipo_disputa', 'created_at']
+
+    search_fields = ['numero_caso', 'detalle', 'operativo', 'invoice__numero_factura', 'ot__numero_ot']
+
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(CreditNote)
+class CreditNoteAdmin(admin.ModelAdmin):
+    """Admin para notas de crédito"""
+    
+    list_display = [
+        'numero_nota',
+        'proveedor_nombre',
+        'invoice_relacionada',
+        'fecha_emision',
+        'monto',
+        'estado',
+        'created_at',
+    ]
+    
+    list_filter = ['estado', 'fecha_emision', 'created_at']
+    
+    search_fields = ['numero_nota', 'proveedor_nombre', 'motivo']
+    
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(DisputeEvent)
+class DisputeEventAdmin(admin.ModelAdmin):
+    """Admin para eventos de disputas"""
+
+    list_display = [
+        'dispute',
+        'tipo',
+        'descripcion_short',
+        'usuario',
+        'created_at',
+    ]
+
+    list_filter = ['tipo', 'created_at']
+
+    search_fields = ['dispute__numero_caso', 'descripcion', 'usuario']
+
+    readonly_fields = ['created_at', 'updated_at']
+
+    def descripcion_short(self, obj):
+        if len(obj.descripcion) > 50:
+            return f"{obj.descripcion[:47]}..."
+        return obj.descripcion
+    descripcion_short.short_description = 'Descripción'

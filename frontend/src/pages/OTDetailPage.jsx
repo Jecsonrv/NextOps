@@ -627,17 +627,45 @@ export function OTDetailPage() {
                                             to={`/invoices/${invoice.id}`}
                                             className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                                         >
-                                            <p className="font-semibold text-sm">
-                                                {invoice.numero_factura}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {invoice.proveedor?.nombre}
-                                            </p>
-                                            <p className="text-sm font-medium text-blue-600">
-                                                $
-                                                {invoice.monto_total?.toLocaleString() ||
-                                                    "0"}
-                                            </p>
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-sm">
+                                                        {invoice.numero_factura}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {invoice.proveedor_nombre || invoice.proveedor?.nombre}
+                                                    </p>
+                                                    <p className="text-sm font-medium text-blue-600 mt-1">
+                                                        $
+                                                        {(invoice.monto_aplicable ?? invoice.monto ?? invoice.monto_total)?.toLocaleString("es-MX", {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2
+                                                        }) || "0.00"}
+                                                    </p>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    {invoice.estado_provision === 'anulada' && (
+                                                        <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
+                                                            ANULADA
+                                                        </span>
+                                                    )}
+                                                    {invoice.estado_provision === 'anulada_parcialmente' && (
+                                                        <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-medium">
+                                                            ANULADA PARCIAL
+                                                        </span>
+                                                    )}
+                                                    {invoice.estado_provision === 'disputada' && (
+                                                        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium">
+                                                            DISPUTADA
+                                                        </span>
+                                                    )}
+                                                    {invoice.estado_provision === 'provisionada' && (
+                                                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
+                                                            PROVISIONADA
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </Link>
                                     ))}
                                 </div>

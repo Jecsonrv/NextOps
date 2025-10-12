@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import * as XLSX from "xlsx";
+import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
 import { useProviders } from "../hooks/useInvoices";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
+import InvoiceStatusBadge, {
+    CostTypeBadge,
+    ExcludedFromStatsBadge,
+} from "../components/invoices/InvoiceStatusBadge";
 import {
     Card,
     CardContent,
@@ -25,13 +29,24 @@ import {
     ChevronDown,
     ChevronUp,
     X,
+    Package,
+    Archive,
+    AlertTriangle,
+    FileMinus,
+    Ship,
+    Truck,
+    DollarSign,
 } from "lucide-react";
+import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
 
 export function InvoicesPage() {
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
     const [selectedInvoiceForOT, setSelectedInvoiceForOT] = useState(null);
+    const [showDisputeModal, setShowDisputeModal] = useState(false);
+    const [selectedInvoiceForDispute, setSelectedInvoiceForDispute] = useState(null);
+    const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
     const [filters, setFilters] = useState({
         estado_provision: "",
         estado_facturacion: "",
@@ -47,19 +62,17 @@ export function InvoicesPage() {
     // Mutation para asignar OT
     const assignOTMutation = useMutation({
         mutationFn: async ({ invoiceId, otId }) => {
-            console.log("🔄 Asignando OT:", otId, "a factura:", invoiceId);
             const response = await apiClient.patch(`/invoices/${invoiceId}/`, {
                 ot_id: otId,
             });
             return response.data;
         },
         onSuccess: () => {
-            console.log("✅ OT asignada exitosamente");
             queryClient.invalidateQueries(["invoices"]);
             queryClient.invalidateQueries(["invoices-stats"]);
         },
         onError: (error) => {
-            console.error("❌ Error al asignar OT:", error);
+            toast.error("Error al asignar OT");
         },
     });
 
@@ -101,110 +114,175 @@ export function InvoicesPage() {
         },
     });
 
-    // Función para exportar a Excel
+    // Helper para construir parámetros de filtro
+    const buildFilterParams = () => {
+        const params = new URLSearchParams({
+            ...(search && { search }),
+            ...(filters.estado_provision && {
+                estado_provision: filters.estado_provision,
+            }),
+            ...(filters.estado_facturacion && {
+                estado_facturacion: filters.estado_facturacion,
+            }),
+            ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
+            ...(filters.proveedor && { proveedor: filters.proveedor }),
+            ...(filters.fecha_desde && {
+                fecha_desde: filters.fecha_desde,
+            }),
+            ...(filters.fecha_hasta && {
+                fecha_hasta: filters.fecha_hasta,
+            }),
+        });
+        return params.toString();
+    };
+
+    // Función para exportar a Excel (usando backend)
     const handleExportToExcel = async () => {
         try {
-            // Obtener TODAS las facturas con los filtros aplicados (sin paginación)
-            const params = new URLSearchParams({
-                page_size: "1000", // Límite alto para obtener todas
-                ...(search && { search }),
-                ...(filters.estado_provision && {
-                    estado_provision: filters.estado_provision,
-                }),
-                ...(filters.estado_facturacion && {
-                    estado_facturacion: filters.estado_facturacion,
-                }),
-                ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
-                ...(filters.proveedor && { proveedor: filters.proveedor }),
-                ...(filters.fecha_desde && {
-                    fecha_emision_desde: filters.fecha_desde,
-                }),
-                ...(filters.fecha_hasta && {
-                    fecha_emision_hasta: filters.fecha_hasta,
-                }),
-            });
+            const params = buildFilterParams();
 
-            const response = await apiClient.get(`/invoices/?${params}`);
-            const invoices = response.data.results || [];
+            // Hacer request al backend para obtener el archivo Excel
+            const response = await apiClient.get(
+                `/invoices/export-excel/?${params}`,
+                {
+                    responseType: "blob",
+                }
+            );
 
-            if (invoices.length === 0) {
-                alert("No hay facturas para exportar");
-                return;
+            // Crear URL del blob y descargar
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+
+            // Extraer nombre del archivo del header Content-Disposition
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = "Facturas_Export.xlsx";
+            if (contentDisposition) {
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
             }
 
-            // Preparar datos para Excel
-            const excelData = invoices.map((inv) => ({
-                ID: inv.id,
-                "Número Factura": inv.numero_factura || "",
-                OT: inv.ot?.numero_ot || "",
-                Cliente: inv.ot?.cliente_nombre || "",
-                MBL: inv.ot?.mbl || "",
-                Contenedor: inv.ot?.contenedor || "",
-                Naviera: inv.ot?.naviera || "",
-                Barco: inv.ot?.barco || "",
-                Proveedor:
-                    inv.proveedor_data?.nombre || inv.proveedor_nombre || "",
-                "NIT Proveedor": inv.proveedor_nit || "",
-                "Tipo Proveedor": inv.tipo_proveedor || "",
-                "Tipo Costo": inv.tipo_costo || "",
-                "Monto (USD)": inv.monto || "",
-                "Fecha Emisión": inv.fecha_emision || "",
-                "Fecha Vencimiento": inv.fecha_vencimiento || "",
-                "Fecha Provisión": inv.fecha_provision || "",
-                "Fecha Facturación": inv.fecha_facturacion || "",
-                "Estado Provisión": inv.estado_provision || "",
-                "Estado Facturación": inv.estado_facturacion || "",
-                "Método Asignación": inv.metodo_asignacion || "",
-                "Confianza Match": inv.confianza_match
-                    ? parseFloat(inv.confianza_match).toFixed(3)
-                    : "",
-                "Requiere Revisión": inv.requiere_revision ? "Sí" : "No",
-                Notas: inv.notas || "",
-                Creado: new Date(inv.created_at).toLocaleString("es-MX"),
-            }));
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
 
-            // Crear libro de Excel
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Facturas");
-
-            // Ajustar ancho de columnas
-            const colWidths = [
-                { wch: 8 }, // ID
-                { wch: 20 }, // Número Factura
-                { wch: 15 }, // OT
-                { wch: 25 }, // Cliente
-                { wch: 18 }, // MBL
-                { wch: 15 }, // Contenedor
-                { wch: 20 }, // Naviera
-                { wch: 20 }, // Barco
-                { wch: 25 }, // Proveedor
-                { wch: 15 }, // NIT
-                { wch: 18 }, // Tipo Proveedor
-                { wch: 15 }, // Tipo Costo
-                { wch: 12 }, // Monto
-                { wch: 15 }, // Fecha Emisión
-                { wch: 18 }, // Fecha Vencimiento
-                { wch: 18 }, // Fecha Provisión
-                { wch: 20 }, // Fecha Facturación
-                { wch: 18 }, // Estado Provisión
-                { wch: 20 }, // Estado Facturación
-                { wch: 20 }, // Método
-                { wch: 15 }, // Confianza
-                { wch: 15 }, // Revisión
-                { wch: 40 }, // Notas
-                { wch: 20 }, // Creado
-            ];
-            ws["!cols"] = colWidths;
-
-            // Generar archivo
-            const fileName = `facturas_${
-                new Date().toISOString().split("T")[0]
-            }.xlsx`;
-            XLSX.writeFile(wb, fileName);
+            toast.success("Excel exportado correctamente");
         } catch (error) {
-            console.error("Error al exportar:", error);
-            alert("Error al exportar a Excel: " + error.message);
+            toast.error(
+                "Error al exportar a Excel. Por favor intenta nuevamente."
+            );
+        }
+    };
+
+    // Función para exportar PDFs seleccionados
+    const handleBulkPDF = async () => {
+        if (selectedInvoices.length === 0) {
+            toast.error("Selecciona al menos una factura");
+            return;
+        }
+
+        try {
+            const response = await apiClient.post(
+                "/invoices/bulk-pdf/",
+                {
+                    invoice_ids: selectedInvoices,
+                },
+                {
+                    responseType: "blob",
+                }
+            );
+
+            // Descargar ZIP
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = "Facturas_PDF.zip";
+            if (contentDisposition) {
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(`${selectedInvoices.length} facturas exportadas en PDF`);
+        } catch (error) {
+            toast.error("Error al exportar PDFs. Por favor intenta nuevamente.");
+        }
+    };
+
+    // Función para exportar ZIP estructurado
+    const handleBulkZIP = async () => {
+        if (selectedInvoices.length === 0) {
+            toast.error("Selecciona al menos una factura");
+            return;
+        }
+
+        try {
+            const response = await apiClient.post(
+                "/invoices/bulk-zip/",
+                {
+                    invoice_ids: selectedInvoices,
+                },
+                {
+                    responseType: "blob",
+                }
+            );
+
+            // Descargar ZIP
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = "Facturas_Estructuradas.zip";
+            if (contentDisposition) {
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(`ZIP estructurado con ${selectedInvoices.length} facturas`);
+        } catch (error) {
+            toast.error("Error al exportar ZIP. Por favor intenta nuevamente.");
+        }
+    };
+
+    // Funciones para selección múltiple
+    const handleSelectAll = () => {
+        if (selectedInvoices.length === data?.results?.length) {
+            setSelectedInvoices([]);
+        } else {
+            setSelectedInvoices(data?.results?.map((inv) => inv.id) || []);
+        }
+    };
+
+    const handleSelectOne = (id) => {
+        if (selectedInvoices.includes(id)) {
+            setSelectedInvoices(selectedInvoices.filter((i) => i !== id));
+        } else {
+            setSelectedInvoices([...selectedInvoices, id]);
         }
     };
 
@@ -222,70 +300,70 @@ export function InvoicesPage() {
         <div className="space-y-6">
             {/* Stats Cards */}
             {stats && (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">
                                 Total Facturas
                             </CardTitle>
-                            <FileText className="w-4 h-4 text-blue-600" />
+                            <FileText className="w-5 h-5 text-blue-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-4xl font-bold text-gray-900">
                                 {stats.total}
                             </div>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Todas las facturas
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">
                                 Pendientes Provisión
                             </CardTitle>
-                            <FileText className="w-4 h-4 text-yellow-600" />
+                            <FileText className="w-5 h-5 text-yellow-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-4xl font-bold text-gray-900">
                                 {stats.pendientes_provision || 0}
                             </div>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Por provisionar
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">
                                 Provisionadas
                             </CardTitle>
-                            <FileText className="w-4 h-4 text-green-600" />
+                            <FileText className="w-5 h-5 text-green-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-4xl font-bold text-gray-900">
                                 {stats.provisionadas || 0}
                             </div>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Listas para facturar
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">
                                 Requieren Revisión
                             </CardTitle>
-                            <AlertCircle className="w-4 h-4 text-red-600" />
+                            <AlertCircle className="w-5 h-5 text-red-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-4xl font-bold text-gray-900">
                                 {stats.pendientes_revision || 0}
                             </div>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Con problemas
                             </p>
                         </CardContent>
@@ -311,7 +389,7 @@ export function InvoicesPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -341,18 +419,68 @@ export function InvoicesPage() {
                                 <Upload className="w-4 h-4 mr-2" />
                                 Subir Factura
                             </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                    (window.location.href = "/invoices/credit-notes/new")
+                                }
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Subir Nota de Crédito
+                            </Button>
                         </div>
                     </div>
+
+                    {/* Barra de Acciones Masivas */}
+                    {selectedInvoices.length > 0 && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-blue-900">
+                                        {selectedInvoices.length} factura(s) seleccionada(s)
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSelectedInvoices([])}
+                                    >
+                                        <X className="w-4 h-4 mr-1" />
+                                        Limpiar
+                                    </Button>
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkPDF}
+                                    >
+                                        <Package className="w-4 h-4 mr-2" />
+                                        Exportar PDF
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkZIP}
+                                    >
+                                        <Archive className="w-4 h-4 mr-2" />
+                                        Exportar ZIP Estructurado
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Panel de Filtros Avanzados */}
                     {showFilters && (
                         <div className="mt-6 pt-6 border-t border-gray-200">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label htmlFor="estado_provision" className="block text-sm font-medium text-gray-700 mb-1">
                                         Estado de Provisión
                                     </label>
                                     <select
+                                        id="estado_provision"
                                         value={filters.estado_provision}
                                         onChange={(e) =>
                                             setFilters({
@@ -554,49 +682,64 @@ export function InvoicesPage() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-gray-200 bg-gray-50">
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        selectedInvoices.length ===
+                                                            data?.results?.length &&
+                                                        data?.results?.length > 0
+                                                    }
+                                                    onChange={handleSelectAll}
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Operativo
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 OT
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Cliente
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 MBL
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Naviera
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Proveedor
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Barco
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Tipo Prov.
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Tipo Costo
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                                Estado
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 # Factura
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Emisión
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Provisión
                                             </th>
-                                            <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Facturación
                                             </th>
-                                            <th className="px-3 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Monto
                                             </th>
-                                            <th className="px-3 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Acciones
                                             </th>
                                         </tr>
@@ -607,91 +750,115 @@ export function InvoicesPage() {
                                                 key={invoice.id}
                                                 className="hover:bg-blue-50 transition-colors"
                                             >
-                                                <td className="px-3 py-3 text-gray-900">
-                                                    {invoice.ot_data
-                                                        ?.operativo || "-"}
+                                                <td className="px-4 py-3 text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedInvoices.includes(
+                                                            invoice.id
+                                                        )}
+                                                        onChange={() =>
+                                                            handleSelectOne(invoice.id)
+                                                        }
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
                                                 </td>
-                                                <td className="px-3 py-3">
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.ot_data?.operativo || "-"}
+                                                </td>
+                                                <td className="px-4 py-3">
                                                     {invoice.ot_data ? (
                                                         <Link
                                                             to={`/ots/${invoice.ot_data.id}`}
-                                                            className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                                                            className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
                                                         >
-                                                            <Link2 className="w-3 h-3" />
-                                                            {
-                                                                invoice.ot_data
-                                                                    .numero_ot
-                                                            }
+                                                            <Link2 className="w-3.5 h-3.5" />
+                                                            {invoice.ot_data.numero_ot}
                                                         </Link>
                                                     ) : (
-                                                        <span className="text-gray-400 text-xs">
+                                                        <span className="text-gray-400 text-sm italic">
                                                             Sin asignar
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-900">
-                                                    {invoice.ot_data?.cliente ||
-                                                        "-"}
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.ot_data?.cliente || "-"}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-700 font-mono text-xs">
-                                                    {invoice.ot_data?.mbl ||
-                                                        "-"}
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {invoice.ot_data?.mbl || "-"}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-900">
-                                                    {invoice.ot_data?.naviera ||
-                                                        "-"}
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.ot_data?.naviera || "-"}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-900 font-medium">
-                                                    {invoice.proveedor_data
-                                                        ?.nombre || "-"}
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.proveedor_data?.nombre || "-"}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-700">
-                                                    {invoice.ot_data?.barco ||
-                                                        "-"}
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.ot_data?.barco || "-"}
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                                                        {invoice.proveedor_data
-                                                            ?.tipo_display ||
-                                                            "-"}
-                                                    </span>
+                                                <td className="px-4 py-3">
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                                        <Ship className="w-3.5 h-3.5" />
+                                                        {invoice.proveedor_data?.tipo_display || "-"}
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                                        {invoice.tipo_costo_display ||
-                                                            "-"}
-                                                    </span>
+                                                <td className="px-4 py-3">
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <DollarSign className="w-3.5 h-3.5" />
+                                                        {invoice.tipo_costo_display || "-"}
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-3">
-                                                    <Link
-                                                        to={`/invoices/${invoice.id}`}
-                                                        className="font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                                    >
-                                                        {invoice.numero_factura ||
-                                                            "SIN-NUM"}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-col gap-1">
+                                                        <InvoiceStatusBadge invoice={invoice} />
+                                                        <div className="flex gap-1">
+                                                            <CostTypeBadge invoice={invoice} />
+                                                            <ExcludedFromStatsBadge invoice={invoice} />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-1">
+                                                        <Link
+                                                            to={`/invoices/${invoice.id}`}
+                                                            className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            {invoice.numero_factura || "SIN-NUM"}
+                                                        </Link>
                                                         {invoice.requiere_revision && (
-                                                            <AlertCircle className="w-4 h-4 text-red-500" />
+                                                            <AlertCircle 
+                                                                className="w-3.5 h-3.5 text-red-500 flex-shrink-0" 
+                                                                title="Requiere Revisión" 
+                                                            />
                                                         )}
-                                                    </Link>
+                                                        {invoice.has_disputes && invoice.dispute_id && (
+                                                            <Link
+                                                                to={`/invoices/disputes/${invoice.dispute_id}`}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="Ver Disputa"
+                                                            >
+                                                                <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
+                                                            </Link>
+                                                        )}
+                                                        {invoice.has_credit_notes && (
+                                                            <FileMinus 
+                                                                className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" 
+                                                                title="Tiene Notas de Crédito" 
+                                                            />
+                                                        )}
+                                                    </div>
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-600">
-                                                    {formatDate(
-                                                        invoice.fecha_emision
-                                                    )}
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {formatDate(invoice.fecha_emision)}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-600">
-                                                    {formatDate(
-                                                        invoice.fecha_provision
-                                                    )}
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {formatDate(invoice.fecha_provision)}
                                                 </td>
-                                                <td className="px-3 py-3 text-gray-600">
-                                                    {formatDate(
-                                                        invoice.fecha_facturacion
-                                                    )}
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {formatDate(invoice.fecha_facturacion)}
                                                 </td>
-                                                <td className="px-3 py-3 text-right text-gray-900 font-bold">
+                                                <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
                                                     $
-                                                    {invoice.monto?.toLocaleString(
+                                                    {(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
                                                         "es-MX",
                                                         {
                                                             minimumFractionDigits: 2,
@@ -699,7 +866,7 @@ export function InvoicesPage() {
                                                         }
                                                     ) || "0.00"}
                                                 </td>
-                                                <td className="px-3 py-3 text-right">
+                                                <td className="px-4 py-3 text-right">
                                                     <div className="flex justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
@@ -726,6 +893,17 @@ export function InvoicesPage() {
                                                             }
                                                         >
                                                             <Link2 className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                setSelectedInvoiceForDispute(invoice);
+                                                                setShowDisputeModal(true);
+                                                            }}
+                                                            title="Crear Disputa"
+                                                        >
+                                                            <AlertTriangle className="w-4 h-4" />
                                                         </Button>
                                                         {invoice.file_url && (
                                                             <Button
@@ -808,6 +986,14 @@ export function InvoicesPage() {
                         });
                         setSelectedInvoiceForOT(null);
                     }}
+                />
+            )}
+
+            {showDisputeModal && (
+                <DisputeFormModal
+                    isOpen={showDisputeModal}
+                    onClose={() => setShowDisputeModal(false)}
+                    invoice={selectedInvoiceForDispute}
                 />
             )}
         </div>
