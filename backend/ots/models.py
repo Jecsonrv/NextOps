@@ -664,3 +664,127 @@ class OT(TimeStampedModel, SoftDeleteModel):
             return True, 'OK'
         else:
             return False, f'Prioridad insuficiente: {new_source} ({new_priority}) < {self.provision_source} ({current_priority})'
+
+
+class ProcessedFile(TimeStampedModel):
+    """
+    Registro de archivos Excel procesados para evitar reprocesamiento.
+
+    Usa SHA256 del contenido del archivo para detectar si un archivo ya fue procesado.
+    Esto mejora significativamente el rendimiento al evitar procesar el mismo archivo
+    múltiples veces sin cambios.
+    """
+
+    # Hash SHA256 del contenido del archivo
+    file_hash = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="SHA256 hash del contenido del archivo"
+    )
+
+    # Nombre original del archivo
+    filename = models.CharField(
+        max_length=500,
+        help_text="Nombre original del archivo procesado"
+    )
+
+    # Estadísticas del procesamiento
+    total_rows = models.IntegerField(
+        default=0,
+        help_text="Total de filas procesadas"
+    )
+
+    created_count = models.IntegerField(
+        default=0,
+        help_text="Número de OTs creadas"
+    )
+
+    updated_count = models.IntegerField(
+        default=0,
+        help_text="Número de OTs actualizadas"
+    )
+
+    skipped_count = models.IntegerField(
+        default=0,
+        help_text="Número de filas omitidas"
+    )
+
+    # Usuario que procesó el archivo
+    processed_by = models.CharField(
+        max_length=100,
+        help_text="Usuario que procesó el archivo"
+    )
+
+    # Tipo de operación procesada
+    operation_type = models.CharField(
+        max_length=20,
+        default='importacion',
+        help_text="Tipo de operación del archivo (importacion/exportacion)"
+    )
+
+    class Meta:
+        db_table = 'processed_files'
+        verbose_name = 'Archivo Procesado'
+        verbose_name_plural = 'Archivos Procesados'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['file_hash']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.filename} ({self.file_hash[:8]}...) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+    @classmethod
+    def is_already_processed(cls, file_hash: str) -> bool:
+        """
+        Verifica si un archivo ya fue procesado.
+
+        Args:
+            file_hash: SHA256 hash del archivo
+
+        Returns:
+            True si ya fue procesado, False si es nuevo
+        """
+        return cls.objects.filter(file_hash=file_hash).exists()
+
+    @classmethod
+    def get_processed_file_info(cls, file_hash: str):
+        """
+        Obtiene información del procesamiento previo de un archivo.
+
+        Args:
+            file_hash: SHA256 hash del archivo
+
+        Returns:
+            Instancia de ProcessedFile si existe, None si no
+        """
+        return cls.objects.filter(file_hash=file_hash).first()
+
+    @classmethod
+    def mark_as_processed(cls, file_hash: str, filename: str, stats: dict,
+                         processed_by: str = 'system', operation_type: str = 'importacion'):
+        """
+        Marca un archivo como procesado y guarda las estadísticas.
+
+        Args:
+            file_hash: SHA256 hash del archivo
+            filename: Nombre del archivo
+            stats: Diccionario con estadísticas (total_rows, created, updated, skipped)
+            processed_by: Usuario que procesó
+            operation_type: Tipo de operación
+        """
+        obj, created = cls.objects.update_or_create(
+            file_hash=file_hash,
+            defaults={
+                'filename': filename,
+                'total_rows': stats.get('total_rows', 0),
+                'created_count': stats.get('created', 0),
+                'updated_count': stats.get('updated', 0),
+                'skipped_count': stats.get('skipped', 0),
+                'processed_by': processed_by,
+                'operation_type': operation_type,
+            }
+        )
+        return obj

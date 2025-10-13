@@ -727,8 +727,24 @@ class OTViewSet(viewsets.ModelViewSet):
             processor = ExcelProcessor()
             # Primero cargar los datos
             processor.process_multiple_files(temp_files, tipos_operacion=tipos_operacion)
+
+            # Preparar información adicional para las resoluciones
+            # Necesitamos enriquecer las resoluciones con valor_original y valor_nuevo
+            for conflict_resolution in conflicts_resolutions:
+                # Buscar el conflicto original en los conflictos detectados
+                ot = conflict_resolution['ot']
+                campo = conflict_resolution['campo']
+
+                # Buscar en los conflictos originales para obtener los valores
+                for original_conflict in processor.detected_conflicts:
+                    if original_conflict['ot'] == ot and original_conflict['campo'] == campo:
+                        conflict_resolution['valor_original'] = original_conflict.get('valor_actual')
+                        conflict_resolution['valor_nuevo'] = original_conflict.get('valor_nuevo')
+                        break
+
             # Luego resolver conflictos y procesar
-            stats = processor.resolve_conflicts_and_process(conflicts_resolutions)
+            processed_by = request.user.username if request.user else 'system'
+            stats = processor.resolve_conflicts_and_process(conflicts_resolutions, processed_by=processed_by)
             
             success = len(stats['errors']) == 0 or stats['processed'] > 0
             

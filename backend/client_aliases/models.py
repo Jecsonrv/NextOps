@@ -349,3 +349,115 @@ class SimilarityMatch(TimeStampedModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class ClientResolution(TimeStampedModel):
+    """
+    Cachea decisiones de normalización de nombres de clientes.
+
+    Cuando un usuario resuelve un conflicto (ej: JUGUESAL S.A. DE C.V. → JUGUESAL),
+    guardamos esa decisión para aplicarla automáticamente en futuras cargas.
+
+    Esto evita que el mismo conflicto aparezca repetidamente en cada carga de archivo.
+    """
+
+    RESOLUTION_TYPE_CHOICES = [
+        ('manual', 'Resolución Manual'),
+        ('automatic', 'Resolución Automática'),
+        ('conflict', 'Resolución de Conflicto'),
+    ]
+
+    # Nombre original tal como aparece en el Excel
+    original_name = models.CharField(
+        max_length=500,
+        db_index=True,
+        help_text="Nombre original del cliente como aparece en el Excel"
+    )
+
+    # Nombre normalizado para búsqueda fuzzy
+    normalized_name = models.CharField(
+        max_length=500,
+        help_text="Nombre normalizado para búsqueda fuzzy"
+    )
+
+    # Cliente al que se resolvió
+    resolved_to = models.ForeignKey(
+        ClientAlias,
+        on_delete=models.CASCADE,
+        related_name='resolutions',
+        help_text="Cliente al que se resolvió esta variación"
+    )
+
+    # Tipo de resolución
+    resolution_type = models.CharField(
+        max_length=20,
+        choices=RESOLUTION_TYPE_CHOICES,
+        default='manual',
+        help_text="Tipo de resolución aplicada"
+    )
+
+    # Audit trail
+    created_by = models.CharField(
+        max_length=100,
+        default='system',
+        blank=True
+    )
+
+    class Meta:
+        db_table = 'client_resolutions'
+        verbose_name = 'Resolución de Cliente'
+        verbose_name_plural = 'Resoluciones de Clientes'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['original_name']),
+            models.Index(fields=['normalized_name']),
+        ]
+        unique_together = [('original_name', 'resolved_to')]
+
+    def __str__(self):
+        return f"{self.original_name} → {self.resolved_to.original_name}"
+
+    @classmethod
+    def find_resolution(cls, original_name: str):
+        """
+        Busca una resolución cacheada para un nombre original.
+
+        Returns:
+            ClientAlias si hay una resolución, None si no hay
+        """
+        normalized = ClientAlias.normalize_name(original_name)
+        resolution = cls.objects.filter(
+            normalized_name=normalized
+        ).select_related('resolved_to').first()
+
+        if resolution:
+            return resolution.resolved_to.get_effective_alias()
+
+        return None
+
+    @classmethod
+    def cache_resolution(cls, original_name: str, resolved_to: ClientAlias,
+                        resolution_type: str = 'manual', created_by: str = 'system'):
+        """
+        Cachea una resolución para uso futuro.
+
+        Args:
+            original_name: Nombre original del cliente
+            resolved_to: ClientAlias al que se resolvió
+            resolution_type: Tipo de resolución
+            created_by: Usuario que creó la resolución
+        """
+        normalized = ClientAlias.normalize_name(original_name)
+
+        # Crear o actualizar
+        resolution, created = cls.objects.update_or_create(
+            original_name=original_name,
+            defaults={
+                'normalized_name': normalized,
+                'resolved_to': resolved_to,
+                'resolution_type': resolution_type,
+                'created_by': created_by
+            }
+        )
+
+        return resolution

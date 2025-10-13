@@ -11,6 +11,7 @@ Funcionalidades:
 
 import pandas as pd
 import re
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 from decimal import Decimal
@@ -127,7 +128,7 @@ class ExcelProcessor:
     def __init__(self, filename: str = ''):
         """
         Inicializar procesador
-        
+
         Args:
             filename: Nombre del archivo para inferir operativo
         """
@@ -140,35 +141,83 @@ class ExcelProcessor:
             'skipped': 0,
             'errors': [],
             'conflicts': [],
-            'warnings': []  # Mensajes informativos sobre filas omitidas
+            'warnings': [],  # Mensajes informativos sobre filas omitidas
+            'warnings_summary': {}  # Resumen agrupado de warnings por tipo
         }
         # Cache temporal para detectar conflictos entre archivos
         self.pending_data = {}  # {numero_ot: {'data': {...}, 'filename': str}}
         self.detected_conflicts = []  # Lista de conflictos detectados
     
+    @staticmethod
+    def calculate_file_hash(file_path: str) -> str:
+        """
+        Calcula el hash SHA256 del contenido de un archivo.
+
+        Args:
+            file_path: Ruta al archivo
+
+        Returns:
+            Hash SHA256 en formato hexadecimal
+        """
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            # Leer en chunks para archivos grandes
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
     def process_multiple_files(self, file_paths: List[Tuple[str, str]], tipos_operacion: List[str] = None) -> Dict[str, Any]:
         """
         Procesar múltiples archivos Excel y detectar conflictos.
-        
+
+        Fase 0: Verificar si los archivos ya fueron procesados (hash)
         Fase 1: Cargar todos los datos y detectar conflictos de cliente/operativo
         Fase 2: Si hay conflictos, retornarlos para resolución
         Fase 3: Si no hay conflictos, procesar normalmente
-        
+
         Args:
             file_paths: Lista de tuplas (file_path, filename) para procesar
             tipos_operacion: Lista de tipos de operación, uno por archivo ('importacion' o 'exportacion')
-            
+
         Returns:
             Diccionario con estadísticas y conflictos detectados
         """
+        from ots.models import ProcessedFile
+
         # Si no se proporcionan tipos, usar 'importacion' como default
         if tipos_operacion is None:
             tipos_operacion = ['importacion'] * len(file_paths)
-        
-        # Fase 1: Cargar todos los archivos y detectar conflictos
+
+        # Fase 0: Verificar archivos ya procesados
+        files_to_process = []
         for i, (file_path, filename) in enumerate(file_paths):
+            file_hash = self.calculate_file_hash(file_path)
+
+            # Verificar si ya fue procesado
+            if ProcessedFile.is_already_processed(file_hash):
+                processed_info = ProcessedFile.get_processed_file_info(file_hash)
+                self.stats['warnings'].append({
+                    'row': 'N/A',
+                    'ot': 'N/A',
+                    'type': 'archivo duplicado',
+                    'message': f"Archivo '{filename}' ya fue procesado el {processed_info.created_at.strftime('%Y-%m-%d %H:%M')}. Se omite para evitar duplicados.",
+                    'file': filename
+                })
+                # Agregar las estadísticas del archivo previo
+                self.stats['total_rows'] += processed_info.total_rows
+                self.stats['skipped'] += processed_info.total_rows
+                continue
+
+            files_to_process.append((file_path, filename, file_hash, tipos_operacion[i] if i < len(tipos_operacion) else 'importacion'))
+
+        # Si no hay archivos nuevos para procesar, retornar
+        if not files_to_process:
+            self._generate_warnings_summary()
+            return self.stats
+
+        # Fase 1: Cargar todos los archivos y detectar conflictos
+        for file_path, filename, file_hash, tipo_op in files_to_process:
             self.filename = filename
-            tipo_op = tipos_operacion[i] if i < len(tipos_operacion) else 'importacion'
             self._load_file_data(file_path, filename, tipo_op)
         
         # Fase 2: Verificar si hay conflictos
@@ -192,22 +241,19 @@ class ExcelProcessor:
                     'error': f"Error al procesar OT {numero_ot}: {str(e)}"
                 })
         
-        # Verificar consistencia de reportes
-        warnings_count = len(self.stats.get('warnings', []))
-        errors_count = len(self.stats.get('errors', []))
-        skipped_count = self.stats.get('skipped', 0)
-        
-        # Si hay diferencia, agregar nota explicativa
-        if skipped_count > warnings_count:
-            missing = skipped_count - warnings_count
-            self.stats['warnings'].append({
-                'row': 'N/A',
-                'ot': 'N/A',
-                'type': 'resumen',
-                'message': f"Nota: {missing} filas adicionales fueron omitidas sin detalles específicos (filas vacías o duplicados internos)",
-                'file': 'Sistema'
-            })
-        
+        # Generar resumen agrupado de warnings
+        self._generate_warnings_summary()
+
+        # Marcar archivos como procesados
+        from ots.models import ProcessedFile
+        for file_path, filename, file_hash, tipo_op in files_to_process:
+            ProcessedFile.mark_as_processed(
+                file_hash=file_hash,
+                filename=filename,
+                stats=self.stats,
+                operation_type=tipo_op
+            )
+
         return self.stats
     
     def _load_file_data(self, file_path: str, filename: str, tipo_operacion: str = 'importacion'):
@@ -283,27 +329,37 @@ class ExcelProcessor:
         
         # Extraer datos básicos
         numero_ot = self._extract_numero_ot(row)
-        cliente_name = self._extract_value(row, 'cliente')
-        if cliente_name:
-            cliente_name = cliente_name.upper()
-        
+        cliente_name_raw = self._extract_value(row, 'cliente')
+        if cliente_name_raw:
+            cliente_name_raw = cliente_name_raw.upper()
+
         # Validar campos obligatorios
-        if not numero_ot or not cliente_name:
+        if not numero_ot or not cliente_name_raw:
             self.stats['skipped'] += 1
             reason = []
             if not numero_ot:
                 reason.append("falta número de OT")
-            if not cliente_name:
+            if not cliente_name_raw:
                 reason.append("falta nombre de cliente")
-            
+
             self.stats['warnings'].append({
                 'row': row_number,
                 'ot': numero_ot or 'N/A',
-                'type': 'datos_incompletos',
+                'type': 'datos incompletos',
                 'message': f"Fila omitida: {', '.join(reason)}",
                 'file': filename
             })
             return
+
+        # Aplicar resolución cacheada si existe
+        from client_aliases.models import ClientResolution
+        resolved_cliente = ClientResolution.find_resolution(cliente_name_raw)
+        if resolved_cliente:
+            # Usar el cliente resuelto automáticamente
+            cliente_name = resolved_cliente.original_name
+        else:
+            # Usar el nombre tal como viene
+            cliente_name = cliente_name_raw
         
         # Validar año
         if not self._is_valid_ot_year(numero_ot):
@@ -311,7 +367,7 @@ class ExcelProcessor:
             self.stats['warnings'].append({
                 'row': row_number,
                 'ot': numero_ot,
-                'type': 'año_invalido',
+                'type': 'año invalido',
                 'message': f"OT omitida: año no válido (debe ser >= {self.MIN_YEAR})",
                 'file': filename
             })
@@ -393,6 +449,45 @@ class ExcelProcessor:
             'row': row_number
         }
     
+    def _generate_warnings_summary(self):
+        """
+        Genera un resumen agrupado de warnings por tipo.
+
+        En lugar de mostrar 500 mensajes individuales, agrupa por categoría:
+        - "año inválido": X OTs
+        - "datos incompletos": Y OTs
+        - etc.
+        """
+        # Agrupar warnings por tipo
+        warnings_by_type = {}
+        for warning in self.stats.get('warnings', []):
+            warning_type = warning.get('type', 'otro')
+
+            # Normalizar el tipo para mostrar con espacios
+            display_type = warning_type.replace('_', ' ')
+
+            if display_type not in warnings_by_type:
+                warnings_by_type[display_type] = 0
+            warnings_by_type[display_type] += 1
+
+        # Guardar el resumen
+        self.stats['warnings_summary'] = warnings_by_type
+
+        # Limpiar la lista de warnings individuales para ahorrar memoria
+        # Solo mantener los primeros 10 de cada tipo como ejemplos
+        if len(self.stats['warnings']) > 100:
+            # Mantener solo una muestra
+            warnings_sample = {}
+            for warning in self.stats['warnings']:
+                warning_type = warning.get('type', 'otro')
+                if warning_type not in warnings_sample:
+                    warnings_sample[warning_type] = []
+                if len(warnings_sample[warning_type]) < 10:
+                    warnings_sample[warning_type].append(warning)
+
+            # Aplanar de vuelta a lista
+            self.stats['warnings'] = [w for samples in warnings_sample.values() for w in samples]
+
     def _extract_complete_row_data(self, row: pd.Series, cliente_name: str, operativo: str, tipo_operacion: str = 'importacion') -> Dict[str, Any]:
         """Extraer todos los datos de una fila para procesamiento posterior."""
         master_bl = self._extract_value(row, 'master_bl')
@@ -589,58 +684,101 @@ class ExcelProcessor:
             OT.objects.create(**ot_data_final)
             self.stats['created'] += 1
     
-    def resolve_conflicts_and_process(self, conflicts_resolutions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def resolve_conflicts_and_process(self, conflicts_resolutions: List[Dict[str, Any]], processed_by: str = 'system') -> Dict[str, Any]:
         """
         Resolver conflictos y procesar las OTs con las decisiones tomadas.
-        
+
         Args:
             conflicts_resolutions: Lista de resoluciones de conflictos
-                [{'ot': '25OT221', 'campo': 'cliente', 'resolucion': 'usar_nuevo'}, ...]
-        
+                [{'ot': '25OT221', 'campo': 'cliente', 'resolucion': 'usar_nuevo', 'valor_nuevo': 'JUGUESAL', 'valor_original': 'JUGUESAL S.A. DE C.V.'}, ...]
+            processed_by: Usuario que está procesando (para audit trail)
+
         Returns:
             Estadísticas de procesamiento
         """
+        from ots.models import OT
+        from client_aliases.models import ClientResolution, ClientAlias
+
         # Crear un mapa de resoluciones por OT y campo
         resolutions_map = {}
         for resolution in conflicts_resolutions:
             ot = resolution['ot']
             campo = resolution['campo']
             decision = resolution['resolucion']
-            
+
             if ot not in resolutions_map:
                 resolutions_map[ot] = {}
-            resolutions_map[ot][campo] = decision
-        
+            resolutions_map[ot][campo] = {
+                'decision': decision,
+                'valor_nuevo': resolution.get('valor_nuevo'),
+                'valor_original': resolution.get('valor_original')
+            }
+
         # Procesar las OTs aplicando las resoluciones
-        from ots.models import OT
         for numero_ot, pending_item in self.pending_data.items():
             try:
                 ot_data = pending_item['data'].copy()
-                
+
                 # Aplicar resoluciones si existen
                 if numero_ot in resolutions_map:
                     existing_ot = OT.objects.filter(numero_ot=numero_ot).first()
-                    
+
                     # Cliente
                     if 'cliente' in resolutions_map[numero_ot]:
-                        if resolutions_map[numero_ot]['cliente'] == 'mantener_actual' and existing_ot:
+                        resolution_info = resolutions_map[numero_ot]['cliente']
+                        decision = resolution_info['decision']
+
+                        if decision == 'mantener_actual' and existing_ot:
+                            # Mantener el cliente actual de la BD
                             ot_data['cliente_name'] = existing_ot.cliente.original_name
-                    
+                        elif decision == 'usar_nuevo':
+                            # Usar el nuevo cliente del Excel
+                            # Cachear esta decisión para futuros archivos
+                            valor_original = resolution_info.get('valor_original')
+                            valor_nuevo = resolution_info.get('valor_nuevo')
+
+                            if valor_original and valor_nuevo:
+                                # Buscar o crear el ClientAlias del cliente resuelto
+                                cliente_resuelto, _ = ClientAlias.objects.get_or_create(
+                                    original_name=valor_nuevo,
+                                    defaults={
+                                        'normalized_name': ClientAlias.normalize_name(valor_nuevo),
+                                        'country': 'GT'
+                                    }
+                                )
+
+                                # Cachear la resolución
+                                ClientResolution.cache_resolution(
+                                    original_name=valor_original,
+                                    resolved_to=cliente_resuelto,
+                                    resolution_type='conflict',
+                                    created_by=processed_by
+                                )
+
                     # Operativo
                     if 'operativo' in resolutions_map[numero_ot]:
-                        if resolutions_map[numero_ot]['operativo'] == 'mantener_actual' and existing_ot:
+                        resolution_info = resolutions_map[numero_ot]['operativo']
+                        decision = resolution_info['decision']
+
+                        if decision == 'mantener_actual' and existing_ot:
                             ot_data['operativo'] = existing_ot.operativo
-                
+
                 self._create_or_update_ot(numero_ot, ot_data)
                 self.stats['processed'] += 1
-                
+
             except Exception as e:
                 self.stats['errors'].append({
                     'row': pending_item.get('row', 'N/A'),
                     'ot': numero_ot,
                     'error': f"Error al procesar OT {numero_ot}: {str(e)}"
                 })
-        
+
+        # Generar resumen agrupado de warnings
+        self._generate_warnings_summary()
+
+        # Marcar archivos como procesados (si tenemos info del hash)
+        # Nota: Los hashes se deben pasar desde el viewset que llama a este método
+
         return self.stats
     
     def _find_best_sheet(self, file_path: str) -> str:
@@ -903,7 +1041,7 @@ class ExcelProcessor:
             self.stats['warnings'].append({
                 'row': row_number,
                 'ot': numero_ot,
-                'type': 'año_invalido',
+                'type': 'año invalido',
                 'message': f"OT omitida: año no válido (debe ser >= {self.MIN_YEAR})",
                 'file': self.filename
             })
