@@ -5,6 +5,7 @@ import apiClient from "../lib/api";
 import { OTForm } from "../components/OTForm";
 import { Button } from "../components/ui/Button";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { showSuccess } from "../utils/toast";
 
 export function OTEditPage() {
     const { id } = useParams();
@@ -115,7 +116,7 @@ export function OTEditPage() {
             queryClient.invalidateQueries(["ots"]);
             queryClient.invalidateQueries(["ot", id]);
             // Mostrar mensaje de éxito
-            alert(`OT ${data.numero_ot} actualizada exitosamente`);
+            showSuccess(`OT ${data.numero_ot} actualizada exitosamente`);
             // Redirigir al detalle
             navigate(`/ots/${data.id}`);
         },

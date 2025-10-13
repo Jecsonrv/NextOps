@@ -597,24 +597,8 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
         legacy_manual_states = manual_provision_states | {'rechazada'}
 
         # REGLA 3: Auto-marcado de estados según fechas
-        # Si se ingresa fecha_provision, marcar como provisionada
-        if 'fecha_provision' in validated_data:
-            nueva_fecha_provision = validated_data['fecha_provision']
-            if nueva_fecha_provision:
-                validated_data['estado_provision'] = 'provisionada'
-            else:
-                estado_forzado = validated_data.get('estado_provision')
-                if estado_forzado in legacy_manual_states:
-                    pass
-                elif (
-                    instance.estado_provision in legacy_manual_states
-                    and 'estado_provision' not in validated_data
-                ):
-                    validated_data['estado_provision'] = instance.estado_provision
-                else:
-                    # Si se limpia la fecha, volver a pendiente
-                    validated_data['estado_provision'] = 'pendiente'
-        
+        # La lógica de cambio de estado por fecha de provisión se ha movido al método save() del modelo Invoice.
+
         # Si se ingresa fecha_facturacion, marcar como facturada
         if 'fecha_facturacion' in validated_data:
             if validated_data['fecha_facturacion']:
@@ -635,60 +619,9 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
             if validated_data['estado_facturacion'] in ['disputada', 'en_revision']:
                 validated_data['fecha_facturacion'] = None
         
-        # SINCRONIZACIÓN BIDIRECCIONAL: Invoice -> OT
-        # Solo para FLETE (cualquier tipo) o CARGOS_NAVIERA de NAVIERA
-        target_ot = validated_data.get('ot', instance.ot)
-        should_sync = (
-            (instance.tipo_costo.startswith('FLETE') or instance.tipo_costo == 'CARGOS_NAVIERA') and 
-            instance.tipo_proveedor == 'naviera' and
-            target_ot is not None
-        )
-        
-        if should_sync:
-            ot_updated = False
-            ot_to_update = target_ot
-            fields_to_update = set()
-            
-            # SINCRONIZAR fecha_provision -> fecha_provision
-            if 'fecha_provision' in validated_data:
-                new_fecha = validated_data['fecha_provision']
-                # Comparar solo la fecha (no datetime) para evitar problemas de timezone
-                if ot_to_update.fecha_provision != new_fecha:
-                    print(f"[INVOICE->OT SYNC] Actualizando OT {ot_to_update.numero_ot}")
-                    print(f"  - fecha_provision: {ot_to_update.fecha_provision} -> {new_fecha}")
-                    
-                    ot_to_update.fecha_provision = new_fecha
-                    fields_to_update.update({'fecha_provision', 'estado_provision'})
-                    ot_updated = True
-            
-            # SINCRONIZAR fecha_facturacion -> fecha_recepcion_factura
-            if 'fecha_facturacion' in validated_data:
-                new_fecha_fact = validated_data['fecha_facturacion']
-                # Comparar solo la fecha (no datetime) para evitar problemas de timezone
-                if ot_to_update.fecha_recepcion_factura != new_fecha_fact:
-                    print(f"  - fecha_recepcion_factura: {ot_to_update.fecha_recepcion_factura} -> {new_fecha_fact}")
-                    
-                    ot_to_update.fecha_recepcion_factura = new_fecha_fact
-                    fields_to_update.update({'fecha_recepcion_factura', 'estado_facturado'})
-                    ot_updated = True
-
-            # SINCRONIZAR estado_provision cuando se actualiza manualmente
-            if 'estado_provision' in validated_data:
-                estado_direccionado = validated_data['estado_provision']
-                if estado_direccionado in {'pendiente', 'provisionada', 'revision', 'disputada'}:
-                    if ot_to_update.estado_provision != estado_direccionado:
-                        print(
-                            f"  - estado_provision OT: {ot_to_update.estado_provision} -> {estado_direccionado}"
-                        )
-                        ot_to_update.estado_provision = estado_direccionado
-                        fields_to_update.add('estado_provision')
-                        ot_updated = True
-            
-            if ot_updated:
-                fields_to_update.add('updated_at')
-                # El estado_provision y estado_facturado se actualizarán automáticamente en el save() del modelo OT
-                ot_to_update.save(update_fields=list(fields_to_update))
-                print(f"  ✅ OT guardada. estado_provision: {ot_to_update.estado_provision}, estado_facturado: {ot_to_update.estado_facturado}")
+        # La lógica de sincronización bidireccional se ha centralizado en los métodos save() de los modelos
+        # Invoice y OT (a través de señales) para garantizar consistencia.
+        # Se elimina la lógica de sincronización de este serializador para evitar duplicidad y conflictos.
         
         return super().update(instance, validated_data)
 

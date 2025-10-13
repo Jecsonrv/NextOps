@@ -364,6 +364,14 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         return f"Factura {self.numero_factura} - {self.proveedor_nombre}"
     
     def save(self, *args, **kwargs):
+        # Obtener el estado anterior ANTES de cualquier cambio
+        old_estado_provision = None
+        if self.pk:
+            try:
+                old_estado_provision = Invoice.objects.get(pk=self.pk).estado_provision
+            except Invoice.DoesNotExist:
+                pass  # Es una instancia nueva, no hay estado anterior
+
         # Sincronizar ot_number con el objeto OT
         if self.ot:
             self.ot_number = self.ot.numero_ot
@@ -371,53 +379,35 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         # Calcular vencimiento automático si es crédito
         if self.tipo_pago == 'credito':
             if self.proveedor and self.proveedor.tiene_credito:
-                # Aplicar días de crédito del proveedor
                 self.dias_credito_aplicado = self.proveedor.dias_credito
-
-            # Calcular fecha de vencimiento
             if self.dias_credito_aplicado > 0 and self.fecha_emision:
                 from datetime import timedelta
                 self.fecha_vencimiento = self.fecha_emision + timedelta(days=self.dias_credito_aplicado)
         else:
-            # Si es contado, limpiar campos de crédito
             self.dias_credito_aplicado = 0
             self.fecha_vencimiento = None
             self.alerta_vencimiento = False
 
-        # CALCULAR monto_aplicable si es None (por defecto = monto)
         if self.monto_aplicable is None:
             self.monto_aplicable = self.monto
-
-        # VALIDAR que monto_aplicable no sea negativo ni mayor que monto
         if self.monto_aplicable < Decimal('0.00'):
             self.monto_aplicable = Decimal('0.00')
         if self.monto_aplicable > self.monto:
             self.monto_aplicable = self.monto
 
-        # Auto-actualizar estado_facturacion
         if self.fecha_facturacion and self.estado_facturacion == 'pendiente':
             self.estado_facturacion = 'facturada'
 
-        # Auto-actualizar estado_provision
-        # MEJORADO: Permitir agregar fecha_provision en estados anulada/anulada_parcialmente sin cambiar estado
-        # IMPORTANTE: NO cambiar el estado si ya está en anulada o anulada_parcialmente (viene de disputa)
-        if self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
-            if self.fecha_provision:
-                # Solo cambiar a provisionada si está en pendiente
-                if self.estado_provision == 'pendiente':
-                    self.estado_provision = 'provisionada'
+        # REGLA: Si se agrega fecha_provision, el estado cambia a 'provisionada' SOLO SI el estado actual es 'pendiente' o 'en_revision'.
+        if self.fecha_provision and self.estado_provision in ['pendiente', 'en_revision']:
+            self.estado_provision = 'provisionada'
         
-        # SINCRONIZACIÓN CON OT: Solo para costos vinculados (Flete/Cargos Naviera)
-        # HEREDAR FECHAS DE OT SI NO LAS TIENE (PRE-SAVE)
-        # IMPORTANTE: Solo heredar si NO está en estado anulada/anulada_parcialmente/disputada
-        if self.debe_sincronizar_con_ot() and self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
-            # 1. Heredar fecha_provision de OT si no la tiene
+        # Lógica de herencia de fechas desde la OT (solo si la factura no tiene fecha)
+        if self.es_costo_vinculado_ot() and self.ot and self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
             if not self.fecha_provision and self.ot.fecha_provision:
                 self.fecha_provision = self.ot.fecha_provision
                 if self.estado_provision == 'pendiente':
                     self.estado_provision = 'provisionada'
-
-            # 2. ✅ HEREDAR fecha_facturacion de OT si no la tiene (fecha_recepcion_factura)
             if not self.fecha_facturacion and self.ot.fecha_recepcion_factura:
                 self.fecha_facturacion = self.ot.fecha_recepcion_factura
                 if self.estado_facturacion == 'pendiente':
@@ -425,8 +415,22 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         
         super().save(*args, **kwargs)
         
-        # POST-SAVE: Sincronizar BIDIRECCIONAL con OT (Invoice → OT)
-        if self.debe_sincronizar_con_ot():
+        # --- Lógica de Sincronización POST-SAVE ---
+        is_transitioning_to_anulada = (
+            old_estado_provision not in ['anulada', 'anulada_parcialmente'] and
+            self.estado_provision in ['anulada', 'anulada_parcialmente']
+        )
+
+        # Determinar si se debe sincronizar
+        should_sync = False
+        # Sincronizar si es una actualización normal de una factura no anulada
+        if self.estado_provision not in ['anulada', 'anulada_parcialmente']:
+            should_sync = True
+        # O sincronizar si es el momento exacto de la transición a un estado anulado (para resetear la OT)
+        elif is_transitioning_to_anulada:
+            should_sync = True
+
+        if should_sync and self.es_costo_vinculado_ot() and self.ot:
             self._sincronizar_estado_con_ot()
     
     def get_confidence_level(self):
@@ -578,16 +582,15 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     
     def debe_sincronizar_con_ot(self):
         """
-        Determina si los cambios de estado deben sincronizarse con la OT.
-        Solo se sincronizan costos vinculados (Flete/Cargos Naviera) que tengan OT asignada.
-
-        IMPORTANTE: Facturas anuladas NO sincronizan (están desvinculadas funcionalmente).
-        La nueva factura que emita el proveedor será la que se vincule a la OT.
+        Determina si los cambios de estado de esta factura deben propagarse a la OT.
+        Esta es la regla GENERAL: una factura anulada ya no debe afectar a la OT.
+        La única excepción es el reseteo inicial de la OT, que se llama explícitamente
+        desde la lógica de resolución de disputas.
         """
-        # Facturas anuladas NO sincronizan - están desvinculadas
+        # Si la factura está anulada, no debe iniciar sincronizaciones.
         if self.estado_provision in ['anulada', 'anulada_parcialmente']:
             return False
-
+        
         return self.es_costo_vinculado_ot() and self.ot is not None
     
     def debe_excluirse_de_estadisticas(self):

@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalogs', '0008_rename_catalogs_co_categor_285528_idx_catalogs_co_categor_7fab5a_idx'),
+        ('catalogs', '0007_remove_category_old_field'),
         ('invoices', '0003_invoice_alerta_vencimiento_and_more'),
         ('ots', '0008_alter_ot_contenedores'),
     ]

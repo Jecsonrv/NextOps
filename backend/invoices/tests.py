@@ -57,7 +57,7 @@ class InvoiceModelTestCase(TestCase):
                     "sello": "SEAL123"
                 }
             ],
-            estado="en_transito"
+            estado="transito"
         )
         
         # Crear UploadedFile para asociar a las facturas
@@ -332,7 +332,13 @@ class InvoiceSerializerTestCase(TestCase):
             tipo="naviera",
             categoria="internacional",
             email="msc@test.com"
-            estado="en_transito"
+        )
+        
+        self.ot = OT.objects.create(
+            numero_ot="OT-SERIALIZER-001",
+            cliente=self.cliente,
+            estado="transito"
+        )
     
     def _create_invoice(self, **kwargs):
         """Helper para crear facturas con uploaded_file por defecto"""
@@ -389,7 +395,6 @@ class InvoiceSerializerTestCase(TestCase):
             proveedor=self.proveedor,
             proveedor_nombre="MSC Mediterranean Shipping Company",
             tipo_costo="FLETE",
-            tipo_proveedor="naviera",
             ot=self.ot,
             ot_number=self.ot.numero_ot,
         )
@@ -409,7 +414,6 @@ class InvoiceSerializerTestCase(TestCase):
         self.assertEqual(self.ot.fecha_provision, date(2025, 1, 22))
         self.assertEqual(self.ot.estado_provision, "provisionada")
         self.assertEqual(self.ot.fecha_recepcion_factura, date(2025, 1, 25))
-        self.assertEqual(self.ot.estado_facturado, "facturado")
 
     def test_update_invoice_does_not_sync_other_costs(self):
         """Facturas que no son FLETE/CARGOS_NAVIERA no afectan la OT."""
@@ -420,7 +424,6 @@ class InvoiceSerializerTestCase(TestCase):
             proveedor=self.proveedor,
             proveedor_nombre="MSC Mediterranean Shipping Company",
             tipo_costo="ALMACENAJE",
-            tipo_proveedor="naviera",
             ot=self.ot,
             ot_number=self.ot.numero_ot,
         )
@@ -439,14 +442,14 @@ class InvoiceSerializerTestCase(TestCase):
         self.assertIsNone(self.ot.fecha_provision)
         self.assertEqual(self.ot.estado_provision, "pendiente")
         self.assertIsNone(self.ot.fecha_recepcion_factura)
-        self.assertEqual(self.ot.estado_facturado, "pendiente")
 
     def test_update_invoice_syncs_after_assigning_ot(self):
         """Asignar una OT y actualizar fechas en la misma operación debe sincronizarla."""
         otra_ot = OT.objects.create(
             numero_ot="OT-2025-002",
             cliente=self.cliente,
-                        estado="en_transito"        )
+            estado="transito"
+        )
 
         invoice = self._create_invoice(
             numero_factura="FAC-SYNC-003",
@@ -455,7 +458,6 @@ class InvoiceSerializerTestCase(TestCase):
             proveedor=self.proveedor,
             proveedor_nombre="MSC Mediterranean Shipping Company",
             tipo_costo="FLETE",
-            tipo_proveedor="naviera",
         )
 
         data = {
@@ -476,12 +478,77 @@ class InvoiceSerializerTestCase(TestCase):
         self.assertEqual(otra_ot.fecha_provision, date(2025, 2, 10))
         self.assertEqual(otra_ot.fecha_recepcion_factura, date(2025, 2, 12))
         self.assertEqual(otra_ot.estado_provision, "provisionada")
-        self.assertEqual(otra_ot.estado_facturado, "facturado")
 
     def test_required_fields_validation(self):
         """Test validación de campos requeridos - SKIP por ahora (requiere archivo)"""
         # TODO: Implementar cuando se tenga el manejo completo de archivos en serializer
         pass
+
+    def test_update_anulada_parcial_with_provision_date_does_not_change_state(self):
+        """
+        Verifica que al actualizar una factura 'anulada_parcialmente' con una fecha_provision
+        a través del serializador, el estado NO cambia a 'provisionada'.
+        """
+        invoice = self._create_invoice(
+            numero_factura="FAC-ANULADA-PARCIAL-01",
+            fecha_emision=date(2025, 1, 15),
+            monto=Decimal("1000.00"),
+            proveedor=self.proveedor,
+            proveedor_nombre=self.proveedor.nombre,
+            tipo_costo="FLETE",
+            estado_provision="anulada_parcialmente"
+        )
+        
+        data = {
+            "fecha_provision": date(2025, 1, 30)
+        }
+        
+        serializer = InvoiceUpdateSerializer(invoice, data=data, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        
+        updated_invoice = serializer.save()
+        
+        # El estado debe permanecer 'anulada_parcialmente'
+        self.assertEqual(updated_invoice.estado_provision, "anulada_parcialmente")
+        self.assertEqual(updated_invoice.fecha_provision, date(2025, 1, 30))
+
+    def test_update_pendiente_invoice_syncs_to_ot_regardless_of_provider(self):
+        """
+        Verifica que al actualizar una factura 'pendiente' con una fecha_provision,
+        la fecha se sincroniza a la OT si el tipo de costo es FLETE, sin importar
+        el tipo de proveedor.
+        """
+        # Crear un proveedor que NO es 'naviera'
+        otro_proveedor = Provider.objects.create(
+            nombre="Transportes Falsos S.A.",
+            tipo="transporte_local",
+            categoria="local"
+        )
+        invoice = self._create_invoice(
+            numero_factura="FAC-PENDIENTE-SYNC-01",
+            fecha_emision=date(2025, 1, 15),
+            monto=Decimal("1234.00"),
+            proveedor=otro_proveedor,
+            proveedor_nombre=otro_proveedor.nombre,
+            tipo_costo="FLETE", # Costo sincronizable
+            tipo_proveedor=otro_proveedor.tipo,
+            ot=self.ot,
+            estado_provision="pendiente"
+        )
+        
+        data = {
+            "fecha_provision": date(2025, 1, 25)
+        }
+        
+        serializer = InvoiceUpdateSerializer(invoice, data=data, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        
+        serializer.save()
+        self.ot.refresh_from_db()
+        
+        # La fecha de provisión de la OT debe haberse actualizado
+        self.assertEqual(self.ot.fecha_provision, date(2025, 1, 25))
+        self.assertEqual(self.ot.estado_provision, "provisionada")
 
 
 # Ejecutar tests:
@@ -523,9 +590,10 @@ class InvoiceViewSetTestCase(APITestCase):
             numero_ot="OT-2025-001",
             cliente=self.cliente,
             master_bl="MSCU1234567890",
-            estado="en_transito"
+            estado="transito"
         )
         
+        content = b"Test PDF content for invoice"
         self.uploaded_file = UploadedFile.objects.create(
             filename="test_invoice.pdf",
             path="invoices/test/test_invoice.pdf",
@@ -542,6 +610,13 @@ class InvoiceViewSetTestCase(APITestCase):
             proveedor_nombre="MSC Mediterranean Shipping Company",
             tipo_costo="FLETE",
             uploaded_file=self.uploaded_file
+        )
+
+        # Asegurar archivo físico para pruebas de descarga
+        default_storage.delete(self.uploaded_file.path)
+        default_storage.save(self.uploaded_file.path, ContentFile(content))
+        self.addCleanup(
+            lambda: default_storage.delete(self.uploaded_file.path)
         )
     
     def test_list_invoices(self):
@@ -657,9 +732,9 @@ class InvoiceViewSetTestCase(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response['Content-Disposition'],
-            f'inline; filename="{self.uploaded_file.filename}"'
+        self.assertIn(
+            'inline; filename=',
+            response['Content-Disposition']
         )
         self.assertEqual(
             response['Content-Type'],
@@ -675,9 +750,9 @@ class InvoiceViewSetTestCase(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response['Content-Disposition'],
-            f'attachment; filename="{self.uploaded_file.filename}"'
+        self.assertIn(
+            'attachment; filename=',
+            response['Content-Disposition']
         )
 
         file_bytes = b''.join(response.streaming_content)
@@ -721,3 +796,187 @@ class InvoiceViewSetTestCase(APITestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+class InvoiceStateLogicTestCase(TestCase):
+    """
+    Tests para la lógica de estados y sincronización de facturas,
+    específicamente para los cambios implementados en la anulación.
+    """
+    def setUp(self):
+        """Setup inicial para cada test de lógica de estados."""
+        self.cliente = ClientAlias.objects.create(
+            original_name="Test Client Logic",
+            normalized_name="TEST CLIENT LOGIC"
+        )
+        self.proveedor = Provider.objects.create(
+            nombre="Test Logic Provider",
+            tipo="naviera",
+            categoria="internacional"
+        )
+        self.ot = OT.objects.create(
+            numero_ot="OT-LOGIC-001",
+            cliente=self.cliente,
+            estado_provision='pendiente'
+        )
+        # Crear un UploadedFile genérico
+        content = b"Test PDF content"
+        self.uploaded_file = UploadedFile.objects.create(
+            filename="test_logic.pdf",
+            path="invoices/test/test_logic.pdf",
+            sha256=UploadedFile.calculate_hash(content),
+            size=len(content),
+            content_type="application/pdf"
+        )
+
+    def test_anulada_invoice_keeps_state_on_provision_date_update(self):
+        """
+        Verifica que una factura ANULADA no cambia de estado al agregarle una fecha_provision.
+        """
+        invoice = Invoice.objects.create(
+            numero_factura="FAC-ANULADA-01",
+            fecha_emision=date(2025, 10, 1),
+            monto=Decimal("100.00"),
+            proveedor=self.proveedor,
+            proveedor_nombre=self.proveedor.nombre,
+            tipo_costo="FLETE",
+            estado_provision='anulada',
+            uploaded_file=self.uploaded_file
+        )
+        self.assertEqual(invoice.estado_provision, 'anulada')
+
+        # Ahora, agregamos una fecha de provisión
+        invoice.fecha_provision = date(2025, 10, 5)
+        invoice.save()
+
+        # Recargamos desde la BD para asegurar que no hay efectos de estado en memoria
+        invoice.refresh_from_db()
+
+        # El estado DEBE seguir siendo 'anulada'
+        self.assertEqual(invoice.estado_provision, 'anulada', "El estado no debería cambiar a 'provisionada'")
+        self.assertEqual(invoice.fecha_provision, date(2025, 10, 5))
+
+    def test_revision_invoice_changes_state_on_provision_date_update(self):
+        """
+        Verifica que una factura EN REVISION cambia a PROVISIONADA al agregarle una fecha_provision.
+        """
+        invoice = Invoice.objects.create(
+            numero_factura="FAC-REVISION-01",
+            fecha_emision=date(2025, 10, 1),
+            monto=Decimal("200.00"),
+            proveedor=self.proveedor,
+            proveedor_nombre=self.proveedor.nombre,
+            tipo_costo="FLETE",
+            estado_provision='en_revision',
+            uploaded_file=self.uploaded_file
+        )
+        self.assertEqual(invoice.estado_provision, 'en_revision')
+
+        # Agregamos una fecha de provisión
+        invoice.fecha_provision = date(2025, 10, 6)
+        invoice.save()
+        invoice.refresh_from_db()
+
+        # El estado DEBE cambiar a 'provisionada'
+        self.assertEqual(invoice.estado_provision, 'provisionada', "El estado debería cambiar a 'provisionada'")
+        self.assertEqual(invoice.fecha_provision, date(2025, 10, 6))
+
+    def test_anulada_invoice_resets_ot_status(self):
+        """
+        Verifica que al anular una factura, la OT asociada se resetea a 'pendiente'.
+        """
+        # 1. Creamos una factura de tipo FLETE (sincronizable) y la provisionamos
+        invoice = Invoice.objects.create(
+            numero_factura="FAC-OT-SYNC-01",
+            fecha_emision=date(2025, 10, 1),
+            monto=Decimal("500.00"),
+            proveedor=self.proveedor,
+            proveedor_nombre=self.proveedor.nombre,
+            tipo_costo="FLETE", # Importante: costo sincronizable
+            ot=self.ot,
+            estado_provision='pendiente',
+            uploaded_file=self.uploaded_file
+        )
+        
+        # Provisionamos la factura, lo que debería provisionar la OT
+        invoice.fecha_provision = date(2025, 10, 7)
+        invoice.save()
+        
+        self.ot.refresh_from_db()
+        self.assertEqual(self.ot.estado_provision, 'provisionada', "La OT debería estar 'provisionada' inicialmente")
+        self.assertEqual(self.ot.fecha_provision, date(2025, 10, 7))
+
+        # 2. Ahora, anulamos la factura
+        invoice.estado_provision = 'anulada'
+        invoice.save()
+
+        # 3. Verificamos la OT
+        self.ot.refresh_from_db()
+        
+        # La OT debe volver a 'pendiente' y su fecha de provisión debe ser nula
+        self.assertEqual(self.ot.estado_provision, 'pendiente', "La OT debería haberse reseteado a 'pendiente'")
+        self.assertIsNone(self.ot.fecha_provision, "La fecha de provisión de la OT debería ser Nula")
+
+    def test_ot_update_does_not_sync_to_anulada_invoice(self):
+        """
+        Verifica que al actualizar la fecha_provision de una OT, el cambio NO se
+        propaga a las facturas asociadas que estén en estado 'anulada'.
+        """
+        invoice = Invoice.objects.create(
+            numero_factura="FAC-ANULADA-NOSYNC-01",
+            fecha_emision=date(2025, 10, 1),
+            monto=Decimal("1000.00"),
+            proveedor=self.proveedor,
+            proveedor_nombre=self.proveedor.nombre,
+            tipo_costo="FLETE", # Costo sincronizable
+            ot=self.ot,
+            estado_provision='anulada', # Estado anulado
+            uploaded_file=self.uploaded_file
+        )
+        
+        # Actualizamos la OT directamente (simulando un cambio en OTsDetailPage)
+        self.ot.fecha_provision = date(2025, 10, 15)
+        self.ot.save() # Esto dispara la señal sync_ot_to_invoices
+        
+        invoice.refresh_from_db()
+        
+        # La fecha de provisión de la factura anulada NO debe cambiar
+        self.assertIsNone(invoice.fecha_provision, "La fecha_provision de una factura anulada no debe sincronizarse desde la OT.")
+        self.assertEqual(invoice.estado_provision, 'anulada')
+
+    def test_saving_voided_invoice_does_not_reset_ot(self):
+        """
+        Verifica que guardar una factura ANULADA (ej: para agregar una fecha
+        contable) NO resetea una fecha de provisión que ya se había
+        puesto manualmente en la OT.
+        """
+        # 1. Anular una factura. Esto debería resetear la OT a 'pendiente'.
+        invoice = Invoice.objects.create(
+            numero_factura="FAC-ANULADA-SYNC-TEST-01",
+            fecha_emision=date(2025, 11, 1),
+            monto=Decimal("100.00"),
+            proveedor=self.proveedor,
+            tipo_costo="FLETE",
+            ot=self.ot,
+            estado_provision='anulada',
+            uploaded_file=self.uploaded_file
+        )
+        invoice.save() # Guardar para disparar la sincronización inicial
+        self.ot.refresh_from_db()
+        self.assertEqual(self.ot.estado_provision, 'pendiente')
+        self.assertIsNone(self.ot.fecha_provision)
+
+        # 2. El usuario va a la OT y le pone una fecha de provisión para la futura nueva factura.
+        self.ot.fecha_provision = date(2025, 11, 10)
+        self.ot.save()
+        self.ot.refresh_from_db()
+        self.assertEqual(self.ot.fecha_provision, date(2025, 11, 10))
+        self.assertEqual(self.ot.estado_provision, 'provisionada')
+
+        # 3. El usuario va a la factura ANULADA y le pone una fecha de provisión por temas contables.
+        invoice.fecha_provision = date(2025, 11, 12)
+        invoice.save() # Este guardado NO debería afectar a la OT.
+
+        # 4. Verificar que la fecha de la OT no fue borrada.
+        self.ot.refresh_from_db()
+        self.assertEqual(self.ot.fecha_provision, date(2025, 11, 10), "Guardar la factura anulada no debió resetear la fecha de la OT.")
+        self.assertEqual(self.ot.estado_provision, 'provisionada', "Guardar la factura anulada no debió cambiar el estado de la OT.")

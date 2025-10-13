@@ -13,71 +13,54 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
     """
     Sincronización OT -> Invoices (funciona con CUALQUIER fuente: manual, Excel, CSV)
 
-    REGLAS INAMOVIBLES:
-    Cuando se actualiza fecha_provision o fecha_recepcion_factura en OT, sincronizar con todas las
-    facturas relacionadas que sean:
-    - tipo_costo in ['FLETE', 'CARGOS_NAVIERA']
-    - tipo_proveedor = 'naviera'
-
-    MAPEO DE CAMPOS:
-    - OT.fecha_provision <-> Invoice.fecha_provision
-    - OT.fecha_recepcion_factura <-> Invoice.fecha_facturacion
-
-    Para otros tipos de costo (ALMACENAJE, DEMORA, TRANSPORTE, etc.) NO se sincroniza.
+    REGLAS DE NEGOCIO:
+    - Cuando se actualiza una OT, sus cambios deben propagarse a las facturas VINCULADAS.
+    - Una factura VINCULADA es aquella cuyo tipo_costo es FLETE o CARGOS_NAVIERA.
+    - ¡IMPORTANTE! Las facturas en estado ANULADA o ANULADA_PARCIALMENTE se consideran
+      desvinculadas funcionalmente y NUNCA deben ser modificadas por cambios en la OT.
     """
-    # No procesar en creación (solo en updates)
     if created:
         return
 
-    # ⚠️ IMPORTANTE: Si estamos sincronizando desde Invoice, no volver a sincronizar
-    # para evitar bucles infinitos
     if getattr(instance, '_skip_invoice_sync', False):
         return
     
-    # Importar aquí para evitar circular import
     from invoices.models import Invoice
     from django.db.models import Q
     
-    # Obtener facturas de FLETE (cualquier tipo) o CARGOS_NAVIERA de NAVIERA asociadas a este OT
+    # Obtener facturas vinculadas (FLETE o CARGOS_NAVIERA) asociadas a esta OT.
+    # EXCLUIR INMEDIATAMENTE las facturas anuladas para que no sean afectadas por ningún cambio.
     invoices_to_update = Invoice.objects.filter(
         ot=instance,
-        tipo_proveedor='naviera',
         is_deleted=False
     ).filter(
         Q(tipo_costo__startswith='FLETE') | Q(tipo_costo='CARGOS_NAVIERA')
+    ).exclude(
+        estado_provision__in=['anulada', 'anulada_parcialmente']
     )
     
     if not invoices_to_update.exists():
         return
     
-    # Preparar datos de actualización
     update_data = {}
-
-    # SINCRONIZAR estado_provision / fecha_provision según estado actual de la OT
     estado_ot = instance.estado_provision
 
-    if estado_ot in ['disputada', 'revision', 'anulada', 'anulada_parcialmente']:
+    # Lógica para determinar qué datos actualizar en las facturas válidas
+    if estado_ot in ['disputada', 'revision']:
         update_data['estado_provision'] = estado_ot
         update_data['fecha_provision'] = None
     elif estado_ot == 'provisionada':
         update_data['estado_provision'] = 'provisionada'
         update_data['fecha_provision'] = instance.fecha_provision
     elif estado_ot == 'pendiente':
-        # ⚠️ IMPORTANTE: NO sobrescribir el estado de facturas anuladas/anuladas_parcialmente
-        # Si la OT está en pendiente pero la factura está anulada (por disputa resuelta),
-        # mantener el estado anulado
-        # Actualizar solo las facturas que NO están en estados de anulación
-        invoices_to_update = invoices_to_update.exclude(
-            estado_provision__in=['anulada', 'anulada_parcialmente']
-        )
         update_data['estado_provision'] = 'pendiente'
         update_data['fecha_provision'] = None
     else:
-        # Fallback: replicar estado y fecha tal como están
+        # Fallback para cualquier otro estado que pueda tener la OT
         update_data['estado_provision'] = estado_ot
         update_data['fecha_provision'] = instance.fecha_provision
 
-    # SINCRONIZAR fecha_recepcion_factura -> fecha_facturacion
+    # Sincronizar fecha de facturación (esto se aplica a todas las facturas no anuladas)
     if instance.fecha_recepcion_factura:
         update_data['fecha_facturacion'] = instance.fecha_recepcion_factura
         update_data['estado_facturacion'] = 'facturada'
@@ -85,9 +68,11 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
         update_data['fecha_facturacion'] = None
         update_data['estado_facturacion'] = 'pendiente'
 
-    # Aplicar actualización
+    if not update_data:
+        return
+
     count = invoices_to_update.update(**update_data)
     
-    print(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: Sincronizadas {count} facturas")
-    print(f"  - fecha_provision: {instance.fecha_provision} -> estado_provision: {update_data.get('estado_provision')}")
-    print(f"  - fecha_recepcion_factura: {instance.fecha_recepcion_factura} -> fecha_facturacion: {update_data.get('fecha_facturacion')}, estado_facturacion: {update_data.get('estado_facturacion')}")
+    if count > 0:
+        print(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: Sincronizadas {count} facturas no anuladas.")
+        print(f"  - Datos aplicados: {update_data}")
