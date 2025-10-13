@@ -13,6 +13,7 @@ import {
     formatDateLocalized,
     formatDateTime,
 } from "../lib/dateUtils";
+import { FilePreview } from "../components/ui/FilePreview";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
@@ -501,18 +502,44 @@ export function CreditNoteDetailPage() {
                                         Nombre
                                     </label>
                                     <p className="text-lg font-bold text-gray-900 mt-1">
-                                        {creditNote.proveedor_nombre || "Sin especificar"}
+                                        {creditNote.proveedor?.nombre ||
+                                            creditNote.proveedor_nombre ||
+                                            "Sin especificar"}
                                     </p>
                                     {creditNote.proveedor && (
-                                        <div className="mt-3">
-                                            <Link
-                                                to={`/catalogs/providers/${creditNote.proveedor}`}
-                                                state={{ from: `/invoices/credit-notes/${id}` }}
-                                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-md hover:bg-blue-100 hover:border-blue-400 transition-colors"
-                                            >
-                                                Ver en catálogo
-                                                <Eye className="w-3 h-3" />
-                                            </Link>
+                                        <Badge
+                                            variant="success"
+                                            className="mt-2"
+                                        >
+                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                            Registrado en catálogo
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {creditNote.proveedor?.tipo && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Categoría
+                                            </label>
+                                            <p className="text-gray-900 mt-1 capitalize">
+                                                {creditNote.proveedor
+                                                    .tipo_display ||
+                                                    creditNote.proveedor.tipo}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {creditNote.proveedor?.payment_terms && (
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                                Condiciones de Crédito
+                                            </label>
+                                            <p className="text-gray-900 mt-1">
+                                                {creditNote.proveedor
+                                                    .payment_terms}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -521,57 +548,16 @@ export function CreditNoteDetailPage() {
                     </Card>
 
                     {/* Previsualización del Archivo */}
-                    {creditNote.uploaded_file_data && (
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="w-5 h-5 text-red-600" />
-                                        <div>
-                                            <CardTitle className="text-lg">
-                                                Vista Previa del Documento
-                                            </CardTitle>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                {creditNote.uploaded_file_data.filename || "Archivo de nota de crédito"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                            {creditNote.uploaded_file_data.content_type || "PDF"}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {fileCache?.blob ? (
-                                    <div className="h-[600px]">
-                                        <iframe
-                                            src={URL.createObjectURL(fileCache.blob)}
-                                            className="w-full h-full border border-gray-300 rounded"
-                                            title="Vista previa de nota de crédito"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-center py-16">
-                                        <div className="text-center">
-                                            {fileActions.error ? (
-                                                <>
-                                                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-                                                    <p className="text-red-600 font-medium mb-2">Error al cargar vista previa</p>
-                                                    <p className="text-sm text-gray-600">{fileActions.error}</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Loader2 className="w-8 h-8 animate-spin text-red-600 mx-auto mb-3" />
-                                                    <p className="text-gray-600">Cargando vista previa...</p>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                    {creditNote.file_url && creditNote.uploaded_file_data && (
+                        <FilePreview
+                            invoiceId={creditNote.id}
+                            fileUrl={creditNote.file_url}
+                            fileName={creditNote.uploaded_file_data.filename}
+                            contentType={creditNote.uploaded_file_data.content_type}
+                            cachedFile={fileCache}
+                            onFileLoaded={handleFileLoaded}
+                            fileEndpoint={`/invoices/credit-notes/${creditNote.id}/file/`}
+                        />
                     )}
                 </div>
 

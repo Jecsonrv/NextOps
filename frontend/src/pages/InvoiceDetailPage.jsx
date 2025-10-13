@@ -86,11 +86,67 @@ export function InvoiceDetailPage() {
     });
     const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
     const [isAddProvisionDateModalOpen, setIsAddProvisionDateModalOpen] = useState(false);
+    const [cnFileActions, setCnFileActions] = useState({ downloading: false, opening: false, error: null });
 
     useEffect(() => {
         setFileCache(null);
         setFileActions({ downloading: false, opening: false, error: null });
-    }, [id]);
+        console.log("invoice.notas_credito", invoice?.notas_credito);
+    }, [id, invoice]);
+
+    const handleDownloadCreditNoteFile = async (creditNote) => {
+        console.log("handleDownloadCreditNoteFile", creditNote);
+        if (!creditNote?.file_url) return;
+
+        setCnFileActions({ downloading: true, opening: false, error: null });
+        try {
+            const response = await apiClient.get(`/invoices/credit-notes/${creditNote.id}/file/?download=true`, {
+                responseType: 'blob',
+            });
+            const blob = new Blob([response.data]);
+            const url = window.URL.createObjectURL(blob);
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `nota-credito-${creditNote.numero_nota}.pdf`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            setCnFileActions({ downloading: false, opening: false, error: 'No se pudo descargar el archivo.' });
+        } finally {
+            setCnFileActions(prev => ({ ...prev, downloading: false }));
+        }
+    };
+
+    const handleOpenCreditNoteFile = async (creditNote) => {
+        console.log("handleOpenCreditNoteFile", creditNote);
+        if (!creditNote?.file_url) return;
+
+        setCnFileActions({ downloading: false, opening: true, error: null });
+        try {
+            const response = await apiClient.get(`/invoices/credit-notes/${creditNote.id}/file/`, {
+                responseType: 'blob',
+            });
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank', 'noopener,noreferrer');
+            setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        } catch (error) {
+            setCnFileActions({ downloading: false, opening: false, error: 'No se pudo abrir el archivo.' });
+        } finally {
+            setCnFileActions(prev => ({ ...prev, opening: false }));
+        }
+    };
+
 
     const fetchInvoiceBlob = async () => {
         const response = await apiClient.get(`/invoices/${id}/file/`, {
@@ -295,8 +351,7 @@ export function InvoiceDetailPage() {
                         <p className="text-gray-600 mt-1 text-sm">
                             {invoice.proveedor_data?.nombre ||
                                 invoice.proveedor_nombre ||
-                                "Sin proveedor"}{" "}
-                            • Creada {formatDateTime(invoice.created_at)}
+                                "Sin proveedor"}
                         </p>
                     </div>
                 </div>
@@ -464,80 +519,6 @@ export function InvoiceDetailPage() {
                                             <p className="text-gray-900">
                                                 {invoice.ot_data.naviera || "-"}
                                             </p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
-                                            Barco
-                                        </label>
-                                        <p className="text-gray-900 mt-1">
-                                            {invoice.ot_data.barco || "-"}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
-                                                Método de Asignación
-                                            </label>
-                                            <p className="text-sm text-gray-700 mt-1 capitalize">
-                                                {invoice.assignment_method?.replace(
-                                                    /_/g,
-                                                    " "
-                                                ) || "Manual"}
-                                            </p>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                                            onClick={() =>
-                                                setIsAssignOTModalOpen(true)
-                                            }
-                                        >
-                                            <Link2 className="w-4 h-4 mr-2" />
-                                            Cambiar OT
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Sin OT asignada */}
-                    {!invoice.ot_data && (
-                        <Card className="border-yellow-200">
-                            <CardContent className="pt-6">
-                                <div className="text-center py-4">
-                                    <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-gray-900">Disputas</h2>
-                                            <p className="text-sm text-gray-600">
-                                                Gestiona disputas y notas de crédito asociadas a esta factura
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => setShowDisputeModal(true)}
-                                                className="flex items-center gap-2"
-                                                disabled={
-                                                    invoice.estado_provision === "anulada" ||
-                                                    invoice.estado_provision === "anulada_parcialmente"
-                                                }
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                Nueva Disputa
-                                            </Button>
-                                            {(invoice.estado_provision === "anulada" ||
-                                                invoice.estado_provision === "anulada_parcialmente") && (
-                                                <span className="text-xs text-gray-500">
-                                                    No se pueden crear disputas para facturas anuladas.
-                                                </span>
-                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -762,103 +743,170 @@ export function InvoiceDetailPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Gestión de Disputas y Actividad */}
-                    {(invoice.disputas?.length > 0 || invoice.notas_credito?.length > 0) && (
-                        <Card className={invoice.disputas?.length > 0 ? "border-l-4 border-l-red-500" : ""}>
-                            <CardHeader>
+                    {/* Gestión de Disputas */}
+                    {invoice.disputas?.length > 0 && (
+                        <Card className="border-orange-200">
+                            <CardHeader className="bg-orange-50 border-b border-orange-100">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle>Disputas y Notas de Crédito</CardTitle>
-                                    {invoice.disputas?.length > 0 && (
-                                        <Badge variant="destructive" className="text-xs">
-                                            {invoice.disputas.length}
-                                        </Badge>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="w-5 h-5 text-orange-600" />
+                                        <CardTitle className="text-gray-900">Disputas</CardTitle>
+                                    </div>
+                                    <Badge variant="destructive" className="text-xs">
+                                        {invoice.disputas.length}
+                                    </Badge>
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                {invoice.disputas?.length > 0 && (
-                                    <div>
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Disputas</h4>
-                                        <div className="space-y-3">
-                                            {invoice.disputas.map((dispute) => (
-                                                <Link 
-                                                    key={dispute.id} 
-                                                    to={`/disputes/${dispute.id}`}
-                                                    state={{ from: `/invoices/${id}` }}
-                                                    className="block p-4 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
-                                                >
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-sm font-semibold text-gray-900">{dispute.tipo_disputa_display}</span>
-                                                                <Badge variant={estadoProvisionColors[dispute.estado]}>
-                                                                    {dispute.estado_display?.toUpperCase()}
-                                                                </Badge>
-                                                                {dispute.resultado && dispute.resultado !== 'pendiente' && (
-                                                                    <Badge variant={
-                                                                        dispute.resultado === 'aprobada_total' ? 'success' :
-                                                                        dispute.resultado === 'aprobada_parcial' ? 'warning' :
-                                                                        dispute.resultado === 'rechazada' ? 'destructive' :
-                                                                        'secondary'
-                                                                    }>
-                                                                        {dispute.resultado_display}
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            {dispute.numero_caso && (
-                                                                <p className="text-xs text-gray-600">
-                                                                    Caso: <span className="font-mono">{dispute.numero_caso}</span>
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-lg font-bold text-gray-900">
-                                                                ${parseFloat(dispute.monto_disputa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                                                            </p>
-                                                            {dispute.monto_recuperado > 0 && (
-                                                                <p className="text-xs text-green-600 font-medium">
-                                                                    Recuperado: ${parseFloat(dispute.monto_recuperado).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                                                                </p>
-                                                            )}
-                                                            <p className="text-xs text-gray-500">{formatDate(dispute.created_at)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600 line-clamp-2">{dispute.detalle}</p>
-                                                    {dispute.resolucion && (
-                                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                                            <p className="text-xs text-gray-600">Resolución:</p>
-                                                            <p className="text-sm text-gray-800 mt-1 italic">"{dispute.resolucion}"</p>
-                                                        </div>
-                                                    )}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {invoice.notas_credito?.length > 0 && (
-                                    <div className={invoice.disputas?.length > 0 ? "pt-6 border-t border-gray-200" : ""}>
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Notas de Crédito</h4>
-                                        <div className="space-y-3">
-                                            {invoice.notas_credito.map((cn) => (
-                                                <div key={cn.id} className="p-4 border border-gray-200 rounded-lg">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-gray-900">{cn.numero_nota}</p>
-                                                            <p className="text-xs text-gray-600 mt-1">{cn.motivo}</p>
-                                                        </div>
-                                                        <Badge variant={cn.estado === 'aplicada' ? 'success' : 'default'}>
-                                                            {cn.estado_display?.toUpperCase()}
+                            <CardContent className="pt-4">
+                                <div className="space-y-2">
+                                    {invoice.disputas.map((dispute) => (
+                                        <Link
+                                            key={dispute.id}
+                                            to={`/disputes/${dispute.id}`}
+                                            state={{ from: `/invoices/${id}` }}
+                                            className="block p-4 border border-gray-200 rounded-lg hover:border-orange-200 hover:bg-orange-50/50 transition-colors"
+                                        >
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-sm font-semibold text-gray-900 truncate">{dispute.tipo_disputa_display}</span>
+                                                        <Badge variant={estadoProvisionColors[dispute.estado]} className="text-xs shrink-0">
+                                                            {dispute.estado_display?.toUpperCase()}
                                                         </Badge>
+                                                        {dispute.resultado && dispute.resultado !== 'pendiente' && (
+                                                            <Badge variant={
+                                                                dispute.resultado === 'aprobada_total' ? 'success' :
+                                                                dispute.resultado === 'aprobada_parcial' ? 'warning' :
+                                                                dispute.resultado === 'rechazada' ? 'destructive' :
+                                                                'secondary'
+                                                            } className="text-xs shrink-0">
+                                                                {dispute.resultado_display}
+                                                            </Badge>
+                                                        )}
                                                     </div>
-                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-                                                        <span className="text-xs text-gray-500">{formatDate(cn.fecha_emision)}</span>
-                                                        <span className="text-sm font-semibold text-gray-900">${cn.monto}</span>
-                                                    </div>
+                                                    {dispute.numero_caso && (
+                                                        <p className="text-xs text-gray-500">
+                                                            Caso: <span className="font-mono">{dispute.numero_caso}</span>
+                                                        </p>
+                                                    )}
+                                                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                                                        {dispute.detalle}
+                                                    </p>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-base font-bold text-orange-600">
+                                                        ${parseFloat(dispute.monto_disputa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                    {dispute.monto_recuperado > 0 && (
+                                                        <p className="text-xs text-green-600 font-medium mt-0.5">
+                                                            Recuperado: ${parseFloat(dispute.monto_recuperado).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Notas de Crédito */}
+                    {invoice.notas_credito?.length > 0 && (
+                        <Card className="border-blue-200">
+                            <CardHeader className="bg-blue-50 border-b border-blue-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <FileMinus className="w-5 h-5 text-blue-600" />
+                                        <CardTitle className="text-gray-900">Notas de Crédito</CardTitle>
                                     </div>
-                                )}
+                                    <Badge variant="secondary" className="text-xs">
+                                        {invoice.notas_credito.length}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-4">
+                                <div className="space-y-2">
+                                    {invoice.notas_credito.map((nc) => (
+                                        <div key={nc.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-200 hover:bg-blue-50/50 transition-colors">
+                                            <div className="flex items-start justify-between gap-4 mb-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                                            NC {nc.numero_nota}
+                                                        </h3>
+                                                        <span className="text-xs text-gray-500 shrink-0">
+                                                            {formatDateLocalized(nc.fecha_emision)}
+                                                        </span>
+                                                    </div>
+                                                    {nc.motivo && (
+                                                        <p className="text-xs text-gray-600 line-clamp-1">
+                                                            {nc.motivo}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                {nc.monto && (
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-base font-bold text-blue-600">
+                                                            -${parseFloat(nc.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Botones de acción compactos */}
+                                            <div className="flex gap-2">
+                                                {nc.file_url && (
+                                                    <>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleOpenCreditNoteFile(nc)}
+                                                            disabled={cnFileActions.opening}
+                                                            className="text-xs"
+                                                        >
+                                                            {cnFileActions.opening ? (
+                                                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                            ) : (
+                                                                <Eye className="w-3 h-3 mr-1" />
+                                                            )}
+                                                            Ver
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleDownloadCreditNoteFile(nc)}
+                                                            disabled={cnFileActions.downloading}
+                                                            className="text-xs"
+                                                        >
+                                                            {cnFileActions.downloading ? (
+                                                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                            ) : (
+                                                                <Download className="w-3 h-3 mr-1" />
+                                                            )}
+                                                            Descargar
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <Button
+                                                    variant="default"
+                                                    size="sm"
+                                                    onClick={() => navigate(`/invoices/credit-notes/${nc.id}`)}
+                                                    className="text-xs bg-blue-600 hover:bg-blue-700"
+                                                >
+                                                    <FileText className="w-3 h-3 mr-1" />
+                                                    Detalle
+                                                </Button>
+                                            </div>
+
+                                            {cnFileActions.error && (
+                                                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                                    {cnFileActions.error}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
                     )}
@@ -1051,128 +1099,121 @@ export function InvoiceDetailPage() {
                                             Tamaño
                                         </label>
                                         <p className="text-sm text-gray-900 mt-1">
-                                            {invoice.uploaded_file_data.size_mb}{" "}
-                                            MB
+                                            {invoice.uploaded_file_data.size_mb} MB
                                         </p>
                                     </div>
                                     <div>
                                         <label className="text-xs font-medium text-gray-600 uppercase">
                                             Tipo
                                         </label>
-                                        <p className="text-sm text-gray-900 mt-1 font-medium">
-                                            {invoice.uploaded_file_data.content_type ===
-                                            "application/pdf"
-                                                ? "PDF"
-                                                : invoice.uploaded_file_data.content_type
-                                                      ?.split("/")[1]
-                                                      ?.toUpperCase() || "Archivo"}
+                                        <p className="text-sm text-gray-900 mt-1 font-mono">
+                                            {invoice.uploaded_file_data.content_type || 'application/pdf'}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="pt-3 border-t border-gray-200 space-y-2">
+                                {invoice.uploaded_file_data.uploaded_at && (
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                            Fecha de Carga
+                                        </label>
+                                        <p className="text-sm text-gray-900 mt-1">
+                                            {formatDateTime(invoice.uploaded_file_data.uploaded_at)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2 pt-2">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full"
                                         onClick={handleOpenFile}
                                         disabled={fileActions.opening}
+                                        className="flex-1"
                                     >
                                         {fileActions.opening ? (
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         ) : (
                                             <Eye className="w-4 h-4 mr-2" />
                                         )}
-                                        {fileActions.opening
-                                            ? "Abriendo..."
-                                            : "Ver en navegador"}
+                                        {fileActions.opening ? 'Abriendo...' : 'Ver'}
                                     </Button>
                                     <Button
-                                        variant="default"
+                                        variant="outline"
                                         size="sm"
-                                        className="w-full"
                                         onClick={handleDownloadFile}
                                         disabled={fileActions.downloading}
+                                        className="flex-1"
                                     >
                                         {fileActions.downloading ? (
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         ) : (
                                             <Download className="w-4 h-4 mr-2" />
                                         )}
-                                        {fileActions.downloading
-                                            ? "Descargando..."
-                                            : "Descargar archivo"}
+                                        {fileActions.downloading ? 'Descargando...' : 'Descargar'}
                                     </Button>
-                                    {fileActions.error && (
-                                        <p className="text-xs text-red-600 text-center">
-                                            {fileActions.error}
-                                        </p>
-                                    )}
                                 </div>
+
+                                {fileActions.error && (
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                        <p className="text-xs text-red-700">{fileActions.error}</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
 
-                    {/* Metadata de Procesamiento - Simplificada */}
+                    {/* Metadata */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Metadata</CardTitle>
+                            <CardTitle>Información del Sistema</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div>
-                                <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Método de Carga
+                                <label className="text-xs font-medium text-gray-600 uppercase block mb-1">
+                                    Fecha de Creación
                                 </label>
-                                <Badge variant="outline" className="mt-2">
-                                    {invoice.processing_source === "upload_auto"
-                                        ? "Automático"
-                                        : "Manual"}
-                                </Badge>
-                            </div>
-
-                            <div className="pt-3 border-t border-gray-200">
-                                <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Creada
-                                </label>
-                                <p className="text-gray-900 mt-1">
+                                <p className="text-gray-900">
                                     {formatDateTime(invoice.created_at)}
                                 </p>
                             </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-600 uppercase">
-                                    Actualizada
-                                </label>
-                                <p className="text-gray-900 mt-1">
-                                    {formatDateTime(invoice.updated_at)}
-                                </p>
-                            </div>
+                            {invoice.updated_at && (
+                                <div>
+                                    <label className="text-xs font-medium text-gray-600 uppercase block mb-1">
+                                        Última Actualización
+                                    </label>
+                                    <p className="text-gray-900">
+                                        {formatDateTime(invoice.updated_at)}
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
             </div>
 
-            {/* Modal para asignar OT */}
+            {/* Modales */}
             <InvoiceAssignOTModal
                 isOpen={isAssignOTModalOpen}
                 onClose={() => setIsAssignOTModalOpen(false)}
                 invoice={invoice}
-                onAssign={async (otId) => {
-                    await assignOTMutation.mutateAsync(otId);
-                    await queryClient.invalidateQueries(["invoice", id]);
-                    await queryClient.refetchQueries(["invoice", id]);
+                onAssign={(otId) => {
+                    assignOTMutation.mutate(otId);
+                    setIsAssignOTModalOpen(false);
                 }}
             />
 
-            {/* Modal para crear disputa */}
             <DisputeFormModal
                 isOpen={isDisputeModalOpen}
                 onClose={() => setIsDisputeModalOpen(false)}
-                invoice={invoice}
-                dispute={null}
+                invoiceId={invoice.id}
+                invoiceData={{
+                    numero_factura: invoice.numero_factura,
+                    monto: invoice.monto,
+                    proveedor_nombre: invoice.proveedor_data?.nombre || invoice.proveedor_nombre,
+                }}
             />
 
-            {/* Modal para agregar fecha de provisión */}
             <AddProvisionDateModal
                 isOpen={isAddProvisionDateModalOpen}
                 onClose={() => setIsAddProvisionDateModalOpen(false)}
@@ -1181,4 +1222,3 @@ export function InvoiceDetailPage() {
         </div>
     );
 }
-

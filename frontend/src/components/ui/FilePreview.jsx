@@ -26,6 +26,7 @@ export function FilePreview({
     contentType,
     cachedFile,
     onFileLoaded,
+    fileEndpoint, // Nuevo parámetro para especificar el endpoint
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -144,8 +145,10 @@ export function FilePreview({
 
         const fetchFromApi = async () => {
             if (!invoiceId) return null;
+            // Usar fileEndpoint si se proporciona, de lo contrario usar el endpoint por defecto de facturas
+            const endpoint = fileEndpoint || `/invoices/${invoiceId}/file/`;
             const response = await apiClient.get(
-                `/invoices/${invoiceId}/file/`,
+                endpoint,
                 {
                     responseType: "blob",
                 }
@@ -215,6 +218,7 @@ export function FilePreview({
         fileName,
         fallbackUrl,
         onFileLoaded,
+        fileEndpoint,
     ]);
 
     const handleDownload = () => {
@@ -409,4 +413,5 @@ FilePreview.propTypes = {
         blob: PropTypes.any,
     }),
     onFileLoaded: PropTypes.func,
+    fileEndpoint: PropTypes.string,
 };

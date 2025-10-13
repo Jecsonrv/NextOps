@@ -38,30 +38,34 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     Serializer optimizado para listas de facturas.
     Incluye solo campos esenciales + datos de OT.
     """
-    
+
     proveedor_data = serializers.SerializerMethodField()
     ot_data = serializers.SerializerMethodField()
-    
+
     confidence_level = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     tipo_costo_display = serializers.SerializerMethodField()
-    
+
     # Forzar que las fechas NO se conviertan a timezone en lectura
     fecha_emision = serializers.DateField(format='%Y-%m-%d')
     fecha_provision = serializers.DateField(format='%Y-%m-%d', allow_null=True)
     fecha_facturacion = serializers.DateField(format='%Y-%m-%d', allow_null=True)
     fecha_vencimiento = serializers.DateField(format='%Y-%m-%d', allow_null=True)
-    
+
     # Campos computados para términos de pago
     dias_hasta_vencimiento = serializers.SerializerMethodField()
     esta_vencida = serializers.SerializerMethodField()
     esta_proxima_a_vencer = serializers.SerializerMethodField()
-    
+
     has_disputes = serializers.SerializerMethodField()
     dispute_id = serializers.SerializerMethodField()
     has_credit_notes = serializers.SerializerMethodField()
     es_costo_vinculado_ot = serializers.SerializerMethodField()
     debe_excluirse_estadisticas = serializers.SerializerMethodField()
+
+    # Incluir disputas y notas de crédito en listas para OT
+    disputas = serializers.SerializerMethodField()
+    notas_credito = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -100,6 +104,8 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'has_credit_notes',
             'es_costo_vinculado_ot',
             'debe_excluirse_estadisticas',
+            'disputas',
+            'notas_credito',
         ]
     
     def get_proveedor_data(self, obj):
@@ -174,6 +180,20 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     def get_debe_excluirse_estadisticas(self, obj):
         """Indica si debe excluirse de estadísticas (anulada, rechazada, disputada)"""
         return obj.debe_excluirse_de_estadisticas()
+
+    def get_disputas(self, obj):
+        """Serializar disputas básicas para listas"""
+        try:
+            return DisputeListSerializer(obj.disputas.all(), many=True).data
+        except NameError:
+            return []
+
+    def get_notas_credito(self, obj):
+        """Serializar notas de crédito básicas para listas"""
+        try:
+            return CreditNoteListSerializer(obj.notas_credito.all(), many=True).data
+        except NameError:
+            return []
 
 
 class InvoiceDetailSerializer(serializers.ModelSerializer):
@@ -961,6 +981,7 @@ class CreditNoteListSerializer(serializers.ModelSerializer):
     proveedor_data = serializers.SerializerMethodField()
     invoice_data = serializers.SerializerMethodField()
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CreditNote
@@ -968,8 +989,14 @@ class CreditNoteListSerializer(serializers.ModelSerializer):
             'id', 'numero_nota', 'proveedor', 'proveedor_nombre', 'proveedor_data',
             'invoice_relacionada', 'invoice_data', 'fecha_emision', 'monto',
             'motivo', 'estado', 'estado_display', 'fecha_aplicacion',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'file_url'
         ]
+
+    def get_file_url(self, obj):
+        """URL del archivo de la nota de crédito"""
+        if obj.uploaded_file:
+            return f"/media/{obj.uploaded_file.path}"
+        return None
 
     def get_proveedor_data(self, obj):
         """Datos del proveedor"""
@@ -997,6 +1024,7 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
 
     proveedor_data = serializers.SerializerMethodField()
     invoice_data = serializers.SerializerMethodField()
+    ot_data = serializers.SerializerMethodField()
     uploaded_file_data = UploadedFileSerializer(source='uploaded_file', read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     file_url = serializers.SerializerMethodField()
@@ -1021,12 +1049,18 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
     def get_invoice_data(self, obj):
         """Datos completos de la factura relacionada"""
         if obj.invoice_relacionada:
+            # Usar monto_original si existe, de lo contrario usar monto
+            # monto_original es el monto real antes de aplicar notas de crédito o disputas
+            monto_real = obj.invoice_relacionada.monto_original if obj.invoice_relacionada.monto_original is not None else obj.invoice_relacionada.monto
+
             return {
                 'id': obj.invoice_relacionada.id,
                 'numero_factura': obj.invoice_relacionada.numero_factura,
-                'monto': float(obj.invoice_relacionada.monto),
+                'monto': float(monto_real),
                 'fecha_emision': obj.invoice_relacionada.fecha_emision.isoformat() if obj.invoice_relacionada.fecha_emision else None,
                 'proveedor_nombre': obj.invoice_relacionada.proveedor_nombre,
+                'estado_provision': obj.invoice_relacionada.estado_provision,
+                'estado_provision_display': obj.invoice_relacionada.get_estado_provision_display(),
             }
         return None
 
@@ -1034,6 +1068,21 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
         """URL del archivo"""
         if obj.uploaded_file:
             return f"/media/{obj.uploaded_file.path}"
+        return None
+
+    def get_ot_data(self, obj):
+        """Datos de la OT relacionada (a través de la factura)"""
+        if obj.invoice_relacionada and obj.invoice_relacionada.ot:
+            ot = obj.invoice_relacionada.ot
+            return {
+                'id': ot.id,
+                'numero_ot': ot.numero_ot,
+                'operativo': ot.operativo,
+                'cliente_nombre': ot.cliente.original_name if ot.cliente else None,
+                'master_bl': ot.master_bl,
+                'naviera': ot.proveedor.nombre if ot.proveedor else None,
+                'barco': ot.barco,
+            }
         return None
 
 

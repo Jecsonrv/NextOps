@@ -23,6 +23,8 @@ import {
     Calendar,
     FileText,
     DollarSign,
+    FileMinus,
+    AlertCircle,
 } from "lucide-react";
 
 const estadoColors = {
@@ -616,57 +618,93 @@ export function OTDetailPage() {
                     {/* Facturas Relacionadas */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Facturas Relacionadas</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="h-5 w-5" />
+                                Facturas Relacionadas
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             {invoices.length > 0 ? (
                                 <div className="space-y-2">
                                     {invoices.map((invoice) => (
-                                        <Link
-                                            key={invoice.id}
-                                            to={`/invoices/${invoice.id}`}
-                                            className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <p className="font-semibold text-sm">
-                                                        {invoice.numero_factura}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {invoice.proveedor_nombre || invoice.proveedor?.nombre}
-                                                    </p>
-                                                    <p className="text-sm font-medium text-blue-600 mt-1">
-                                                        $
-                                                        {(invoice.monto_aplicable ?? invoice.monto ?? invoice.monto_total)?.toLocaleString("es-MX", {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2
-                                                        }) || "0.00"}
-                                                    </p>
+                                        <div key={invoice.id} className="space-y-1.5">
+                                            <Link
+                                                to={`/invoices/${invoice.id}`}
+                                                state={{ from: `/ots/${id}` }}
+                                                className="block p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-semibold text-sm text-gray-900 truncate">
+                                                                {invoice.numero_factura}
+                                                            </p>
+                                                            {invoice.estado_provision === 'anulada' && (
+                                                                <Badge variant="destructive" className="text-xs shrink-0">ANULADA</Badge>
+                                                            )}
+                                                            {invoice.estado_provision === 'anulada_parcialmente' && (
+                                                                <Badge variant="warning" className="text-xs shrink-0">PARCIAL</Badge>
+                                                            )}
+                                                            {invoice.estado_provision === 'disputada' && (
+                                                                <Badge variant="warning" className="text-xs shrink-0">
+                                                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                                                    DISPUTA
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                            {invoice.proveedor_nombre || invoice.proveedor?.nombre}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right ml-3 shrink-0">
+                                                        <p className="text-sm font-semibold text-gray-900">
+                                                            ${(invoice.monto_aplicable ?? invoice.monto ?? invoice.monto_total)?.toLocaleString("es-MX", {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2
+                                                            }) || "0.00"}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col gap-1">
-                                                    {invoice.estado_provision === 'anulada' && (
-                                                        <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
-                                                            ANULADA
-                                                        </span>
-                                                    )}
-                                                    {invoice.estado_provision === 'anulada_parcialmente' && (
-                                                        <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-medium">
-                                                            ANULADA PARCIAL
-                                                        </span>
-                                                    )}
-                                                    {invoice.estado_provision === 'disputada' && (
-                                                        <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium">
-                                                            DISPUTADA
-                                                        </span>
-                                                    )}
-                                                    {invoice.estado_provision === 'provisionada' && (
-                                                        <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded font-medium">
-                                                            PROVISIONADA
-                                                        </span>
-                                                    )}
+                                            </Link>
+
+                                            {/* Notas de Crédito - diseño simplificado */}
+                                            {invoice.notas_credito && invoice.notas_credito.length > 0 && (
+                                                <div className="space-y-1">
+                                                    {invoice.notas_credito.map((nc) => (
+                                                        <Link
+                                                            key={nc.id}
+                                                            to={`/invoices/credit-notes/${nc.id}`}
+                                                            state={{ from: `/ots/${id}` }}
+                                                            className="block p-2.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FileMinus className="h-4 w-4 text-blue-600 shrink-0" />
+                                                                        <span className="text-xs font-semibold text-blue-900 truncate">
+                                                                            NC {nc.numero_nota}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-xs text-blue-700 mt-0.5 truncate ml-6">
+                                                                        {nc.proveedor_nombre || invoice.proveedor_nombre || invoice.proveedor?.nombre}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right ml-3 shrink-0">
+                                                                    {nc.monto && (
+                                                                        <span className="text-xs font-semibold text-blue-600">
+                                                                            -${parseFloat(nc.monto).toLocaleString("es-MX", {
+                                                                                minimumFractionDigits: 2,
+                                                                                maximumFractionDigits: 2
+                                                                            })}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </Link>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                        </Link>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             ) : (
