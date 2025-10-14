@@ -10,9 +10,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='costtype',
-            new_name='catalogs_co_categor_7fab5a_idx',
-            old_name='catalogs_co_categor_285528_idx',
+        migrations.RunSQL(
+            sql="ALTER INDEX IF EXISTS catalogs_co_categor_285528_idx RENAME TO catalogs_co_categor_7fab5a_idx;",
+            reverse_sql="ALTER INDEX IF EXISTS catalogs_co_categor_7fab5a_idx RENAME TO catalogs_co_categor_285528_idx;",
         ),
     ]
