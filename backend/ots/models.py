@@ -341,6 +341,15 @@ class OT(TimeStampedModel, SoftDeleteModel):
         help_text="Notas o comentarios sobre esta OT"
     )
     
+    # Hash de la fila para detectar cambios
+    row_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="SHA256 hash of the row data to detect changes."
+    )
+
     # Tracking de cambios
     modificado_por = models.ForeignKey(
         'accounts.User',
@@ -363,6 +372,7 @@ class OT(TimeStampedModel, SoftDeleteModel):
             models.Index(fields=['proveedor', 'estado']),
             models.Index(fields=['cliente']),
             models.Index(fields=['-created_at']),
+            models.Index(fields=['row_hash']),
         ]
     
     def __str__(self):

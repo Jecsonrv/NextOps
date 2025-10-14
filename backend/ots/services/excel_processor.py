@@ -166,6 +166,48 @@ class ExcelProcessor:
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
+    @staticmethod
+    def _calculate_row_hash(data: Dict[str, Any]) -> str:
+        """
+        Calcula el hash SHA256 de un diccionario de datos de una fila.
+        """
+        # Seleccionar y ordenar los campos relevantes para el hash
+        hashable_fields = [
+            'cliente_name', 'proveedor_name', 'operativo', 'tipo_operacion', 
+            'master_bl', 'house_bls', 'contenedores', 'fecha_eta', 
+            'fecha_llegada', 'etd', 'puerto_origen', 'puerto_destino', 
+            'tipo_embarque', 'barco', 'express_release_fecha', 
+            'contra_entrega_fecha', 'fecha_solicitud_facturacion', 
+            'fecha_recepcion_factura', 'envio_cierre_ot', 'fecha_provision', 
+            'estado'
+        ]
+        
+        # Construir una cadena consistente a partir de los datos
+        # Usar json.dumps con sort_keys=True para un ordenamiento consistente
+        import json
+        
+        # Crear un diccionario solo con los campos relevantes
+        data_to_hash = {key: data.get(key) for key in hashable_fields}
+        
+        # Convertir fechas y listas a strings para que sean hasheables
+        for key, value in data_to_hash.items():
+            if hasattr(value, 'isoformat'): # Fechas
+                data_to_hash[key] = value.isoformat()
+            elif isinstance(value, list):
+                # Ordenar listas para consistencia
+                try:
+                    sorted_list = sorted(value)
+                    data_to_hash[key] = sorted_list
+                except TypeError:
+                    # Si la lista contiene elementos no ordenables (dicts), no la ordenes
+                    data_to_hash[key] = value
+
+        # Serializar a JSON de forma consistente
+        serialized_data = json.dumps(data_to_hash, sort_keys=True, default=str)
+        
+        # Calcular hash
+        return hashlib.sha256(serialized_data.encode('utf-8')).hexdigest()
+
     def process_multiple_files(self, file_paths: List[Tuple[str, str]], tipos_operacion: List[str] = None) -> Dict[str, Any]:
         """
         Procesar múltiples archivos Excel y detectar conflictos.
@@ -322,18 +364,19 @@ class ExcelProcessor:
             filename: Nombre del archivo origen
             tipo_operacion: Tipo de operación (importacion/exportacion)
         """
-        # Validar si la fila está completamente vacía (solo NaN o espacios en blanco)
-        if self._is_empty_row(row):
-            # No contar como skipped, simplemente ignorar
-            return
-        
-        # Extraer datos básicos
+        # 1. Extraer datos básicos en formato RAW
         numero_ot = self._extract_numero_ot(row)
         cliente_name_raw = self._extract_value(row, 'cliente')
         if cliente_name_raw:
             cliente_name_raw = cliente_name_raw.upper()
 
-        # Validar campos obligatorios
+        operativo_raw = self._extract_value(row, 'operativo')
+        if not operativo_raw:
+            operativo_raw = self._infer_operativo_from_filename()
+        if operativo_raw:
+            operativo_raw = operativo_raw.upper()
+
+        # 2. Validar campos obligatorios
         if not numero_ot or not cliente_name_raw:
             self.stats['skipped'] += 1
             reason = []
@@ -341,7 +384,6 @@ class ExcelProcessor:
                 reason.append("falta número de OT")
             if not cliente_name_raw:
                 reason.append("falta nombre de cliente")
-
             self.stats['warnings'].append({
                 'row': row_number,
                 'ot': numero_ot or 'N/A',
@@ -351,17 +393,7 @@ class ExcelProcessor:
             })
             return
 
-        # Aplicar resolución cacheada si existe
-        from client_aliases.models import ClientResolution
-        resolved_cliente = ClientResolution.find_resolution(cliente_name_raw)
-        if resolved_cliente:
-            # Usar el cliente resuelto automáticamente
-            cliente_name = resolved_cliente.original_name
-        else:
-            # Usar el nombre tal como viene
-            cliente_name = cliente_name_raw
-        
-        # Validar año
+        # 3. Validar año
         if not self._is_valid_ot_year(numero_ot):
             self.stats['skipped'] += 1
             self.stats['warnings'].append({
@@ -372,57 +404,62 @@ class ExcelProcessor:
                 'file': filename
             })
             return
-        
-        # Extraer operativo
-        operativo = self._extract_value(row, 'operativo')
-        if not operativo:
-            operativo = self._infer_operativo_from_filename()
-        if operativo:
-            operativo = operativo.upper()
-        
-        # Detectar conflictos
+
+        # 4. Aplicar resolución de alias INMEDIATAMENTE
+        from client_aliases.models import ClientResolution
+        resolved_cliente_obj = ClientResolution.find_resolution(cliente_name_raw)
+        if resolved_cliente_obj:
+            cliente_name_final = resolved_cliente_obj.original_name
+        else:
+            cliente_name_final = cliente_name_raw
+
+        # 5. Detectar conflictos usando el nombre normalizado/resuelto
         from ots.models import OT
         existing_ot = OT.objects.filter(numero_ot=numero_ot).first()
+
+        if existing_ot:
+            # Conflicto de Cliente
+            if existing_ot.cliente:
+                cliente_actual_db = existing_ot.cliente.original_name.upper()
+                if cliente_actual_db != cliente_name_final:
+                    self.detected_conflicts.append({
+                        'ot': numero_ot,
+                        'campo': 'cliente',
+                        'valor_actual': cliente_actual_db,
+                        'valor_nuevo': cliente_name_raw, # Reportar con el valor RAW
+                        'archivo_origen': filename,
+                        'row': row_number
+                    })
+            
+            # Conflicto de Operativo
+            if existing_ot.operativo:
+                operativo_actual_db = existing_ot.operativo.upper()
+                if operativo_raw and operativo_actual_db != operativo_raw:
+                    self.detected_conflicts.append({
+                        'ot': numero_ot,
+                        'campo': 'operativo',
+                        'valor_actual': operativo_actual_db,
+                        'valor_nuevo': operativo_raw,
+                        'archivo_origen': filename,
+                        'row': row_number
+                    })
         
-        # Conflicto con BD: Cliente
-        if existing_ot and existing_ot.cliente:
-            cliente_actual = existing_ot.cliente.original_name.upper()
-            if cliente_actual != cliente_name:
-                self.detected_conflicts.append({
-                    'ot': numero_ot,
-                    'campo': 'cliente',
-                    'valor_actual': cliente_actual,
-                    'valor_nuevo': cliente_name,
-                    'archivo_origen': filename,
-                    'row': row_number
-                })
-        
-        # Conflicto con BD: Operativo
-        if existing_ot and existing_ot.operativo:
-            operativo_actual = existing_ot.operativo.upper()
-            if operativo and operativo_actual != operativo:
-                self.detected_conflicts.append({
-                    'ot': numero_ot,
-                    'campo': 'operativo',
-                    'valor_actual': operativo_actual,
-                    'valor_nuevo': operativo,
-                    'archivo_origen': filename,
-                    'row': row_number
-                })
-        
-        # Conflicto entre archivos
+        # El operativo no tiene sistema de alias, usamos el raw
+        operativo = operativo_raw
+
+        # 6. Detectar conflictos entre archivos (usando nombres ya resueltos/finales)
         if numero_ot in self.pending_data:
             prev_data = self.pending_data[numero_ot]['data']
             prev_filename = self.pending_data[numero_ot]['filename']
             
             # Comparar cliente
             prev_cliente = prev_data.get('cliente_name')
-            if prev_cliente and prev_cliente != cliente_name:
+            if prev_cliente and prev_cliente != cliente_name_final:
                 self.detected_conflicts.append({
                     'ot': numero_ot,
                     'campo': 'cliente',
                     'valor_actual': prev_cliente,
-                    'valor_nuevo': cliente_name,
+                    'valor_nuevo': cliente_name_final,
                     'archivo_origen': filename,
                     'archivo_anterior': prev_filename,
                     'row': row_number
@@ -440,9 +477,9 @@ class ExcelProcessor:
                     'archivo_anterior': prev_filename,
                     'row': row_number
                 })
-        
-        # Guardar en cache (extracción completa de datos)
-        ot_data = self._extract_complete_row_data(row, cliente_name, operativo, tipo_operacion)
+
+        # 7. Guardar en cache para procesamiento final
+        ot_data = self._extract_complete_row_data(row, cliente_name_final, operativo, tipo_operacion)
         self.pending_data[numero_ot] = {
             'data': ot_data,
             'filename': filename,
@@ -596,23 +633,26 @@ class ExcelProcessor:
         from ots.models import OT
         from client_aliases.models import ClientAlias
         from catalogs.models import Provider
-        
+
         # Validar que cliente_name esté presente
         if 'cliente_name' not in ot_data:
             # Log de debugging para ver qué keys están disponibles
             available_keys = ', '.join(ot_data.keys())
             raise ValueError(f"cliente_name no está presente en ot_data para OT {numero_ot}. Keys disponibles: {available_keys}")
-        
+
+        # Calcular el hash de la fila ANTES de manipular ot_data
+        new_row_hash = self._calculate_row_hash(ot_data)
+
         # Buscar o crear cliente
         cliente_name = ot_data.pop('cliente_name')
-        
+
         if not cliente_name or not str(cliente_name).strip():
             # Si no hay cliente, usar un valor por defecto
             cliente_name = "CLIENTE NO ESPECIFICADO"
-        
+
         # Limpiar el nombre del cliente
         cliente_name = str(cliente_name).strip().upper()
-        
+
         cliente, _ = ClientAlias.objects.get_or_create(
             original_name=cliente_name,
             defaults={
@@ -628,7 +668,7 @@ class ExcelProcessor:
         proveedor = None
         if proveedor_name:
             proveedor = Provider.objects.filter(nombre__icontains=proveedor_name).first()
-        
+
         # Preparar datos finales
         ot_data_final = {
             'numero_ot': numero_ot,
@@ -637,24 +677,32 @@ class ExcelProcessor:
             'tipo_operacion': ot_data.get('tipo_operacion', 'importacion'),
             **ot_data
         }
-        
+
         # Provisión con jerarquía
         if ot_data_final.get('fecha_provision'):
             ot_data_final['provision_source'] = 'excel'
             ot_data_final['provision_locked'] = False
             ot_data_final['provision_updated_by'] = 'Excel Import'
-        
-        # Barco - marcar origen como excel
-        # NOTA: Descomentar cuando se ejecuten las migraciones para barco_source
-        # if ot_data_final.get('barco') and ot_data_final['barco'] != '-':
-        #     ot_data_final['barco_source'] = 'excel'
-        
+
         # Crear o actualizar
         existing_ot = OT.objects.filter(numero_ot=numero_ot).first()
-        
+
         if existing_ot:
+            # --- LÓGICA DE HASH ---
+            if existing_ot.row_hash == new_row_hash:
+                self.stats['skipped'] += 1
+                self.stats['warnings'].append({
+                    'row': 'N/A', # No tenemos el número de fila aquí
+                    'ot': numero_ot,
+                    'type': 'fila sin cambios',
+                    'message': f"OT {numero_ot} omitida: no se detectaron cambios.",
+                    'file': self.filename
+                })
+                return # No hacer nada más
+
+            # --- LÓGICA DE ACTUALIZACIÓN ---
             PROTECTED_FIELDS = [
-                'estado', 'fecha_eta', 'fecha_llegada', 'barco', 'proveedor', 
+                'estado', 'fecha_eta', 'fecha_llegada', 'barco', 'proveedor',
                 'puerto_origen', 'puerto_destino', 'fecha_provision'
             ]
 
@@ -669,19 +717,21 @@ class ExcelProcessor:
 
                 if key == 'comentarios':
                     continue
-                
+
                 if value is not None and (not isinstance(value, str) or value.strip()):
                     setattr(existing_ot, key, value)
                     # Si es un campo protegido, también actualizar su fuente
                     if key in PROTECTED_FIELDS:
                         setattr(existing_ot, f"{key}_source", 'excel')
             
+            existing_ot.row_hash = new_row_hash # Actualizar el hash
             existing_ot.save()
             self.stats['updated'] += 1
         else:
-            # Quitar express_release_tipo y contra_entrega_tipo si no están en modelo
+            # --- LÓGICA DE CREACIÓN ---
             ot_data_final.pop('express_release_tipo', None)
             ot_data_final.pop('contra_entrega_tipo', None)
+            ot_data_final['row_hash'] = new_row_hash # Guardar el hash
             OT.objects.create(**ot_data_final)
             self.stats['created'] += 1
     
@@ -733,27 +783,10 @@ class ExcelProcessor:
                             # Mantener el cliente actual de la BD
                             ot_data['cliente_name'] = existing_ot.cliente.original_name
                         elif decision == 'usar_nuevo':
-                            # Usar el nuevo cliente del Excel
-                            # Cachear esta decisión para futuros archivos
-                            valor_original = resolution_info.get('valor_original')
-                            valor_nuevo = resolution_info.get('valor_nuevo')
-
-                            if valor_original and valor_nuevo:
-                                # Buscar o crear el ClientAlias del cliente resuelto
-                                cliente_resuelto, _ = ClientAlias.objects.get_or_create(
-                                    original_name=valor_nuevo,
-                                    defaults={
-                                        'normalized_name': ClientAlias.normalize_name(valor_nuevo)
-                                    }
-                                )
-
-                                # Cachear la resolución
-                                ClientResolution.cache_resolution(
-                                    original_name=valor_original,
-                                    resolved_to=cliente_resuelto,
-                                    resolution_type='conflict',
-                                    created_by=processed_by
-                                )
+                            # Usar el nuevo valor del Excel. No se necesita hacer nada
+                            # a ot_data['cliente_name'] porque ya tiene el valor nuevo.
+                            # NO se debe cachear la resolución globalmente.
+                            pass
 
                     # Operativo
                     if 'operativo' in resolutions_map[numero_ot]:

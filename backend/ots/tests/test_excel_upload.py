@@ -198,7 +198,8 @@ class ExcelUploadAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['processed'], 1)
-        self.assertEqual(response.data['updated'], 1)
+        self.assertEqual(response.data['updated'], 0)
+        self.assertEqual(response.data['skipped'], 1)
 
         ot_mantenida = OT.objects.get(numero_ot="25OT-MANTENER")
         self.assertEqual(ot_mantenida.cliente.original_name, "CLIENTE ANTIGUO SA DE CV")
