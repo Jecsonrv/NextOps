@@ -467,23 +467,27 @@ class OTDetailSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         """Actualizar OT registrando usuario y marcando campos editados manualmente"""
-        print(f"🔵 [SERIALIZER UPDATE] validated_data recibido:")
-        print(f"  - estado_provision: {validated_data.get('estado_provision', 'NO ENVIADO')}")
-        print(f"  - fecha_provision: {validated_data.get('fecha_provision', 'NO ENVIADO')}")
-        
         request = self.context.get('request')
-        if request and request.user:
-            validated_data['modificado_por'] = request.user
-        
-        # Marcar campos editados manualmente con prioridad MANUAL
-        # Provisión
-        if 'fecha_provision' in validated_data and validated_data['fecha_provision'] is not None:
-            validated_data['provision_source'] = 'manual'
-        
-        # Barco - Comentado hasta ejecutar migraciones
-        # if 'barco' in validated_data and validated_data['barco']:
-        #     validated_data['barco_source'] = 'manual'
-        
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            instance.modificado_por = request.user
+
+        # Lista de campos cuya fuente debe ser marcada como 'manual' al editar
+        PROTECTED_FIELDS = [
+            'estado', 'fecha_eta', 'fecha_llegada', 'barco', 'proveedor', 
+            'puerto_origen', 'puerto_destino', 'fecha_provision'
+        ]
+
+        for field_name in PROTECTED_FIELDS:
+            if field_name in validated_data:
+                # Si el campo se está actualizando, marcar su fuente como manual
+                source_field = f"{field_name}_source"
+                setattr(instance, source_field, 'manual')
+
+        # Lógica especial para provision: si se edita manualmente, se bloquea
+        if 'fecha_provision' in validated_data:
+            instance.provision_locked = True
+
+        # Llamar al update del padre para guardar los cambios
         return super().update(instance, validated_data)
 
 

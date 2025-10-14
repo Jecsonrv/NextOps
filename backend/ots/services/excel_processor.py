@@ -173,7 +173,7 @@ class ExcelProcessor:
         Fase 0: Verificar si los archivos ya fueron procesados (hash)
         Fase 1: Cargar todos los datos y detectar conflictos de cliente/operativo
         Fase 2: Si hay conflictos, retornarlos para resolución
-        Fase 3: Si no hay conflictos, procesar normalmente
+        Fase 3: Si no hay conflictos, procesar normally
 
         Args:
             file_paths: Lista de tuplas (file_path, filename) para procesar
@@ -227,7 +227,7 @@ class ExcelProcessor:
             self.stats['message'] = f'Se detectaron {len(self.detected_conflicts)} conflictos que requieren resolución'
             return self.stats
         
-        # Fase 3: No hay conflictos, procesar normalmente
+        # Fase 3: No hay conflictos, procesar normally
         from ots.models import OT
         for numero_ot, pending_item in self.pending_data.items():
             try:
@@ -616,8 +616,7 @@ class ExcelProcessor:
         cliente, _ = ClientAlias.objects.get_or_create(
             original_name=cliente_name,
             defaults={
-                'normalized_name': ClientAlias.normalize_name(cliente_name),
-                'country': 'GT'
+                'normalized_name': ClientAlias.normalize_name(cliente_name)
             }
         )
 
@@ -654,26 +653,28 @@ class ExcelProcessor:
         existing_ot = OT.objects.filter(numero_ot=numero_ot).first()
         
         if existing_ot:
-            # Actualizar solo campos no vacíos
+            PROTECTED_FIELDS = [
+                'estado', 'fecha_eta', 'fecha_llegada', 'barco', 'proveedor', 
+                'puerto_origen', 'puerto_destino', 'fecha_provision'
+            ]
+
             for key, value in ot_data_final.items():
-                # Respetar prioridades para provisión: MANUAL > CSV > EXCEL
-                if key in ['fecha_provision', 'provision_source', 'provision_locked', 'provision_updated_by']:
-                    can_update, _ = existing_ot.can_update_provision('excel')
-                    if not can_update:
+                if key in PROTECTED_FIELDS:
+                    if not existing_ot.can_update_field(key, 'excel'):
                         continue
-                
-                # Respetar prioridades para barco: MANUAL > CSV > EXCEL
-                # NOTA: Descomentar cuando se ejecuten las migraciones para barco_source
-                # if key == 'barco' or key == 'barco_source':
-                #     # Solo actualizar si no tiene source o es excel
-                #     if existing_ot.barco_source and existing_ot.barco_source != 'excel':
-                #         continue
-                
+
+                # Campos de provisión especiales se saltan aquí porque se manejan con fecha_provision
+                if key in ['provision_source', 'provision_locked', 'provision_updated_by']:
+                    continue
+
                 if key == 'comentarios':
                     continue
                 
                 if value is not None and (not isinstance(value, str) or value.strip()):
                     setattr(existing_ot, key, value)
+                    # Si es un campo protegido, también actualizar su fuente
+                    if key in PROTECTED_FIELDS:
+                        setattr(existing_ot, f"{key}_source", 'excel')
             
             existing_ot.save()
             self.stats['updated'] += 1
@@ -742,8 +743,7 @@ class ExcelProcessor:
                                 cliente_resuelto, _ = ClientAlias.objects.get_or_create(
                                     original_name=valor_nuevo,
                                     defaults={
-                                        'normalized_name': ClientAlias.normalize_name(valor_nuevo),
-                                        'country': 'GT'
+                                        'normalized_name': ClientAlias.normalize_name(valor_nuevo)
                                     }
                                 )
 
@@ -899,83 +899,88 @@ class ExcelProcessor:
     
     def _detect_headers(self, df: pd.DataFrame) -> Tuple[Optional[int], Optional[Dict[int, str]]]:
         """
-        Detectar fila de headers buscando en las primeras 5 filas.
-        
-        Args:
-            df: DataFrame con datos crudos
-            
-        Returns:
-            Tupla (fila_header, mapa_columnas) o (None, None) si no se detecta
+        Detectar fila de headers con un sistema de dos pasadas (exacto y luego fuzzy).
         """
         max_rows_to_check = min(5, len(df))
         best_total_score = 0
-        best_row = None
+        best_row_idx = None
         best_map = None
-        
+
         for row_idx in range(max_rows_to_check):
             row = df.iloc[row_idx]
+            column_map = {}
+            total_score = 0
             
-            # Calcular scores para cada combinación posible de columna->standard_name
-            candidates = {}  # {standard_name: [(col_idx, score), ...]}
-            
+            # --- PASADA 1: Coincidencias Exactas ---
+            found_cols = set()
+            available_mappings = self.COLUMN_MAPPINGS.copy()
+
             for col_idx, cell_value in enumerate(row):
-                if pd.isna(cell_value):
+                if pd.isna(cell_value) or col_idx in found_cols:
                     continue
-                    
+                
                 cell_str = str(cell_value).lower().strip()
                 
-                # Ignorar headers vacíos o muy cortos
-                if len(cell_str) < 2:
+                for standard_name, alternatives in list(available_mappings.items()):
+                    if cell_str in [alt.lower().strip() for alt in alternatives]:
+                        # Coincidencia exacta encontrada
+                        column_map[col_idx] = standard_name
+                        total_score += 100  # Puntuación alta para coincidencia exacta
+                        found_cols.add(col_idx)
+                        del available_mappings[standard_name] # No volver a usar este mapeo
+                        break
+            
+            # --- PASADA 2: Coincidencias Parciales (Fuzzy) para columnas restantes ---
+            candidates = {}
+            for col_idx, cell_value in enumerate(row):
+                if pd.isna(cell_value) or col_idx in found_cols:
                     continue
                 
-                # Buscar coincidencias en mapeos
-                for standard_name, alternatives in self.COLUMN_MAPPINGS.items():
+                cell_str = str(cell_value).lower().strip()
+                if len(cell_str) < 2:
+                    continue
+
+                for standard_name, alternatives in available_mappings.items():
                     best_alt_score = 0
-                    
                     for alt in alternatives:
                         alt_lower = alt.lower().strip()
-                        # Calcular score: coincidencia exacta vale más que parcial
-                        if cell_str == alt_lower:
-                            current_score = 20  # Coincidencia exacta
-                        elif alt_lower in cell_str:
-                            current_score = 15  # Contiene la alternativa
+                        if alt_lower in cell_str:
+                            score = 15
                         elif cell_str in alt_lower:
-                            current_score = 10  # El nombre está contenido en la alternativa
+                            score = 10
                         else:
-                            current_score = 0
-                        
-                        if current_score > best_alt_score:
-                            best_alt_score = current_score
-                    
+                            score = 0
+                        if score > best_alt_score:
+                            best_alt_score = score
+
                     if best_alt_score > 0:
                         if standard_name not in candidates:
                             candidates[standard_name] = []
                         candidates[standard_name].append((col_idx, best_alt_score))
-            
-            # Ahora seleccionar la mejor columna para cada standard_name
-            column_map = {}
-            total_score = 0
-            
+
+            # Asignar las mejores coincidencias fuzzy
+            inverted_candidates = {}
             for standard_name, options in candidates.items():
-                # Ordenar por score descendente, y en caso de empate por índice de columna
-                options.sort(key=lambda x: (-x[1], x[0]))
-                best_col, best_score = options[0]
-                
-                column_map[best_col] = standard_name
+                for col_idx, score in options:
+                    if col_idx not in inverted_candidates:
+                        inverted_candidates[col_idx] = []
+                    inverted_candidates[col_idx].append((standard_name, score))
+
+            for col_idx, options in inverted_candidates.items():
+                if col_idx in column_map: continue # Ya asignado en pasada exacta
+                options.sort(key=lambda x: -x[1])
+                best_standard_name, best_score = options[0]
+                column_map[col_idx] = best_standard_name
                 total_score += best_score
-            
-            # Si encontramos al menos numero_ot o cliente, es candidato
+
+            # Evaluar si esta fila es la mejor candidata a header
             if 'numero_ot' in column_map.values() or 'cliente' in column_map.values():
                 if total_score > best_total_score:
                     best_total_score = total_score
-                    best_row = row_idx
+                    best_row_idx = row_idx
                     best_map = column_map
-                    
-                    # Early exit si score es muy alto (>=100)
-                    if best_total_score >= 100:
-                        break
-        
-        return (best_row, best_map) if best_row is not None else (None, None)
+
+        return (best_row_idx, best_map) if best_row_idx is not None else (None, None)
     
     def _map_columns(self, df: pd.DataFrame, column_map: Dict[int, str]) -> pd.DataFrame:
         """
@@ -1054,8 +1059,7 @@ class ExcelProcessor:
         cliente, _ = ClientAlias.objects.get_or_create(
             original_name=cliente_name,
             defaults={
-                'normalized_name': ClientAlias.normalize_name(cliente_name),
-                'country': 'GT'  # Default, puede mejorarse
+                'normalized_name': ClientAlias.normalize_name(cliente_name)
             }
         )
 

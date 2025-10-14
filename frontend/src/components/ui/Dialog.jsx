@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
  * Dialog component - Modal dialog implementation
  * Simple modal overlay for displaying content
  */
-export function Dialog({ open, onOpenChange, children }) {
+export function Dialog({ open, onOpenChange, children = null }) {
     if (!open) return null;
 
     return (
@@ -29,12 +29,7 @@ Dialog.propTypes = {
     children: PropTypes.node,
 };
 
-Dialog.defaultProps = {
-    onOpenChange: undefined,
-    children: null,
-};
-
-export function DialogContent({ className = "", children }) {
+export function DialogContent({ className = "", children = null }) {
     return (
         <div
             className={`bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 ${className}`}
@@ -49,12 +44,7 @@ DialogContent.propTypes = {
     children: PropTypes.node,
 };
 
-DialogContent.defaultProps = {
-    className: "",
-    children: null,
-};
-
-export function DialogHeader({ children, className = "" }) {
+export function DialogHeader({ children = null, className = "" }) {
     return (
         <div className={`px-6 pt-6 pb-4 border-b ${className}`}>{children}</div>
     );
@@ -65,12 +55,7 @@ DialogHeader.propTypes = {
     children: PropTypes.node,
 };
 
-DialogHeader.defaultProps = {
-    className: "",
-    children: null,
-};
-
-export function DialogTitle({ children, className = "" }) {
+export function DialogTitle({ children = null, className = "" }) {
     return (
         <h2 className={`text-xl font-semibold text-gray-900 ${className}`}>
             {children}
@@ -83,12 +68,7 @@ DialogTitle.propTypes = {
     children: PropTypes.node,
 };
 
-DialogTitle.defaultProps = {
-    className: "",
-    children: null,
-};
-
-export function DialogDescription({ children, className = "" }) {
+export function DialogDescription({ children = null, className = "" }) {
     return (
         <p className={`mt-2 text-sm text-gray-600 ${className}`}>{children}</p>
     );
@@ -99,7 +79,17 @@ DialogDescription.propTypes = {
     children: PropTypes.node,
 };
 
-DialogDescription.defaultProps = {
-    className: "",
-    children: null,
+export function DialogFooter({ children = null, className = "" }) {
+    return (
+        <div className={`px-6 py-4 border-t flex justify-end space-x-2 ${className}`}>
+            {children}
+        </div>
+    );
+}
+
+DialogFooter.propTypes = {
+    className: PropTypes.string,
+    children: PropTypes.node,
 };
+
+DialogFooter.defaultProps = undefined;

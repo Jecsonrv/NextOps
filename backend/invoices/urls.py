@@ -9,7 +9,6 @@ from .views import (
     UploadedFileViewSet,
     DisputeViewSet,
     CreditNoteViewSet,
-    create_dispute,
 )
 
 router = DefaultRouter()
@@ -19,9 +18,7 @@ router = DefaultRouter()
 router.register(r'disputes', DisputeViewSet, basename='dispute')
 router.register(r'credit-notes', CreditNoteViewSet, basename='creditnote')
 router.register(r'files', UploadedFileViewSet, basename='uploadedfile')
-# Facturas al final porque usa ruta vacía y capturaría todo lo demás
 router.register(r'', InvoiceViewSet, basename='invoice')
 
-urlpatterns = [
-    path('disputes/create/', create_dispute, name='dispute-create'),
-] + router.urls
+urlpatterns = router.urls
+

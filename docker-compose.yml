@@ -67,15 +67,14 @@ services:
             dockerfile: Dockerfile
         container_name: nextops_celery
         command: celery -A workers.celery worker --loglevel=info
-        volumes:
-            - ./backend:/app
-            - media_files:/app/media
-        env_file:
-            - ./backend/.env
         environment:
             - DATABASE_URL=postgresql://nextops_user:nextops_password@db:5432/nextops
             - REDIS_URL=redis://redis:6379/0
             - DJANGO_SETTINGS_MODULE=proyecto.settings.dev
+            - MS_GRAPH_CLIENT_ID=YOUR_CLIENT_ID
+            - MS_GRAPH_CLIENT_SECRET=YOUR_CLIENT_SECRET
+            - MS_GRAPH_TENANT_ID=YOUR_TENANT_ID
+            - MS_GRAPH_USER_EMAIL=YOUR_USER_EMAIL
         depends_on:
             - db
             - redis

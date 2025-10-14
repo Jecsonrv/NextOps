@@ -20,7 +20,7 @@ export const AuthProvider = ({ children = null }) => {
         }
 
         try {
-            const { data } = await apiClient.get("/auth/me/");
+            const { data } = await apiClient.get("/users/me/");
             setUser(data);
         } catch (error) {
             console.error("Auth check failed:", error);
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children = null }) => {
     const login = async (email, password) => {
         try {
             // Backend expects 'username' field, but we use email as username
-            const { data } = await apiClient.post("/auth/login/", {
+            const { data } = await apiClient.post("/token/", {
                 username: email, // Send email as username
                 password,
             });
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children = null }) => {
             localStorage.setItem("access_token", data.access);
             localStorage.setItem("refresh_token", data.refresh);
 
-            const { data: userData } = await apiClient.get("/auth/me/");
+            const { data: userData } = await apiClient.get("/users/me/");
             setUser(userData);
 
             return data;
@@ -63,6 +63,7 @@ export const AuthProvider = ({ children = null }) => {
         loading,
         login,
         logout,
+        setUser, // Exponer setUser
         isAuthenticated: !!user,
     };
 

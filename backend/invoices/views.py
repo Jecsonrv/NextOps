@@ -818,7 +818,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''
             mbl = invoice.ot.master_bl if invoice.ot else ''
             contenedor = ', '.join(invoice.ot.contenedores) if invoice.ot and invoice.ot.contenedores else ''
-            naviera = invoice.ot.naviera if invoice.ot else ''
+            naviera = invoice.ot.proveedor.nombre if invoice.ot and invoice.ot.proveedor else ''
             barco = invoice.ot.barco if invoice.ot else ''
 
             row_data = [

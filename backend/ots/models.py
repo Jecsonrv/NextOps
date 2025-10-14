@@ -151,19 +151,30 @@ class OT(TimeStampedModel, SoftDeleteModel):
         default='-',
         help_text="Nombre del barco/buque"
     )
-    
-    # NOTA: Descomentar cuando se ejecuten las migraciones
-    # barco_source = models.CharField(
-    #     max_length=20,
-    #     choices=[
-    #         ('manual', 'Manual'),
-    #         ('csv', 'CSV'),
-    #         ('excel', 'Excel'),
-    #     ],
-    #     blank=True,
-    #     default='',
-    #     help_text="Fuente del nombre del barco (MANUAL > CSV > EXCEL)"
-    # )
+
+    # --- INICIO: Sistema de Jerarquía de Fuentes de Datos ---
+    SOURCE_CHOICES = [
+        ('manual', 'Manual'),
+        ('csv', 'CSV'),
+        ('excel', 'Excel'),
+    ]
+
+    HIERARCHY_PRIORITY = {
+        'manual': 3,
+        'csv': 2,
+        'excel': 1,
+        '': 0
+    }
+
+    # Campos con seguimiento de fuente
+    estado_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    fecha_eta_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    fecha_llegada_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    barco_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    proveedor_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    puerto_origen_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    puerto_destino_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True, default='')
+    # --- FIN: Sistema de Jerarquía de Fuentes de Datos ---
     
     etd = models.DateField(
         null=True,
@@ -631,39 +642,40 @@ class OT(TimeStampedModel, SoftDeleteModel):
         """Retorna el número de contenedores (alias de get_total_contenedores)"""
         return self.get_total_contenedores()
     
-    def can_update_provision(self, new_source='excel'):
+    def can_update_field(self, field_name: str, new_source: str) -> bool:
         """
-        Verifica si la provisión puede ser actualizada según la jerarquía.
-        
-        MANUAL (3) > CSV (2) > EXCEL (1)
+        Verifica si un campo puede ser actualizado según la jerarquía de fuentes.
         
         Args:
-            new_source: La fuente que intenta actualizar ('manual', 'csv', 'excel')
-        
+            field_name: El nombre del campo a verificar (ej: 'estado', 'fecha_eta').
+            new_source: La nueva fuente que intenta la actualización ('manual', 'csv', 'excel').
+            
         Returns:
-            tuple: (can_update: bool, reason: str)
+            True si la actualización está permitida, False en caso contrario.
         """
-        # Mapeo de prioridades
-        priority_map = {
-            'manual': 3,
-            'csv': 2,
-            'excel': 1,
-            '': 0  # Sin fuente = menor prioridad
-        }
-        
-        # Si está bloqueada y no es manual, no se puede actualizar
-        if self.provision_locked and new_source != 'manual':
-            return False, 'Provisión bloqueada por cambio manual'
-        
-        # Obtener prioridad actual y nueva
-        current_priority = priority_map.get(self.provision_source, 0)
-        new_priority = priority_map.get(new_source, 0)
-        
-        # Solo se puede actualizar si la nueva fuente tiene mayor o igual prioridad
-        if new_priority >= current_priority:
-            return True, 'OK'
+        # El campo de provisión tiene una lógica especial con 'provision_locked'
+        if field_name == 'fecha_provision':
+            if self.provision_locked and new_source != 'manual':
+                return False
+            current_source = self.provision_source
         else:
-            return False, f'Prioridad insuficiente: {new_source} ({new_priority}) < {self.provision_source} ({current_priority})'
+            current_source = getattr(self, f"{field_name}_source", '')
+
+        current_priority = self.HIERARCHY_PRIORITY.get(current_source, 0)
+        new_priority = self.HIERARCHY_PRIORITY.get(new_source, 0)
+
+        return new_priority >= current_priority
+
+    def can_update_provision(self, new_source='excel'):
+        """
+        Wrapper para mantener compatibilidad. Usa la nueva lógica genérica.
+        """
+        can_update = self.can_update_field('fecha_provision', new_source)
+        reason = '' if can_update else f'Prioridad insuficiente: {new_source} < {self.provision_source}'
+        if self.provision_locked and new_source != 'manual':
+            reason = 'Provisión bloqueada por cambio manual'
+        
+        return can_update, reason
 
 
 class ProcessedFile(TimeStampedModel):

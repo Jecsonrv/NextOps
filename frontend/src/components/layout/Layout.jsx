@@ -21,6 +21,8 @@ import {
     Layers,
     FileMinus,
     AlertCircle,
+    UserCog,
+    User,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useState } from "react";
@@ -79,6 +81,19 @@ export function Layout({ children }) {
         location.pathname.startsWith("/catalogs")
     );
 
+    const navigationItems = [
+        ...navigation,
+        ...(user?.role === "admin"
+            ? [
+                  {
+                      name: "Usuarios",
+                      href: "/admin/users",
+                      icon: UserCog,
+                  },
+              ]
+            : []),
+    ];
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Mobile sidebar backdrop */}
@@ -117,7 +132,7 @@ export function Layout({ children }) {
 
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                        {navigation.map((item) => {
+                        {navigationItems.map((item) => {
                             // Handle parent items with children (Catalogs)
                             if (item.children) {
                                 const isAnyCatalogActive =
@@ -212,19 +227,22 @@ export function Layout({ children }) {
 
                     {/* User info */}
                     <div className="p-4 border-t border-gray-200">
-                        <div className="flex items-center mb-3">
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">
-                                    {user?.email}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                    {user?.role || "Usuario"}
-                                </p>
+                        <Link to="/profile" className="block hover:bg-gray-50 p-2 rounded-lg">
+                            <div className="flex items-center">
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {user?.email}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {user?.role_display || user?.role || "Usuario"}
+                                    </p>
+                                </div>
+                                <User className="w-5 h-5 text-gray-400" />
                             </div>
-                        </div>
+                        </Link>
                         <Button
                             variant="outline"
-                            className="w-full justify-start"
+                            className="w-full justify-start mt-4"
                             onClick={logout}
                         >
                             <LogOut className="w-4 h-4 mr-2" />
@@ -249,7 +267,7 @@ export function Layout({ children }) {
                         <h2 className="text-lg font-semibold text-gray-900">
                             {(() => {
                                 // Find navigation item for current page
-                                const currentNav = navigation.find(
+                                const currentNav = navigationItems.find(
                                     (item) => item.href === location.pathname
                                 );
                                 if (currentNav) return currentNav.name;

@@ -37,12 +37,14 @@ import { CostTypesPage } from "./pages/CostTypesPage";
 import { CostTypeFormPage } from "./pages/CostTypeFormPage";
 import { CostCategoriesPage } from "./pages/CostCategoriesPage";
 import { CostCategoryFormPage } from "./pages/CostCategoryFormPage";
+import { UserManagementPage } from "./pages/Admin/UserManagementPage";
+import { UserProfilePage } from "./pages/Admin/UserProfilePage";
 
 // Create a client
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            refetchOnWindowFocus: false,
+            refetchOnWindowFocus: true,
             retry: 1,
             staleTime: 5 * 60 * 1000, // 5 minutes
         },
@@ -403,6 +405,44 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
+
+                        {/* Admin Routes */}
+                        <Route
+                            path="/admin/users"
+                            element={
+                                <ProtectedRoute allowedRoles={['admin']}>
+                                    <Layout>
+                                        <UserManagementPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/profile/:userId"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <UserProfilePage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/profile"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <UserProfilePage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+
+
+
 
                         {/* Legacy provider route - redirect to new catalog route */}
                         <Route

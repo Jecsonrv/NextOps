@@ -10,6 +10,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 
 @api_view(['GET'])
@@ -33,7 +37,9 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     
     # API Routes
-    path('api/auth/', include('accounts.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/', include('accounts.urls')),
     path('api/catalogs/', include('catalogs.urls')),
     path('api/patterns/', include('patterns.urls')),
     path('api/clients/', include('client_aliases.urls')),

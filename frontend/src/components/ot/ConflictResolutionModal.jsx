@@ -16,33 +16,29 @@ import {
     FileText,
     Database,
     ArrowRight,
+    Loader2,
 } from "lucide-react";
 
-/**
- * Modal para resolver conflictos de importación de OTs
- * Muestra conflictos de CLIENTE y OPERATIVO y permite resolverlos
- */
 export function ConflictResolutionModal({
     conflicts,
     isOpen,
     onClose,
     onResolve,
+    isResolving, // Nueva prop
 }) {
     const [resolutions, setResolutions] = useState({});
 
-    // Inicializar resoluciones al cargar conflictos
     const initializeResolutions = () => {
         const initial = {};
         conflicts.forEach((conflict) => {
             const key = `${conflict.ot}-${conflict.campo}`;
             if (!resolutions[key]) {
-                initial[key] = "mantener_actual"; // Default: mantener valor actual
+                initial[key] = "mantener_actual";
             }
         });
         return { ...resolutions, ...initial };
     };
 
-    // Manejar cambio de resolución individual
     const handleResolutionChange = (conflict, resolution) => {
         const key = `${conflict.ot}-${conflict.campo}`;
         setResolutions((prev) => ({
@@ -51,7 +47,6 @@ export function ConflictResolutionModal({
         }));
     };
 
-    // Aplicar todos los valores del archivo (nuevos)
     const handleApplyAllNew = () => {
         const newResolutions = {};
         conflicts.forEach((conflict) => {
@@ -61,7 +56,6 @@ export function ConflictResolutionModal({
         setResolutions(newResolutions);
     };
 
-    // Mantener todos los valores actuales
     const handleKeepAllCurrent = () => {
         const newResolutions = {};
         conflicts.forEach((conflict) => {
@@ -71,15 +65,12 @@ export function ConflictResolutionModal({
         setResolutions(newResolutions);
     };
 
-    // Confirmar resoluciones
     const handleConfirm = () => {
-        // Inicializar resoluciones si no se han establecido
         const finalResolutions =
             Object.keys(resolutions).length > 0
                 ? resolutions
                 : initializeResolutions();
 
-        // Convertir a formato que espera el backend
         const conflictResolutions = conflicts.map((conflict) => {
             const key = `${conflict.ot}-${conflict.campo}`;
             return {
@@ -92,7 +83,6 @@ export function ConflictResolutionModal({
         onResolve(conflictResolutions);
     };
 
-    // Agrupar conflictos por OT
     const groupedConflicts = conflicts.reduce((acc, conflict) => {
         if (!acc[conflict.ot]) {
             acc[conflict.ot] = [];
@@ -102,9 +92,8 @@ export function ConflictResolutionModal({
     }, {});
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={!isResolving ? onClose : () => {}}>
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-                {/* Header mejorado */}
                 <DialogHeader className="pb-4 border-b">
                     <DialogTitle className="flex items-center gap-3 text-xl">
                         <div className="p-2 bg-yellow-100 rounded-lg">
@@ -133,7 +122,6 @@ export function ConflictResolutionModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Botones de acción masiva mejorados */}
                 <div className="bg-gray-50 rounded-lg p-4 border">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
@@ -149,6 +137,7 @@ export function ConflictResolutionModal({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleKeepAllCurrent}
+                                disabled={isResolving}
                                 className="bg-white hover:bg-gray-100 border-gray-300"
                             >
                                 <Database className="h-4 w-4 mr-2" />
@@ -158,6 +147,7 @@ export function ConflictResolutionModal({
                                 variant="outline"
                                 size="sm"
                                 onClick={handleApplyAllNew}
+                                disabled={isResolving}
                                 className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
@@ -167,7 +157,6 @@ export function ConflictResolutionModal({
                     </div>
                 </div>
 
-                {/* Lista de conflictos mejorada */}
                 <div className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
                     {Object.entries(groupedConflicts).map(
                         ([ot, otConflicts]) => (
@@ -175,7 +164,6 @@ export function ConflictResolutionModal({
                                 key={ot}
                                 className="border-2 border-blue-200 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white shadow-sm"
                             >
-                                {/* Header de OT */}
                                 <div className="flex items-center gap-2 mb-4 pb-3 border-b border-blue-200">
                                     <div className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-sm">
                                         OT
@@ -192,7 +180,6 @@ export function ConflictResolutionModal({
                                     </Badge>
                                 </div>
 
-                                {/* Conflictos de esta OT */}
                                 <div className="space-y-4">
                                     {otConflicts.map((conflict, idx) => {
                                         const key = `${conflict.ot}-${conflict.campo}`;
@@ -205,7 +192,6 @@ export function ConflictResolutionModal({
                                                 key={`${ot}-${idx}`}
                                                 className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                                             >
-                                                {/* Header del conflicto */}
                                                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3 border-b border-gray-200">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
@@ -215,32 +201,12 @@ export function ConflictResolutionModal({
                                                             >
                                                                 {conflict.campo}
                                                             </Badge>
-                                                            {conflict.archivo_origen && (
-                                                                <div className="flex items-center gap-1 text-xs text-gray-600">
-                                                                    <FileText className="h-3 w-3" />
-                                                                    <span>
-                                                                        {
-                                                                            conflict.archivo_origen
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            {conflict.row && (
-                                                                <div className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                                                                    Fila{" "}
-                                                                    {
-                                                                        conflict.row
-                                                                    }
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Comparación de valores mejorada */}
                                                 <div className="p-4">
                                                     <div className="grid grid-cols-[1fr,auto,1fr] gap-4 mb-4">
-                                                        {/* Valor Actual */}
                                                         <div
                                                             className={`relative border-3 rounded-xl p-3 transition-all ${
                                                                 currentResolution ===
@@ -271,12 +237,10 @@ export function ConflictResolutionModal({
                                                             )}
                                                         </div>
 
-                                                        {/* Separador */}
                                                         <div className="flex items-center justify-center">
                                                             <ArrowRight className="h-6 w-6 text-gray-400" />
                                                         </div>
 
-                                                        {/* Valor Nuevo */}
                                                         <div
                                                             className={`relative border-3 rounded-xl p-3 transition-all ${
                                                                 currentResolution ===
@@ -308,7 +272,6 @@ export function ConflictResolutionModal({
                                                         </div>
                                                     </div>
 
-                                                    {/* Botones de selección mejorados */}
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <button
                                                             onClick={() =>
@@ -317,6 +280,7 @@ export function ConflictResolutionModal({
                                                                     "mantener_actual"
                                                                 )
                                                             }
+                                                            disabled={isResolving}
                                                             className={`group relative py-2.5 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
                                                                 currentResolution ===
                                                                 "mantener_actual"
@@ -345,6 +309,7 @@ export function ConflictResolutionModal({
                                                                     "usar_nuevo"
                                                                 )
                                                             }
+                                                            disabled={isResolving}
                                                             className={`group relative py-2.5 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
                                                                 currentResolution ===
                                                                 "usar_nuevo"
@@ -375,7 +340,6 @@ export function ConflictResolutionModal({
                     )}
                 </div>
 
-                {/* Footer con botones de acción mejorados */}
                 <div className="border-t bg-gray-50 -mx-6 -mb-6 rounded-b-lg">
                     <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-6 mx-1">
                         <div className="text-sm text-gray-600">
@@ -388,6 +352,7 @@ export function ConflictResolutionModal({
                             <Button
                                 variant="outline"
                                 onClick={onClose}
+                                disabled={isResolving}
                                 className="px-5 h-11"
                             >
                                 <X className="h-4 w-4 mr-2" />
@@ -395,10 +360,20 @@ export function ConflictResolutionModal({
                             </Button>
                             <Button
                                 onClick={handleConfirm}
+                                disabled={isResolving}
                                 className="px-8 h-11 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg"
                             >
-                                <CheckCircle className="h-5 w-5 mr-2" />
-                                Confirmar y Procesar ({conflicts.length})
+                                {isResolving ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                        Procesando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="h-5 w-5 mr-2" />
+                                        Confirmar y Procesar ({conflicts.length})
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -422,4 +397,9 @@ ConflictResolutionModal.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
     onResolve: PropTypes.func.isRequired,
+    isResolving: PropTypes.bool, // Nueva prop
+};
+
+ConflictResolutionModal.defaultProps = {
+    isResolving: false,
 };

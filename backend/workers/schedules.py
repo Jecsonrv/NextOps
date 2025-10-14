@@ -8,13 +8,13 @@ from celery.schedules import crontab
 # This will be loaded by Celery Beat to schedule periodic tasks
 CELERY_BEAT_SCHEDULE = {
     # Process DTE mailbox every 15 minutes
-    'process-dte-mailbox': {
-        'task': 'automation.tasks.process_dte_mailbox',
-        'schedule': crontab(minute='*/15'),  # Every 15 minutes
-        'options': {
-            'expires': 600,  # Task expires after 10 minutes
-        }
-    },
+    # 'process-dte-mailbox': {
+    #     'task': 'automation.tasks.process_dte_mailbox',
+    #     'schedule': crontab(minute='*/15'),  # Every 15 minutes
+    #     'options': {
+    #         'expires': 600,  # Task expires after 10 minutes
+    #     }
+    # },
     
     # Daily invoice alerts at 8:00 AM
     'daily-invoice-alerts': {

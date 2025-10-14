@@ -31,7 +31,7 @@ apiClient.interceptors.response.use(
         const originalRequest = error.config;
 
         // Don't try to refresh token on login endpoint or if we already retried
-        const isLoginRequest = originalRequest.url?.includes("/auth/login/");
+        const isLoginRequest = originalRequest.url?.includes("/token/");
 
         if (
             error.response?.status === 401 &&
@@ -48,7 +48,7 @@ apiClient.interceptors.response.use(
                 }
 
                 const { data } = await axios.post(
-                    `${API_BASE_URL}/auth/token/refresh/`,
+                    `${API_BASE_URL}/token/refresh/`,
                     {
                         refresh: refreshToken,
                     }

@@ -583,7 +583,7 @@ class OTViewSet(viewsets.ModelViewSet):
             
             # No hay conflictos, procesamiento completado
             success = len(stats['errors']) == 0 or stats['processed'] > 0
-            
+
             # Construir mensaje descriptivo
             message_parts = []
             if stats['processed'] > 0:
@@ -596,12 +596,12 @@ class OTViewSet(viewsets.ModelViewSet):
                 message_parts.append(f"{stats['skipped']} omitidas")
             if stats['errors']:
                 message_parts.append(f"{len(stats['errors'])} errores")
-            
+
             if message_parts:
                 message = 'Importación completada: ' + ', '.join(message_parts)
             else:
                 message = 'No se procesaron OTs. Verifique el formato de los archivos.'
-            
+
             result_data = {
                 'success': success,
                 'has_conflicts': False,
@@ -613,6 +613,7 @@ class OTViewSet(viewsets.ModelViewSet):
                 'conflicts': [],
                 'errors': stats['errors'],
                 'warnings': stats.get('warnings', []),
+                'warnings_summary': stats.get('warnings_summary', {}),
                 'message': message
             }
             
@@ -745,9 +746,9 @@ class OTViewSet(viewsets.ModelViewSet):
             # Luego resolver conflictos y procesar
             processed_by = request.user.username if request.user else 'system'
             stats = processor.resolve_conflicts_and_process(conflicts_resolutions, processed_by=processed_by)
-            
+
             success = len(stats['errors']) == 0 or stats['processed'] > 0
-            
+
             # Construir mensaje descriptivo
             message_parts = []
             if stats['processed'] > 0:
@@ -760,12 +761,12 @@ class OTViewSet(viewsets.ModelViewSet):
                 message_parts.append(f"{stats['skipped']} omitidas")
             if stats['errors']:
                 message_parts.append(f"{len(stats['errors'])} errores")
-            
+
             if message_parts:
                 message = 'Importación completada: ' + ', '.join(message_parts)
             else:
                 message = 'No se procesaron OTs.'
-            
+
             result_data = {
                 'success': success,
                 'has_conflicts': False,
@@ -777,6 +778,7 @@ class OTViewSet(viewsets.ModelViewSet):
                 'conflicts': [],
                 'errors': stats['errors'],
                 'warnings': stats.get('warnings', []),
+                'warnings_summary': stats.get('warnings_summary', {}),
                 'message': message
             }
             
@@ -975,13 +977,11 @@ class OTViewSet(viewsets.ModelViewSet):
                     updated = False
                     
                     # Procesar BARCO
-                    # NOTA: Descomentar cuando se ejecuten las migraciones para barco_source
-                    # if barco_csv and barco_csv != '-' and barco_csv != 'N/A':
-                    #     # Respetar prioridad: MANUAL > CSV > EXCEL
-                    #     if not ot.barco_source or ot.barco_source == 'excel':
-                    #         ot.barco = barco_csv
-                    #         ot.barco_source = 'csv'
-                    #         updated = True
+                    if barco_csv and barco_csv != '-' and barco_csv != 'N/A':
+                        if ot.can_update_field('barco', 'csv'):
+                            ot.barco = barco_csv
+                            ot.barco_source = 'csv'
+                            updated = True
                     
                     # Procesar FECHA DE PROVISION
                     if fecha_provision_str and fecha_provision_str not in ['N/A', 'SOLICITUD DE PAGO', '-', '']:
@@ -998,8 +998,7 @@ class OTViewSet(viewsets.ModelViewSet):
                                 # No se pudo parsear
                                 raise ValueError(f"Formato de fecha no reconocido: {fecha_provision_str}")
                             
-                            # Respetar prioridad: MANUAL > CSV > EXCEL
-                            if not ot.provision_source or ot.provision_source == 'excel':
+                            if ot.can_update_field('fecha_provision', 'csv'):
                                 ot.fecha_provision = fecha_obj
                                 ot.provision_source = 'csv'
                                 updated = True
