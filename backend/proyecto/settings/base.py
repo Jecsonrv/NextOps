@@ -180,7 +180,7 @@ SIMPLE_JWT = {
 # CORS Configuration
 _default_cors_origins = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://localhost:3000',
+    default='http://localhost:5173,http://localhost:3000,https://nextops-plg.vercel.app',
     cast=Csv()
 )
 
@@ -203,7 +203,7 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF configuration (needed when running from different origins)
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000',
+    default='http://localhost:8000,http://127.0.0.1:8000,https://nextops-plg.vercel.app',
     cast=Csv()
 )
 

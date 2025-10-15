@@ -21,6 +21,7 @@ import {
     CardHeader,
     CardTitle,
 } from "../components/ui/Card";
+import { showSuccess, showError } from "../utils/toast";
 
 export function ProviderFormPage() {
     const navigate = useNavigate();
@@ -126,10 +127,10 @@ export function ProviderFormPage() {
                     id,
                     data: formData,
                 });
-                alert("Proveedor actualizado exitosamente");
+                showSuccess("Proveedor actualizado exitosamente");
             } else {
                 await createMutation.mutateAsync(formData);
-                alert("Proveedor creado exitosamente");
+                showSuccess("Proveedor creado exitosamente");
             }
             navigate("/catalogs/providers");
         } catch (error) {
@@ -146,7 +147,10 @@ export function ProviderFormPage() {
                 });
                 setErrors(apiErrors);
             } else {
-                alert("Error al guardar el proveedor");
+                showError("Error al guardar el proveedor");
+            }
+            if (!error.response?.data) {
+                showError("No se pudo guardar el proveedor. Intenta nuevamente.");
             }
         }
     };

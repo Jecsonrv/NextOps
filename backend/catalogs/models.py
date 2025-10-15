@@ -160,6 +160,12 @@ class Provider(TimeStampedModel, SoftDeleteModel):
     TYPE_CHOICES = [
         ('naviera', 'Naviera'),
         ('agente_local', 'Agente Local'),
+        ('agencia_aduanal', 'Agencia Aduanal'),
+        ('agente_origen', 'Agente de Origen'),
+        ('aseguradora', 'Aseguradora'),
+        ('aerolinea', 'Aerolínea'),
+        ('consolidadora', 'Consolidadora'),
+        ('almacenadora', 'Almacenadora'),
         ('transportista', 'Transportista'),
         ('otro', 'Otro'),
     ]
