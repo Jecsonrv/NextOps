@@ -300,25 +300,25 @@ class ProviderSerializer(serializers.ModelSerializer):
         """
         Validar formato de NIT (si se proporciona)
         """
-        if value:
-            nit_limpio = value.strip().upper()
-            
-            # Verificar que solo contenga números y guiones
-            if not all(c.isdigit() or c == '-' for c in nit_limpio):
-                raise serializers.ValidationError("El NIT solo puede contener números y guiones.")
-            
-            # Verificar unicidad
-            instance_id = self.instance.id if self.instance else None
-            existing = Provider.objects.filter(nit=nit_limpio)
-            if instance_id:
-                existing = existing.exclude(id=instance_id)
-            
-            if existing.exists():
-                raise serializers.ValidationError(f"Ya existe un proveedor con el NIT '{nit_limpio}'.")
-            
-            return nit_limpio
-        
-        return value
+        if value is None:
+            return None
+
+        nit_limpio = str(value).strip().upper()
+        if not nit_limpio:
+            return None
+
+        if not all(c.isdigit() or c == '-' for c in nit_limpio):
+            raise serializers.ValidationError("El NIT solo puede contener números y guiones.")
+
+        instance_id = self.instance.id if self.instance else None
+        existing = Provider.objects.filter(nit=nit_limpio)
+        if instance_id:
+            existing = existing.exclude(id=instance_id)
+
+        if existing.exists():
+            raise serializers.ValidationError(f"Ya existe un proveedor con el NIT '{nit_limpio}'.")
+
+        return nit_limpio
     
     def validate_email(self, value):
         """
