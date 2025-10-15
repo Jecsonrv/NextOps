@@ -26,21 +26,13 @@ import {
     Sparkles,
 } from "lucide-react";
 import apiClient from "../lib/api";
-
-const TIPO_COSTO_OPTIONS = [
-    { value: "FLETE", label: "Flete" },
-    { value: "TRANSPORTE", label: "Transporte" },
-    { value: "ADUANA", label: "Aduana" },
-    { value: "ALMACENAJE", label: "Almacenaje" },
-    { value: "DEMORA", label: "Demora" },
-    { value: "OTRO", label: "Otro" },
-];
+import { useActiveCostTypes } from "../hooks/useCatalogs";
 
 export function InvoiceUploadPage() {
     const navigate = useNavigate();
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [autoParse, setAutoParse] = useState(true);
-    const [tipoCosto, setTipoCosto] = useState("OTRO");
+    const [tipoCosto, setTipoCosto] = useState("");
     const [selectedProveedor, setSelectedProveedor] = useState("");
     const [uploadResults, setUploadResults] = useState(null);
     const [availablePatterns, setAvailablePatterns] = useState(null);
@@ -48,6 +40,18 @@ export function InvoiceUploadPage() {
 
     const uploadMutation = useInvoiceUpload();
     const { data: providersData, isLoading: loadingProviders } = useProviders();
+    const { data: activeCostTypes } = useActiveCostTypes();
+
+    const costTypeOptions = activeCostTypes?.map((type) => ({
+        value: type.code,
+        label: type.name,
+    })) || [];
+
+    useEffect(() => {
+        if (!tipoCosto && costTypeOptions.length > 0) {
+            setTipoCosto(costTypeOptions[0].value);
+        }
+    }, [tipoCosto, costTypeOptions]);
 
     // Cargar patrones cuando se selecciona un proveedor
     useEffect(() => {
@@ -87,6 +91,11 @@ export function InvoiceUploadPage() {
             alert(
                 "Por favor selecciona un proveedor antes de subir las facturas"
             );
+            return;
+        }
+
+        if (!tipoCosto) {
+            alert("Selecciona un tipo de costo antes de subir.");
             return;
         }
 
@@ -613,7 +622,7 @@ export function InvoiceUploadPage() {
 
                             <div>
                                 <label className="block font-medium text-gray-900 mb-2">
-                                    Tipo de Costo (por defecto)
+                                    Tipo de Costo
                                 </label>
                                 <select
                                     value={tipoCosto}
@@ -622,7 +631,12 @@ export function InvoiceUploadPage() {
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    {TIPO_COSTO_OPTIONS.map((option) => (
+                                    {costTypeOptions.length === 0 && (
+                                        <option value="" disabled>
+                                            No hay tipos de costo activos
+                                        </option>
+                                    )}
+                                    {costTypeOptions.map((option) => (
                                         <option
                                             key={option.value}
                                             value={option.value}
