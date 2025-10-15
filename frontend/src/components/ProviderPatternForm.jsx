@@ -2,9 +2,11 @@
 import { useState, useEffect } from "react";
 import { X, PlayCircle, CheckCircle, AlertCircle, Code } from "lucide-react";
 import { Button } from "./ui/Button";
-import axios from "axios";
+import apiClient from "../lib/api";
 
-const API_URL = "http://localhost:8000/api";
+const PROVIDERS_URL = "/catalogs/providers/";
+const TARGET_FIELDS_URL = "/patterns/target-fields/";
+const PROVIDER_PATTERNS_URL = "/patterns/provider-patterns/";
 
 function ProviderPatternForm({ open, onClose, pattern }) {
     const [providers, setProviders] = useState([]);
@@ -37,8 +39,8 @@ function ProviderPatternForm({ open, onClose, pattern }) {
 
     const loadProviders = async () => {
         try {
-            const response = await axios.get(
-                `${API_URL}/catalogs/providers/?is_active=true`,
+            const response = await apiClient.get(
+                `${PROVIDERS_URL}?is_active=true`,
                 getAuthHeaders()
             );
             setProviders(response.data.results || []);
@@ -54,8 +56,8 @@ function ProviderPatternForm({ open, onClose, pattern }) {
 
     const loadTargetFields = async () => {
         try {
-            const response = await axios.get(
-                `${API_URL}/patterns/target-fields/?is_active=true`,
+            const response = await apiClient.get(
+                `${TARGET_FIELDS_URL}?is_active=true`,
                 getAuthHeaders()
             );
             setTargetFields(response.data.results || []);
@@ -144,12 +146,12 @@ function ProviderPatternForm({ open, onClose, pattern }) {
         try {
             setLoading(true);
             const url = pattern
-                ? `${API_URL}/patterns/provider-patterns/${pattern.id}/`
-                : `${API_URL}/patterns/provider-patterns/`;
+                ? `${PROVIDER_PATTERNS_URL}${pattern.id}/`
+                : `${PROVIDER_PATTERNS_URL}`;
 
             const method = pattern ? "put" : "post";
 
-            const response = await axios[method](
+            const response = await apiClient[method](
                 url,
                 formData,
                 getAuthHeaders()
@@ -169,8 +171,8 @@ function ProviderPatternForm({ open, onClose, pattern }) {
 
         try {
             setLoading(true);
-            const response = await axios.post(
-                `${API_URL}/patterns/provider-patterns/test_pattern/`,
+            const response = await apiClient.post(
+                `${PROVIDER_PATTERNS_URL}test_pattern/`,
                 {
                     pattern: formData.pattern,
                     text: testText,

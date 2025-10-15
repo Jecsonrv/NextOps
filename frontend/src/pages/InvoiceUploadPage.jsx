@@ -25,9 +25,7 @@ import {
     Target,
     Sparkles,
 } from "lucide-react";
-import axios from "axios";
-
-const API_URL = "http://localhost:8000/api";
+import apiClient from "../lib/api";
 
 const TIPO_COSTO_OPTIONS = [
     { value: "FLETE", label: "Flete" },
@@ -64,14 +62,11 @@ export function InvoiceUploadPage() {
         try {
             setLoadingPatterns(true);
             const token = localStorage.getItem("access_token");
-            const response = await axios.get(
-                `${API_URL}/patterns/provider-patterns/by_provider/${providerId}/`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await apiClient.get(`/patterns/provider-patterns/by_provider/${providerId}/`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             setAvailablePatterns(response.data);
         } catch (error) {
             console.error("Error cargando patrones:", error);

@@ -3,9 +3,9 @@ import { useState } from "react";
 import { X, PlayCircle, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import axios from "axios";
+import apiClient from "../lib/api";
 
-const API_URL = "http://localhost:8000/api";
+const PROVIDER_PATTERNS_URL = "/patterns/provider-patterns/";
 
 function ProviderPatternTestTool({ open, onClose, pattern }) {
     const [testText, setTestText] = useState("");
@@ -26,8 +26,8 @@ function ProviderPatternTestTool({ open, onClose, pattern }) {
 
         try {
             setTesting(true);
-            const response = await axios.post(
-                `${API_URL}/patterns/provider-patterns/test_pattern/`,
+            const response = await apiClient.post(
+                `${PROVIDER_PATTERNS_URL}test_pattern/`,
                 {
                     pattern: pattern.pattern,
                     text: testText,

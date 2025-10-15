@@ -32,11 +32,13 @@ import {
     CardContent,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
-import axios from "axios";
+import apiClient from "../lib/api";
 import ProviderPatternForm from "../components/ProviderPatternForm";
 import ProviderPatternTestTool from "../components/ProviderPatternTestTool";
 
-const API_URL = "http://localhost:8000/api";
+const PATTERNS_URL = "/patterns/provider-patterns/";
+const PROVIDERS_URL = "/catalogs/providers/";
+const TARGET_FIELDS_URL = "/patterns/target-fields/";
 
 export default function ProviderPatternsPage() {
     const [patterns, setPatterns] = useState([]);
@@ -72,7 +74,7 @@ export default function ProviderPatternsPage() {
     const loadPatterns = async () => {
         try {
             setLoading(true);
-            let url = `${API_URL}/patterns/provider-patterns/`;
+            let url = PATTERNS_URL;
             const params = [];
 
             if (selectedProvider) params.push(`provider=${selectedProvider}`);
@@ -84,7 +86,7 @@ export default function ProviderPatternsPage() {
                 url += `?${params.join("&")}`;
             }
 
-            const response = await axios.get(url, getAuthHeaders());
+            const response = await apiClient.get(url, getAuthHeaders());
             setPatterns(response.data.results || []);
         } catch (error) {
             console.error("Error loading patterns:", error);
@@ -96,8 +98,8 @@ export default function ProviderPatternsPage() {
 
     const loadProviders = async () => {
         try {
-            const response = await axios.get(
-                `${API_URL}/catalogs/providers/`,
+            const response = await apiClient.get(
+                `${PROVIDERS_URL}`,
                 getAuthHeaders()
             );
             setProviders(response.data.results || []);
@@ -108,8 +110,8 @@ export default function ProviderPatternsPage() {
 
     const loadTargetFields = async () => {
         try {
-            const response = await axios.get(
-                `${API_URL}/patterns/target-fields/?is_active=true`,
+            const response = await apiClient.get(
+                `${TARGET_FIELDS_URL}?is_active=true`,
                 getAuthHeaders()
             );
             setTargetFields(response.data.results || []);
@@ -139,8 +141,8 @@ export default function ProviderPatternsPage() {
         if (!selectedPattern) return;
 
         try {
-            await axios.delete(
-                `${API_URL}/patterns/provider-patterns/${selectedPattern.id}/`,
+            await apiClient.delete(
+                `${PATTERNS_URL}${selectedPattern.id}/`,
                 getAuthHeaders()
             );
             showNotification("Patrón eliminado exitosamente", "success");
@@ -154,8 +156,8 @@ export default function ProviderPatternsPage() {
 
     const handleToggleActive = async (pattern) => {
         try {
-            const response = await axios.post(
-                `${API_URL}/patterns/provider-patterns/${pattern.id}/toggle_active/`,
+            const response = await apiClient.post(
+                `${PATTERNS_URL}${pattern.id}/toggle_active/`,
                 {},
                 getAuthHeaders()
             );
