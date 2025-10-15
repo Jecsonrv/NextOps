@@ -30,11 +30,11 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p logs media/invoices staticfiles
 
-# Collect static files (for production)
-# RUN python manage.py collectstatic --noinput
+# Ensure startup script is executable
+RUN chmod +x /app/start.sh
 
 # Expose port
 EXPOSE 8000
 
 # Default command (can be overridden in docker-compose)
-CMD ["gunicorn", "proyecto.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["/app/start.sh"]
