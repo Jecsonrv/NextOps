@@ -1,7 +1,22 @@
 import axios from "axios";
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const resolveBaseUrl = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+
+    if (typeof window !== "undefined") {
+        const hostname = window.location.hostname;
+
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+            return "http://localhost:8000/api";
+        }
+    }
+
+    return "https://nextops.onrender.com/api";
+};
+
+const API_BASE_URL = resolveBaseUrl();
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
