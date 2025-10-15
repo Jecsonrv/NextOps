@@ -953,9 +953,19 @@ class ExcelProcessor:
                     continue
                 
                 cell_str = str(cell_value).lower().strip()
-                
+                cell_str_simplified = re.sub(r"\s*\([^)]*\)\s*", "", cell_str).strip()
+
                 for standard_name, alternatives in list(available_mappings.items()):
-                    if cell_str in [alt.lower().strip() for alt in alternatives]:
+                    normalized_alts = [alt.lower().strip() for alt in alternatives]
+                    simplified_alts = [re.sub(r"\s*\([^)]*\)\s*", "", alt).strip() for alt in normalized_alts]
+
+                    match_exact = cell_str in normalized_alts
+                    match_simplified = (
+                        cell_str_simplified
+                        and cell_str_simplified in simplified_alts
+                    )
+
+                    if match_exact or match_simplified:
                         # Coincidencia exacta encontrada
                         column_map[col_idx] = standard_name
                         total_score += 100  # Puntuación alta para coincidencia exacta
@@ -970,6 +980,7 @@ class ExcelProcessor:
                     continue
                 
                 cell_str = str(cell_value).lower().strip()
+                cell_str_simplified = re.sub(r"\s*\([^)]*\)\s*", "", cell_str).strip()
                 if len(cell_str) < 2:
                     continue
 
@@ -977,9 +988,25 @@ class ExcelProcessor:
                     best_alt_score = 0
                     for alt in alternatives:
                         alt_lower = alt.lower().strip()
-                        if alt_lower in cell_str:
+                        alt_simplified = re.sub(r"\s*\([^)]*\)\s*", "", alt_lower).strip()
+
+                        if cell_str == alt_lower or (
+                            cell_str_simplified
+                            and alt_simplified
+                            and cell_str_simplified == alt_simplified
+                        ):
+                            score = 20
+                        elif alt_lower in cell_str or (
+                            cell_str_simplified
+                            and alt_simplified
+                            and alt_simplified in cell_str_simplified
+                        ):
                             score = 15
-                        elif cell_str in alt_lower:
+                        elif cell_str in alt_lower or (
+                            cell_str_simplified
+                            and alt_simplified
+                            and cell_str_simplified in alt_simplified
+                        ):
                             score = 10
                         else:
                             score = 0
