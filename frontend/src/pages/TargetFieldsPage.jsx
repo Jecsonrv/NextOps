@@ -23,10 +23,10 @@ import {
     CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
-import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import apiClient from "../lib/api";
 
-const API_URL = "http://localhost:8000/api/patterns/target-fields/";
+const API_URL = "/patterns/target-fields/";
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
@@ -69,7 +69,7 @@ export default function TargetFieldsPage() {
                 url += `?${params.join("&")}`;
             }
 
-            const response = await axios.get(url, getAuthHeaders());
+            const response = await apiClient.get(url, getAuthHeaders());
             return response.data.results || [];
         },
     });
@@ -77,7 +77,7 @@ export default function TargetFieldsPage() {
     // Mutation para eliminar
     const deleteMutation = useMutation({
         mutationFn: async (id) => {
-            await axios.delete(`${API_URL}${id}/`, getAuthHeaders());
+            await apiClient.delete(`${API_URL}${id}/`, getAuthHeaders());
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["target-fields"]);
@@ -411,13 +411,13 @@ function TargetFieldForm({ field, onClose, onSuccess }) {
 
         try {
             if (field) {
-                await axios.put(
+                await apiClient.put(
                     `${API_URL}${field.id}/`,
                     formData,
                     getAuthHeaders()
                 );
             } else {
-                await axios.post(API_URL, formData, getAuthHeaders());
+                await apiClient.post(API_URL, formData, getAuthHeaders());
             }
             onSuccess();
         } catch (error) {
