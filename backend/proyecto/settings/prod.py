@@ -20,22 +20,36 @@ SECURE_HSTS_PRELOAD = True
 # Additional security headers
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Caching with Redis
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'nextops',
-        'TIMEOUT': 300,  # 5 minutes default
-    }
-}
+_redis_url = config('REDIS_URL', default='')
 
-# Session backend - use cache
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+if _redis_url:
+    # Caching with Redis (requires django-redis)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _redis_url,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'nextops',
+            'TIMEOUT': 300,  # 5 minutes default
+        }
+    }
+
+    # Session backend - use cache
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    # Fallback to in-memory cache when Redis is unavailable
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'TIMEOUT': 300,
+        }
+    }
+
+    # Use database-backed sessions
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # REST Framework - Remove BrowsableAPIRenderer in production
 REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
