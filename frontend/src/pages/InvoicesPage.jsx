@@ -38,6 +38,7 @@ import {
     DollarSign,
 } from "lucide-react";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
+import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteModal";
 
 export function InvoicesPage() {
     const [search, setSearch] = useState("");
@@ -46,6 +47,7 @@ export function InvoicesPage() {
     const [selectedInvoiceForOT, setSelectedInvoiceForOT] = useState(null);
     const [showDisputeModal, setShowDisputeModal] = useState(false);
     const [selectedInvoiceForDispute, setSelectedInvoiceForDispute] = useState(null);
+    const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
     const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
     const [filters, setFilters] = useState({
         estado_provision: "",
@@ -422,12 +424,10 @@ export function InvoicesPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                    (window.location.href = "/invoices/credit-notes/new")
-                                }
+                                onClick={() => setIsCreditNoteModalOpen(true)}
                             >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Subir Nota de Crédito
+                                <FileMinus className="w-4 h-4 mr-2" />
+                                Crear Nota de Crédito
                             </Button>
                         </div>
                     </div>
@@ -994,6 +994,18 @@ export function InvoicesPage() {
                     isOpen={showDisputeModal}
                     onClose={() => setShowDisputeModal(false)}
                     invoice={selectedInvoiceForDispute}
+                />
+            )}
+
+            {isCreditNoteModalOpen && (
+                <CreateCreditNoteModal
+                    isOpen={isCreditNoteModalOpen}
+                    onClose={() => setIsCreditNoteModalOpen(false)}
+                    onSuccess={() => {
+                        setIsCreditNoteModalOpen(false);
+                        queryClient.invalidateQueries(["invoices"]);
+                        queryClient.invalidateQueries(["invoices-stats"]);
+                    }}
                 />
             )}
         </div>

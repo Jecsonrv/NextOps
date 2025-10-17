@@ -1023,6 +1023,8 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
     )
 
     motivo = models.TextField(
+        blank=True,
+        default='',
         help_text="Motivo de la emisión de la nota de crédito"
     )
 
@@ -1124,9 +1126,9 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
                 estado='aplicada'
             ).aggregate(total=models.Sum('monto'))['total'] or 0
             
-            invoice.monto = invoice.monto_original + total_credit_notes
+            invoice.monto_aplicable = invoice.monto_original + total_credit_notes
 
-            if invoice.monto <= 0:
+            if invoice.monto_aplicable <= 0:
                 invoice.estado_provision = 'anulada'
             else:
                 invoice.estado_provision = 'anulada_parcialmente'

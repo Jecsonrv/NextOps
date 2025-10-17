@@ -1049,18 +1049,25 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
     def get_invoice_data(self, obj):
         """Datos completos de la factura relacionada"""
         if obj.invoice_relacionada:
-            # Usar monto_original si existe, de lo contrario usar monto
-            # monto_original es el monto real antes de aplicar notas de crédito o disputas
-            monto_real = obj.invoice_relacionada.monto_original if obj.invoice_relacionada.monto_original is not None else obj.invoice_relacionada.monto
+            invoice = obj.invoice_relacionada
+            # El 'monto' de la factura es su valor original inmutable.
+            monto_factura = invoice.monto
+            # El 'monto_original' es la base para cálculos (snapshot)
+            monto_base_calculo = invoice.monto_original if invoice.monto_original is not None else invoice.monto
 
             return {
-                'id': obj.invoice_relacionada.id,
-                'numero_factura': obj.invoice_relacionada.numero_factura,
-                'monto': float(monto_real),
-                'fecha_emision': obj.invoice_relacionada.fecha_emision.isoformat() if obj.invoice_relacionada.fecha_emision else None,
-                'proveedor_nombre': obj.invoice_relacionada.proveedor_nombre,
-                'estado_provision': obj.invoice_relacionada.estado_provision,
-                'estado_provision_display': obj.invoice_relacionada.get_estado_provision_display(),
+                'id': invoice.id,
+                'numero_factura': invoice.numero_factura,
+                # 'monto' es el valor original de la factura
+                'monto': float(monto_factura),
+                # 'monto_original' es la base para cálculos (snapshot)
+                'monto_original': float(monto_base_calculo),
+                # 'monto_aplicable' es el saldo restante
+                'monto_aplicable': float(invoice.get_monto_aplicable()),
+                'fecha_emision': invoice.fecha_emision.isoformat() if invoice.fecha_emision else None,
+                'proveedor_nombre': invoice.proveedor_nombre,
+                'estado_provision': invoice.estado_provision,
+                'estado_provision_display': invoice.get_estado_provision_display(),
             }
         return None
 

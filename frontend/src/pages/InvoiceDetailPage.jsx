@@ -546,14 +546,16 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 <div>
-                                    {/* Calcular disputas resueltas y sus montos */}
+                                    {/* NUEVA SECCIÓN DE RESUMEN DE MONTOS */}
                                     {(() => {
                                         const disputasResueltas = invoice.disputas?.filter(d => 
                                             d.estado === 'resuelta' && 
                                             (d.resultado === 'aprobada_total' || d.resultado === 'aprobada_parcial')
                                         ) || [];
-                                        
-                                        const totalAnulado = disputasResueltas.reduce((sum, d) => {
+
+                                        const notasCreditoAplicadas = invoice.notas_credito?.filter(nc => nc.estado === 'aplicada') || [];
+
+                                        const totalAnuladoDisputas = disputasResueltas.reduce((sum, d) => {
                                             if (d.resultado === 'aprobada_total') {
                                                 return sum + parseFloat(d.monto_disputa);
                                             } else if (d.resultado === 'aprobada_parcial' && d.monto_recuperado) {
@@ -561,97 +563,75 @@ export function InvoiceDetailPage() {
                                             }
                                             return sum;
                                         }, 0);
-                                        
-                                        const montoAplicable = invoice.monto_aplicable !== null && invoice.monto_aplicable !== undefined 
-                                            ? invoice.monto_aplicable 
-                                            : invoice.monto;
-                                        
-                                        // Mostrar desglose si hay disputas resueltas con anulaciones
-                                        if (disputasResueltas.length > 0 && totalAnulado > 0) {
-                                            // Determinar si es anulación total
-                                            const esAnulacionTotal = Math.abs(totalAnulado - invoice.monto) < 0.01;
-                                            
-                                            if (esAnulacionTotal) {
-                                                // Anulación total
-                                                return (
-                                                    <div>
-                                                        <label className="text-xs font-medium text-gray-600 uppercase">
-                                                            Factura Anulada Totalmente
-                                                        </label>
-                                                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm text-gray-700">Monto Original:</span>
-                                                                <span className="font-semibold text-gray-900 line-through">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
-                                                            </div>
-                                                            {disputasResueltas.map(disputa => (
-                                                                <div key={disputa.id} className="flex justify-between items-center text-sm">
-                                                                    <span className="text-gray-600">Anulado por disputa:</span>
-                                                                    <span className="font-medium text-red-600">
-                                                                        -${(disputa.resultado === 'aprobada_total' 
-                                                                            ? parseFloat(disputa.monto_disputa) 
-                                                                            : parseFloat(disputa.monto_recuperado || 0)
-                                                                        ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                            <div className="pt-2 border-t-2 border-red-300">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="font-bold text-red-700">Monto a Pagar:</span>
-                                                                    <span className="text-xl font-bold text-red-600">$0.00</span>
-                                                                </div>
-                                                                <p className="text-xs text-red-600 mt-1">No requiere pago</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            } else {
-                                                // Anulación parcial
-                                                return (
-                                                    <div>
-                                                        <label className="text-xs font-medium text-gray-600 uppercase">
-                                                            Ajuste por Disputas
-                                                        </label>
-                                                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm text-gray-700">Monto Original:</span>
-                                                                <span className="font-semibold text-gray-900">${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</span>
-                                                            </div>
-                                                            {disputasResueltas.map(disputa => (
-                                                                <div key={disputa.id} className="flex justify-between items-center text-sm">
-                                                                    <span className="text-gray-600">
-                                                                        {disputa.resultado === 'aprobada_total' ? 'Anulado (Total):' : 'Recuperado (Parcial):'}
-                                                                    </span>
-                                                                    <span className="font-medium text-red-600">
-                                                                        -${(disputa.resultado === 'aprobada_total' 
-                                                                            ? parseFloat(disputa.monto_disputa) 
-                                                                            : parseFloat(disputa.monto_recuperado || 0)
-                                                                        ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                            <div className="pt-2 border-t-2 border-blue-300">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="font-semibold text-gray-800">Monto a Pagar:</span>
-                                                                    <span className="text-xl font-bold text-green-600">
-                                                                        ${montoAplicable?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
+
+                                        const totalNotasCredito = notasCreditoAplicadas.reduce((sum, nc) => {
+                                            return sum + Math.abs(parseFloat(nc.monto));
+                                        }, 0);
+
+                                        const totalAjustes = totalAnuladoDisputas + totalNotasCredito;
+                                        const montoOriginal = parseFloat(invoice.monto_original || invoice.monto);
+
+                                        // Si no hay ajustes, mostrar el monto simple
+                                        if (totalAjustes === 0) {
+                                            return (
+                                                <div>
+                                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                                        Monto Total
+                                                    </label>
+                                                    <p className="text-2xl font-bold text-green-600 mt-1">
+                                                        ${montoOriginal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            );
                                         }
-                                        
-                                        // Sin disputas resueltas, mostrar monto normal
+
+                                        const montoFinal = montoOriginal - totalAjustes;
+                                        const esAnulacionTotal = montoFinal < 0.01;
+
+                                        // Si hay ajustes, mostrar el desglose
                                         return (
                                             <div>
                                                 <label className="text-xs font-medium text-gray-600 uppercase">
-                                                    Monto Total
+                                                    Resumen de Montos
                                                 </label>
-                                                <p className="text-2xl font-bold text-green-600 mt-1">
-                                                    ${invoice.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 }) || "0.00"}
-                                                </p>
+                                                <div className={`mt-2 p-3 rounded-lg space-y-2 ${esAnulacionTotal ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm text-gray-700">Monto Original:</span>
+                                                        <span className={`font-semibold text-gray-900`}>
+                                                            ${montoOriginal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    </div>
+
+                                                    {totalAnuladoDisputas > 0 && (
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Ajuste por Disputas:</span>
+                                                            <span className="font-medium text-red-600">
+                                                                -${totalAnuladoDisputas.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {totalNotasCredito > 0 && (
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Notas de Crédito:</span>
+                                                            <span className="font-medium text-red-600">
+                                                                -${totalNotasCredito.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className={`pt-2 border-t-2 ${esAnulacionTotal ? 'border-red-300' : 'border-blue-300'}`}>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className={`font-bold ${esAnulacionTotal ? 'text-red-700' : 'text-gray-800'}`}>Monto a Pagar:</span>
+                                                            <span className={`text-xl font-bold ${esAnulacionTotal ? 'text-red-600' : 'text-green-600'}`}>
+                                                                ${montoFinal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                            </span>
+                                                        </div>
+                                                        {esAnulacionTotal && (
+                                                             <p className="text-xs text-red-600 mt-1 text-right">Factura Anulada</p>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         );
                                     })()}

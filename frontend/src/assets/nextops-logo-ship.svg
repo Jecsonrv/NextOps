@@ -1,0 +1,26 @@
+<svg width="320" height="120" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hullGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1D39"/>
+      <stop offset="100%" stop-color="#163C72"/>
+    </linearGradient>
+    <linearGradient id="mastGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2B70F5"/>
+      <stop offset="100%" stop-color="#1E64F0"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="120" fill="none"/>
+  <circle cx="248" cy="28" r="18" fill="#FDBA74"/>
+  <g transform="translate(46 34)">
+    <path d="M0 48H184L166 20H32L0 48Z" fill="url(#hullGradient)"/>
+    <path d="M32 20H144L132 6H44L32 20Z" fill="#1E64F0"/>
+    <rect x="72" y="-6" width="16" height="26" rx="4" fill="url(#mastGradient)"/>
+    <rect x="62" y="8" width="36" height="10" rx="3" fill="#0B1D39" opacity="0.2"/>
+    <rect x="48" y="26" width="12" height="6" rx="2" fill="#F1F5F9"/>
+    <rect x="72" y="26" width="12" height="6" rx="2" fill="#F1F5F9"/>
+    <rect x="96" y="26" width="12" height="6" rx="2" fill="#F1F5F9"/>
+    <path d="M-6 58C22 42 50 70 78 58C106 46 134 74 162 58C182 48 202 60 210 64" stroke="#2B70F5" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M-2 68C26 56 54 82 82 68C110 54 138 82 166 68C188 58 207 68 212 72" stroke="#99C0FF" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </g>
+  <text x="46" y="108" fill="#0B1D39" font-family="'Segoe UI', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" font-size="32" font-weight="600" letter-spacing="0.04em">NextOps</text>
+</svg>

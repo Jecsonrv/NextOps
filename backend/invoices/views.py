@@ -63,6 +63,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.filter(is_deleted=False).select_related(
         'ot', 'proveedor', 'uploaded_file'
     )
+    lookup_value_regex = r'[0-9]+'
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -1531,6 +1532,55 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                 Q(motivo__icontains=search)
             )
         return queryset.order_by('-fecha_emision', '-created_at')
+
+    def create(self, request, *args, **kwargs):
+        """
+        Crea una nota de crédito manualmente desde el modal.
+        Extrae el proveedor de la factura relacionada.
+        """
+        invoice_id = request.data.get('invoice_relacionada_id')
+        if not invoice_id:
+            return Response(
+                {'invoice_relacionada_id': ['Este campo es requerido.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            invoice = Invoice.objects.get(id=invoice_id)
+        except Invoice.DoesNotExist:
+            return Response(
+                {'invoice_relacionada_id': ['La factura especificada no existe.']},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Validar que la factura no esté ya saldada
+        if invoice.get_monto_aplicable() <= 0:
+            return Response(
+                {'invoice_relacionada_id': ['Esta factura ya ha sido saldada o anulada y no admite más notas de crédito.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Preparar datos para el serializador
+        data = request.data.copy()
+        data['proveedor_id'] = invoice.proveedor.id
+        data['proveedor_nombre'] = invoice.proveedor.nombre
+        
+        # Mapear el archivo del frontend al campo del serializador
+        pdf_file = request.FILES.get('pdf_file')
+        if pdf_file:
+            data['file'] = pdf_file
+
+        serializer = CreditNoteCreateSerializer(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        
+        # El método create del serializador se encargará de guardar
+        credit_note = serializer.save(estado='aplicada')
+
+        # Devolver la respuesta con el serializador de detalle
+        return Response(
+            CreditNoteDetailSerializer(credit_note).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @action(detail=False, methods=['post'], url_path='upload')
     def upload(self, request):

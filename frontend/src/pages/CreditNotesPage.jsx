@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
 import { formatDate } from "../lib/dateUtils";
@@ -20,15 +20,19 @@ import {
     DollarSign,
     CheckCircle,
     Clock,
-    ExternalLink
+    ExternalLink,
+    FileMinus
 } from "lucide-react";
 import { useProviders } from "../hooks/useInvoices";
+import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteModal";
 
 export function CreditNotesPage() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         estado: "",
         proveedor_id: "",
@@ -118,9 +122,9 @@ export function CreditNotesPage() {
                     <p className="text-gray-600 mt-2">Gestión y seguimiento de notas de crédito de proveedores</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => navigate("/invoices/credit-notes/new")}>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Subir Nota de Crédito
+                    <Button onClick={() => setIsModalOpen(true)}>
+                        <FileMinus className="w-4 h-4 mr-2" />
+                        Crear Nota de Crédito
                     </Button>
                     <Button variant="outline">
                         <Download className="w-4 h-4 mr-2" />
@@ -453,6 +457,18 @@ export function CreditNotesPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {isModalOpen && (
+                <CreateCreditNoteModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={() => {
+                        setIsModalOpen(false);
+                        queryClient.invalidateQueries(["credit-notes"]);
+                        queryClient.invalidateQueries(["credit-notes-stats"]);
+                    }}
+                />
+            )}
         </div>
     );
 }

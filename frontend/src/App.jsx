@@ -20,7 +20,7 @@ import { DisputeDetailPage } from "./pages/DisputeDetailPage";
 import { InvoicesPage } from "./pages/InvoicesPage";
 import { InvoiceDetailPage } from "./pages/InvoiceDetailPage";
 import { InvoiceUploadPage } from "./pages/InvoiceUploadPage";
-import { CreditNoteUploadPage } from "./pages/CreditNoteUploadPage";
+
 import { CreditNotesPage } from "./pages/CreditNotesPage";
 import { CreditNoteDetailPage } from "./pages/CreditNoteDetailPage";
 import { InvoiceEditPage } from "./pages/InvoiceEditPage";
@@ -203,16 +203,7 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route
-                            path="/invoices/credit-notes/new"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <CreditNoteUploadPage />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
+
                         <Route
                             path="/invoices/credit-notes"
                             element={

@@ -149,6 +149,7 @@ export function CreateCreditNoteModal({
 
     const validateForm = () => {
         const errors = {};
+        const invoiceAmount = selectedInvoice?.monto_aplicable ?? selectedInvoice?.monto;
 
         if (!selectedInvoice) {
             errors.invoice = "Debe seleccionar una factura";
@@ -160,10 +161,16 @@ export function CreateCreditNoteModal({
 
         if (!formData.monto || parseFloat(formData.monto) <= 0) {
             errors.monto = "El monto debe ser mayor a 0";
+        } else if (selectedInvoice && parseFloat(formData.monto) > parseFloat(invoiceAmount)) {
+            errors.monto = `El monto no puede exceder el monto aplicable de la factura ($${parseFloat(invoiceAmount).toLocaleString("es-MX")})`;
         }
 
         if (!formData.fecha_emision) {
             errors.fecha_emision = "La fecha de emisión es obligatoria";
+        }
+
+        if (!formData.pdf_file) {
+            errors.pdf_file = "El archivo PDF es obligatorio";
         }
 
         setFormErrors(errors);
@@ -213,13 +220,45 @@ export function CreateCreditNoteModal({
                 onClose();
             }, 1500);
         } catch (error) {
-            const errorMsg =
-                error.response?.data?.detail ||
-                error.response?.data?.message ||
-                error.message ||
-                "Error al crear nota de crédito";
-            setError(errorMsg);
-            toast.error(errorMsg);
+            const errorData = error.response?.data;
+            let processedError = "Error al crear nota de crédito.";
+
+            if (errorData && errorData.message) {
+                // Usar el mensaje amigable del backend directamente
+                processedError = errorData.message;
+
+                // Si hay errores de campo específicos, mapearlos
+                if (errorData.errors) {
+                    const newFormErrors = {};
+                    errorData.errors.forEach(err => {
+                        newFormErrors[err.field] = err.message;
+                    });
+                    setFormErrors(newFormErrors);
+                }
+
+            } else if (typeof errorData === 'string') {
+                processedError = errorData;
+            } else if (errorData) {
+                // Fallback para otros formatos de error de DRF
+                const fieldErrors = Object.entries(errorData);
+                if (fieldErrors.length > 0) {
+                    const [field, messages] = fieldErrors[0];
+                    processedError = Array.isArray(messages) ? messages[0] : String(messages);
+                    
+                    const newFormErrors = {};
+                    for (const [key, value] of Object.entries(errorData)) {
+                        if (Array.isArray(value)) {
+                            newFormErrors[key] = value.join(" ");
+                        }
+                    }
+                    setFormErrors(newFormErrors);
+                }
+            } else {
+                processedError = error.message;
+            }
+
+            setError(processedError);
+            toast.error(processedError);
             setIsSubmitting(false);
         }
     };
@@ -436,7 +475,9 @@ export function CreateCreditNoteModal({
                                         {formErrors.monto && (
                                             <p className="text-xs text-red-600 mt-1">{formErrors.monto}</p>
                                         )}
-                                        <p className="text-xs text-gray-500 mt-1">Se aplicará como valor negativo</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Se aplicará como valor negativo. Máximo: ${selectedInvoice ? parseFloat(selectedInvoice.monto_aplicable ?? selectedInvoice.monto).toLocaleString("es-MX") : '0.00'}
+                                        </p>
                                     </div>
 
                                     <div>
@@ -457,7 +498,7 @@ export function CreateCreditNoteModal({
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Archivo PDF (opcional)
+                                            Archivo PDF *
                                         </label>
                                         <div className="relative">
                                             <input
