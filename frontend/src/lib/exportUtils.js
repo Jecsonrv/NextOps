@@ -1,3 +1,4 @@
+import { toast } from "react-hot-toast";
 import * as XLSX from "xlsx";
 import { formatDate } from "./dateUtils";
 
@@ -386,4 +387,66 @@ export function downloadImportTemplate() {
     XLSX.utils.book_append_sheet(wb, wsInstructions, "Instrucciones");
 
     XLSX.writeFile(wb, "Plantilla_Importacion_OTs.xlsx", { cellStyles: true });
+}
+
+/**
+ * Exportar lista de Facturas a un archivo Excel
+ * @param {Array} invoices - Array de objetos Invoice
+ * @param {string} filename - Nombre del archivo (sin extensión)
+ */
+export function exportInvoicesToExcel(invoices, filename = "Facturas") {
+    if (!invoices || invoices.length === 0) {
+        toast.error("No hay datos para exportar");
+        return;
+    }
+
+    // Preparar datos para exportar
+    const exportData = invoices.map((invoice) => ({
+        "ID": invoice.id,
+        "Número Factura": invoice.numero_factura,
+        "OT": invoice.ot_data?.numero_ot || "",
+        "Cliente": invoice.ot_data?.cliente || "",
+        "MBL": invoice.ot_data?.mbl || "",
+        "Proveedor": invoice.proveedor_data?.nombre || invoice.proveedor_nombre,
+        "Tipo Costo": invoice.tipo_costo_display,
+        "Estado Provisión": invoice.estado_provision_display,
+        "Monto": invoice.monto,
+        "Monto Aplicable": invoice.monto_aplicable,
+        "Fecha Emisión": formatDate(invoice.fecha_emision),
+        "Fecha Vencimiento": formatDate(invoice.fecha_vencimiento),
+        "Fecha Provisión": formatDate(invoice.fecha_provision),
+        "Fecha Facturación": formatDate(invoice.fecha_facturacion),
+        "Creado": formatDate(invoice.created_at),
+    }));
+
+    // Crear worksheet
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Ajustar ancho de columnas
+    const columnWidths = [
+        { wch: 8 },   // ID
+        { wch: 20 },  // Número Factura
+        { wch: 15 },  // OT
+        { wch: 25 },  // Cliente
+        { wch: 20 },  // MBL
+        { wch: 25 },  // Proveedor
+        { wch: 15 },  // Tipo Costo
+        { wch: 18 },  // Estado Provisión
+        { wch: 12 },  // Monto
+        { wch: 15 },  // Monto Aplicable
+        { wch: 15 },  // Fecha Emisión
+        { wch: 18 },  // Fecha Vencimiento
+        { wch: 15 },  // Fecha Provisión
+        { wch: 18 },  // Fecha Facturación
+        { wch: 18 },  // Creado
+    ];
+    ws["!cols"] = columnWidths;
+
+    // Crear workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+
+    // Generar archivo
+    const timestamp = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(wb, `${filename}_${timestamp}.xlsx`);
 }

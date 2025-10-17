@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
 import { useProviders } from "../hooks/useInvoices";
+import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
 import InvoiceStatusBadge, {
@@ -145,45 +146,11 @@ export function InvoicesPage() {
     };
 
     // Función para exportar a Excel (usando backend)
-    const handleExportToExcel = async () => {
-        try {
-            const params = buildFilterParams();
-
-            // Hacer request al backend para obtener el archivo Excel
-            const response = await apiClient.get(
-                `/invoices/export-excel/?${params}`,
-                {
-                    responseType: "blob",
-                }
-            );
-
-            // Crear URL del blob y descargar
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-
-            // Extraer nombre del archivo del header Content-Disposition
-            const contentDisposition = response.headers["content-disposition"];
-            let filename = "Facturas_Export.xlsx";
-            if (contentDisposition) {
-                const filenameMatch =
-                    contentDisposition.match(/filename="([^"]+)"/i);
-                if (filenameMatch && filenameMatch[1]) {
-                    filename = filenameMatch[1];
-                }
-            }
-
-            link.setAttribute("download", filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success("Excel exportado correctamente");
-        } catch (error) {
-            toast.error(
-                "Error al exportar a Excel. Por favor intenta nuevamente."
-            );
+    const handleExportToExcel = () => {
+        if (data?.results) {
+            exportInvoicesToExcel(data.results, "Facturas_Export");
+        } else {
+            toast.error("No hay datos para exportar");
         }
     };
 
