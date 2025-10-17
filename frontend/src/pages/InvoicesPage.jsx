@@ -64,9 +64,15 @@ export function InvoicesPage() {
     // Mutation para asignar OT
     const assignOTMutation = useMutation({
         mutationFn: async ({ invoiceId, otId }) => {
-            const response = await apiClient.patch(`/invoices/${invoiceId}/`, {
-                ot_id: otId,
-            });
+            const response = await apiClient.patch(
+                `/invoices/${invoiceId}/`,
+                { ot_id: otId },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
             return response.data;
         },
         onSuccess: () => {
@@ -196,6 +202,9 @@ export function InvoicesPage() {
                 },
                 {
                     responseType: "blob",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                 }
             );
 
@@ -241,6 +250,9 @@ export function InvoicesPage() {
                 },
                 {
                     responseType: "blob",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                 }
             );
 
