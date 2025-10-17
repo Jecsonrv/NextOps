@@ -813,7 +813,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             cell.border = thin_border
 
         # Escribir datos
-        for row_num, invoice in enumerate(queryset, 2):
+        try:
+            for row_num, invoice in enumerate(queryset, 2):
             # Obtener datos relacionados
             ot_number = invoice.ot.numero_ot if invoice.ot else ''
             cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''
@@ -874,6 +875,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 if col_num == 21:
                     cell.number_format = '0.0%'
                     cell.alignment = Alignment(horizontal="center", vertical="center")
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error al exportar facturas a Excel: {e}", exc_info=True)
+            return Response(
+                {"error": "Ocurrió un error inesperado al generar el archivo Excel."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         # Ajustar anchos de columna
         column_widths = [
