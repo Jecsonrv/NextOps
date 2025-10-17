@@ -42,7 +42,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
             if (dispute) {
                 return apiClient.patch(`/invoices/disputes/${dispute.id}/`, payload);
             }
-            return apiClient.post("/invoices/disputes/create/", payload);
+            return apiClient.post("/invoices/disputes/", payload);
         },
         onSuccess: () => {
             toast.success(dispute ? "Disputa actualizada correctamente" : "Disputa creada correctamente");

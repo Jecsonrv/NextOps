@@ -1186,12 +1186,7 @@ export function InvoiceDetailPage() {
             <DisputeFormModal
                 isOpen={isDisputeModalOpen}
                 onClose={() => setIsDisputeModalOpen(false)}
-                invoiceId={invoice.id}
-                invoiceData={{
-                    numero_factura: invoice.numero_factura,
-                    monto: invoice.monto,
-                    proveedor_nombre: invoice.proveedor_data?.nombre || invoice.proveedor_nombre,
-                }}
+                invoice={invoice}
             />
 
             <AddProvisionDateModal

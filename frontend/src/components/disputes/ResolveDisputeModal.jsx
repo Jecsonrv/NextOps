@@ -169,6 +169,15 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
     const validateForm = () => {
         const newErrors = {};
 
+        // Si se anula la disputa, solo pedir el motivo.
+        if (formData.resultado === 'anulada') {
+            if (!formData.resolucion?.trim()) {
+                newErrors.resolucion = ["Debes explicar por qué se anula la disputa (ej: error interno)."];
+            }
+            setErrors(newErrors);
+            return Object.keys(newErrors).length === 0;
+        }
+
         if (!formData.resolucion?.trim()) {
             newErrors.resolucion = ["La descripción de la resolución es obligatoria"];
         }
@@ -354,194 +363,218 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                         )}
                     </div>
 
-                    {/* Estado final */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Estado Final <span className="text-red-500">*</span>
-                        </label>
-                        <div className="space-y-2">
-                            {ESTADO_CHOICES.map((choice) => (
-                                <label
-                                    key={choice.value}
-                                    className={`flex items-start p-3 border rounded-lg cursor-pointer transition-all ${
-                                        formData.estado === choice.value
-                                            ? "border-blue-500 bg-blue-50"
-                                            : "border-gray-300 hover:border-blue-300"
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="estado"
-                                        value={choice.value}
-                                        checked={formData.estado === choice.value}
-                                        onChange={handleChange}
-                                        className="mt-1 mr-3"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="font-medium text-gray-900">{choice.label}</div>
-                                        <div className="text-sm text-gray-600">{choice.description}</div>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Monto recuperado (solo si es aprobación parcial) */}
-                    {formData.resultado === "aprobada_parcial" && (
+                    {formData.resultado === 'anulada' ? (
                         <div>
-                            <label htmlFor="monto_recuperado" className="block text-sm font-medium text-gray-700 mb-2">
-                                Monto Recuperado (USD) <span className="text-red-500">*</span>
+                            <label htmlFor="resolucion" className="block text-sm font-medium text-gray-700 mb-2">
+                                Motivo de la Anulación <span className="text-red-500">*</span>
                             </label>
-                            <Input
-                                type="number"
-                                id="monto_recuperado"
-                                name="monto_recuperado"
-                                value={formData.monto_recuperado}
+                            <textarea
+                                id="resolucion"
+                                name="resolucion"
+                                rows={4}
+                                value={formData.resolucion}
                                 onChange={handleChange}
-                                placeholder="0.00"
-                                step="0.01"
-                                min="0"
-                                max={dispute.monto_disputa}
-                                className={errors.monto_recuperado ? "border-red-500" : ""}
+                                placeholder="Describe brevemente por qué esta disputa fue un error y debe ser anulada..."
+                                className={`w-full px-3 py-2 border ${
+                                    errors.resolucion ? "border-red-500" : "border-gray-300"
+                                } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
                             />
-                            <p className="mt-1 text-xs text-gray-500">
-                                Monto que el proveedor acepta ajustar. Máximo: ${dispute.monto_disputa?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                            </p>
-                            {errors.monto_recuperado && (
-                                <p className="mt-1 text-sm text-red-600">{errors.monto_recuperado[0]}</p>
+                            {errors.resolucion && (
+                                <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
                             )}
                         </div>
-                    )}
-
-                    {/* Resolución */}
-                    <div>
-                        <label htmlFor="resolucion" className="block text-sm font-medium text-gray-700 mb-2">
-                            Descripción de la Resolución <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            id="resolucion"
-                            name="resolucion"
-                            rows={4}
-                            value={formData.resolucion}
-                            onChange={handleChange}
-                            placeholder="Describe cómo se resolvió la disputa, acuerdos alcanzados, notas de crédito emitidas, etc..."
-                            className={`w-full px-3 py-2 border ${
-                                errors.resolucion ? "border-red-500" : "border-gray-300"
-                            } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                            Describe cómo se resolvió la disputa, acuerdos alcanzados, etc.
-                        </p>
-                        {errors.resolucion && (
-                            <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
-                        )}
-                    </div>
-
-                    {/* Sección de Nota de Crédito - Solo para aprobadas */}
-                    {(formData.resultado === "aprobada_total" || formData.resultado === "aprobada_parcial") && (
-                        <div className="border-t pt-4">
-                            <div className="flex items-center gap-3 mb-4">
-                                <input
-                                    type="checkbox"
-                                    id="tiene_nota_credito"
-                                    name="tiene_nota_credito"
-                                    checked={formData.tiene_nota_credito}
-                                    onChange={handleChange}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <label htmlFor="tiene_nota_credito" className="text-sm font-medium text-gray-700">
-                                    ¿Tiene nota de crédito?
+                    ) : (
+                        <>
+                            {/* Estado final */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Estado Final <span className="text-red-500">*</span>
                                 </label>
-                            </div>
-
-                            {formData.tiene_nota_credito && (
-                            <div className="space-y-4 pl-7 border-l-2 border-blue-200">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="nota_credito_numero" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Número de Nota de Crédito <span className="text-red-500">*</span>
-                                        </label>
-                                        <Input
-                                            type="text"
-                                            id="nota_credito_numero"
-                                            name="nota_credito_numero"
-                                            value={formData.nota_credito_numero}
-                                            onChange={handleChange}
-                                            placeholder="Ej: NC-2024-001"
-                                            className={errors.nota_credito_numero ? "border-red-500" : ""}
-                                        />
-                                        {errors.nota_credito_numero && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.nota_credito_numero[0]}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="nota_credito_monto" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Monto (USD) <span className="text-red-500">*</span>
-                                        </label>
-                                        <Input
-                                            type="number"
-                                            id="nota_credito_monto"
-                                            name="nota_credito_monto"
-                                            value={formData.nota_credito_monto}
-                                            onChange={handleChange}
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            min="0.01"
-                                            className={errors.nota_credito_monto ? "border-red-500" : ""}
-                                        />
-                                        {errors.nota_credito_monto && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.nota_credito_monto[0]}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label htmlFor="nota_credito_file" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Archivo PDF (Opcional)
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors">
-                                            <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                                            <span className="text-sm text-gray-600">
-                                                {notaCreditoFile ? notaCreditoFile.name : 'Seleccionar archivo PDF'}
-                                            </span>
+                                <div className="space-y-2">
+                                    {ESTADO_CHOICES.map((choice) => (
+                                        <label
+                                            key={choice.value}
+                                            className={`flex items-start p-3 border rounded-lg cursor-pointer transition-all ${
+                                                formData.estado === choice.value
+                                                    ? "border-blue-500 bg-blue-50"
+                                                    : "border-gray-300 hover:border-blue-300"
+                                            }`}
+                                        >
                                             <input
-                                                type="file"
-                                                id="nota_credito_file"
-                                                accept=".pdf"
-                                                onChange={handleFileChange}
-                                                className="hidden"
+                                                type="radio"
+                                                name="estado"
+                                                value={choice.value}
+                                                checked={formData.estado === choice.value}
+                                                onChange={handleChange}
+                                                className="mt-1 mr-3"
                                             />
+                                            <div className="flex-1">
+                                                <div className="font-medium text-gray-900">{choice.label}</div>
+                                                <div className="text-sm text-gray-600">{choice.description}</div>
+                                            </div>
                                         </label>
-                                        {notaCreditoFile && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setNotaCreditoFile(null)}
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Sube el PDF de la nota de crédito (máximo 10MB)
-                                    </p>
-                                </div>
-
-                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                    <p className="text-sm text-blue-800">
-                                        La nota de crédito se creará automáticamente asociada a la factura{" "}
-                                        <strong>{dispute.invoice_data?.numero_factura}</strong>
-                                        {dispute.ot_data?.referencia && (
-                                            <> y a la OT <strong>{dispute.ot_data.referencia}</strong></>
-                                        )}
-                                    </p>
+                                    ))}
                                 </div>
                             </div>
+
+                            {/* Monto recuperado (solo si es aprobación parcial) */}
+                            {formData.resultado === "aprobada_parcial" && (
+                                <div>
+                                    <label htmlFor="monto_recuperado" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Monto Recuperado (USD) <span className="text-red-500">*</span>
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        id="monto_recuperado"
+                                        name="monto_recuperado"
+                                        value={formData.monto_recuperado}
+                                        onChange={handleChange}
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        min="0"
+                                        max={dispute.monto_disputa}
+                                        className={errors.monto_recuperado ? "border-red-500" : ""}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Monto que el proveedor acepta ajustar. Máximo: ${dispute.monto_disputa?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                    </p>
+                                    {errors.monto_recuperado && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.monto_recuperado[0]}</p>
+                                    )}
+                                </div>
                             )}
-                        </div>
+
+                            {/* Resolución */}
+                            <div>
+                                <label htmlFor="resolucion" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Descripción de la Resolución <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    id="resolucion"
+                                    name="resolucion"
+                                    rows={4}
+                                    value={formData.resolucion}
+                                    onChange={handleChange}
+                                    placeholder="Describe cómo se resolvió la disputa, acuerdos alcanzados, notas de crédito emitidas, etc..."
+                                    className={`w-full px-3 py-2 border ${
+                                        errors.resolucion ? "border-red-500" : "border-gray-300"
+                                    } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Describe cómo se resolvió la disputa, acuerdos alcanzados, etc.
+                                </p>
+                                {errors.resolucion && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
+                                )}
+                            </div>
+
+                            {/* Sección de Nota de Crédito - Solo para aprobadas */}
+                            {(formData.resultado === "aprobada_total" || formData.resultado === "aprobada_parcial") && (
+                                <div className="border-t pt-4">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <input
+                                            type="checkbox"
+                                            id="tiene_nota_credito"
+                                            name="tiene_nota_credito"
+                                            checked={formData.tiene_nota_credito}
+                                            onChange={handleChange}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="tiene_nota_credito" className="text-sm font-medium text-gray-700">
+                                            ¿Tiene nota de crédito?
+                                        </label>
+                                    </div>
+
+                                    {formData.tiene_nota_credito && (
+                                    <div className="space-y-4 pl-7 border-l-2 border-blue-200">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label htmlFor="nota_credito_numero" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Número de Nota de Crédito <span className="text-red-500">*</span>
+                                                </label>
+                                                <Input
+                                                    type="text"
+                                                    id="nota_credito_numero"
+                                                    name="nota_credito_numero"
+                                                    value={formData.nota_credito_numero}
+                                                    onChange={handleChange}
+                                                    placeholder="Ej: NC-2024-001"
+                                                    className={errors.nota_credito_numero ? "border-red-500" : ""}
+                                                />
+                                                {errors.nota_credito_numero && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.nota_credito_numero[0]}</p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="nota_credito_monto" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Monto (USD) <span className="text-red-500">*</span>
+                                                </label>
+                                                <Input
+                                                    type="number"
+                                                    id="nota_credito_monto"
+                                                    name="nota_credito_monto"
+                                                    value={formData.nota_credito_monto}
+                                                    onChange={handleChange}
+                                                    placeholder="0.00"
+                                                    step="0.01"
+                                                    min="0.01"
+                                                    className={errors.nota_credito_monto ? "border-red-500" : ""}
+                                                />
+                                                {errors.nota_credito_monto && (
+                                                    <p className="mt-1 text-sm text-red-600">{errors.nota_credito_monto[0]}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="nota_credito_file" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Archivo PDF (Opcional)
+                                            </label>
+                                            <div className="flex items-center gap-3">
+                                                <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors">
+                                                    <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                                                    <span className="text-sm text-gray-600">
+                                                        {notaCreditoFile ? notaCreditoFile.name : 'Seleccionar archivo PDF'}
+                                                    </span>
+                                                    <input
+                                                        type="file"
+                                                        id="nota_credito_file"
+                                                        accept=".pdf"
+                                                        onChange={handleFileChange}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                                {notaCreditoFile && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setNotaCreditoFile(null)}
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Sube el PDF de la nota de crédito (máximo 10MB)
+                                            </p>
+                                        </div>
+
+                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                            <p className="text-sm text-blue-800">
+                                                La nota de crédito se creará automáticamente asociada a la factura{" "}
+                                                <strong>{dispute.invoice_data?.numero_factura}</strong>
+                                                {dispute.ot_data?.referencia && (
+                                                    <> y a la OT <strong>{dispute.ot_data.referencia}</strong></>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {/* Advertencia */}

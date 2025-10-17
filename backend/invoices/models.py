@@ -798,20 +798,7 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
             # Si cambió el resultado O el monto_recuperado, actualizar la factura
             if (old_resultado != self.resultado and self.resultado != 'pendiente') or \
                (self.resultado == 'aprobada_parcial' and old_monto_recuperado != self.monto_recuperado):
-                self._actualizar_factura_por_resultado()
-
-                # Crear evento de cambio de resultado
-                try:
-                    DisputeEvent.objects.create(
-                        dispute=self,
-                        tipo='cambio_estado',
-                        descripcion=f'Resultado actualizado: {self.get_resultado_display()}',
-                        usuario='',
-                        monto_recuperado=self.monto_recuperado if self.monto_recuperado and self.monto_recuperado > 0 else None
-                    )
-                except Exception:
-                    pass
-    
+                                self._actualizar_factura_por_resultado()    
     def _actualizar_factura_por_resultado(self):
         """
         Actualiza el estado de la factura según el resultado de la disputa.
