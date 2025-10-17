@@ -10,10 +10,35 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='costtype',
-            new_name='catalogs_co_categor_7fab5a_idx',
-            old_name='catalogs_co_categor_285528_idx',
+        migrations.RunSQL(
+            sql="""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_indexes
+                    WHERE schemaname = 'public'
+                      AND indexname = 'catalogs_co_categor_285528_idx'
+                ) THEN
+                    EXECUTE 'ALTER INDEX "catalogs_co_categor_285528_idx" RENAME TO "catalogs_co_categor_7fab5a_idx"';
+                END IF;
+            END;
+            $$;
+            """,
+            reverse_sql="""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_indexes
+                    WHERE schemaname = 'public'
+                      AND indexname = 'catalogs_co_categor_7fab5a_idx'
+                ) THEN
+                    EXECUTE 'ALTER INDEX "catalogs_co_categor_7fab5a_idx" RENAME TO "catalogs_co_categor_285528_idx"';
+                END IF;
+            END;
+            $$;
+            """,
         ),
         migrations.AlterField(
             model_name='provider',
