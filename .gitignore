@@ -13,6 +13,8 @@ dist/
 build/
 .venv/
 venv/
+**/.venv/
+**/venv/
 ENV/
 env/
 env.bak/
@@ -72,3 +74,4 @@ htmlcov/
 *.egg-info
 pip-log.txt
 pip-delete-this-directory.txt
+pip-selfcheck.json
