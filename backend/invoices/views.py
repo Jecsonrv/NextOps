@@ -815,48 +815,48 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         # Escribir datos
         try:
             for row_num, invoice in enumerate(queryset, 2):
-            # Obtener datos relacionados
-            ot_number = invoice.ot.numero_ot if invoice.ot else ''
-            cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''
-            mbl = invoice.ot.master_bl if invoice.ot else ''
-            contenedor = ', '.join(invoice.ot.contenedores) if invoice.ot and invoice.ot.contenedores else ''
-            naviera = invoice.ot.proveedor.nombre if invoice.ot and invoice.ot.proveedor else ''
-            barco = invoice.ot.barco if invoice.ot else ''
+                # Obtener datos relacionados
+                ot_number = invoice.ot.numero_ot if invoice.ot else ''
+                cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''
+                mbl = invoice.ot.master_bl if invoice.ot else ''
+                contenedor = ', '.join(invoice.ot.contenedores) if invoice.ot and invoice.ot.contenedores else ''
+                naviera = invoice.ot.proveedor.nombre if invoice.ot and invoice.ot.proveedor else ''
+                barco = invoice.ot.barco if invoice.ot else ''
 
-            row_data = [
-                invoice.id,
-                invoice.numero_factura or '',
-                ot_number,
-                cliente,
-                mbl,
-                contenedor,
-                naviera,
-                barco,
-                invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre,
-                invoice.proveedor_nit or '',
-                invoice.get_tipo_proveedor_display() if invoice.tipo_proveedor else '',
-                invoice.get_tipo_costo_display() if invoice.tipo_costo else '',
-                float(invoice.monto) if invoice.monto else 0.0,
-                invoice.fecha_emision,
-                invoice.fecha_vencimiento,
-                invoice.fecha_provision,
-                invoice.fecha_facturacion,
-                invoice.get_estado_provision_display() if invoice.estado_provision else '',
-                invoice.get_estado_facturacion_display() if invoice.estado_facturacion else '',
-                invoice.assignment_method or '',
-                float(invoice.confianza_match) if invoice.confianza_match else 0.0,
-                'Sí' if invoice.requiere_revision else 'No',
-                invoice.notas or '',
-                invoice.created_at,
-            ]
+                row_data = [
+                    invoice.id,
+                    invoice.numero_factura or '',
+                    ot_number,
+                    cliente,
+                    mbl,
+                    contenedor,
+                    naviera,
+                    barco,
+                    invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre,
+                    invoice.proveedor_nit or '',
+                    invoice.get_tipo_proveedor_display() if invoice.tipo_proveedor else '',
+                    invoice.get_tipo_costo_display() if invoice.tipo_costo else '',
+                    float(invoice.monto) if invoice.monto else 0.0,
+                    invoice.fecha_emision,
+                    invoice.fecha_vencimiento,
+                    invoice.fecha_provision,
+                    invoice.fecha_facturacion,
+                    invoice.get_estado_provision_display() if invoice.estado_provision else '',
+                    invoice.get_estado_facturacion_display() if invoice.estado_facturacion else '',
+                    invoice.assignment_method or '',
+                    float(invoice.confianza_match) if invoice.confianza_match else 0.0,
+                    'Sí' if invoice.requiere_revision else 'No',
+                    invoice.notas or '',
+                    invoice.created_at,
+                ]
 
-            for col_num, value in enumerate(row_data, 1):
-                cell = ws.cell(row=row_num, column=col_num, value=value)
-                cell.border = thin_border
-                cell.font = data_font
-                cell.alignment = data_alignment
-                
-                # Aplicar fondo alterno para mejor legibilidad
+                for col_num, value in enumerate(row_data, 1):
+                    cell = ws.cell(row=row_num, column=col_num, value=value)
+                    cell.border = thin_border
+                    cell.font = data_font
+                    cell.alignment = data_alignment
+                    
+                    # Aplicar fondo alterno para mejor legibilidad
                 if row_num % 2 == 0:
                     cell.fill = alt_fill
 
