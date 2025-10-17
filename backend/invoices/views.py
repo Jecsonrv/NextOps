@@ -334,7 +334,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 # Datos extraídos (con valores por defecto)
                 extracted_data = {
                     'numero_factura': None,
-                    'fecha_emision': timezone.now().date(),
+                    'fecha_emision': timezone.localdate(),
                     'monto': Decimal('0.00'),
                     'numero_contenedor': None,
                     'mbl': None,
@@ -1391,7 +1391,7 @@ class DisputeViewSet(viewsets.ModelViewSet):
                 invoice_relacionada=dispute.invoice,
                 proveedor=dispute.invoice.proveedor,
                 proveedor_nombre=dispute.invoice.proveedor_nombre,
-                fecha_emision=date.today(),
+                fecha_emision=timezone.localdate(),
                 monto=-abs(monto_nc),  # Asegurar que sea negativo
                 motivo=f'Nota de crédito por disputa {dispute.numero_caso} - {dispute.get_resultado_display()}',
                 estado='aplicada',  # Aplicar automáticamente
@@ -1631,7 +1631,7 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                     uploaded_file = existing_file
                 
                 extracted_data = {
-                    'numero_nota': None, 'fecha_emision': timezone.now().date(),
+                    'numero_nota': None, 'fecha_emision': timezone.localdate(),
                     'monto': Decimal('0.00'), 'invoice_relacionada': None
                 }
                 
@@ -1709,7 +1709,7 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
         invoice_id = request.data.get('invoice_id')
         monto = request.data.get('monto')
         motivo = request.data.get('motivo')
-        fecha_emision = request.data.get('fecha_emision', timezone.now().date())
+        fecha_emision = request.data.get('fecha_emision', timezone.localdate())
 
         if not numero_nota:
             return Response({'error': 'El número de nota es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)

@@ -531,8 +531,8 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         if not self.fecha_vencimiento:
             return None
         
-        from datetime import date
-        hoy = date.today()
+        from django.utils import timezone
+        hoy = timezone.localdate()
         delta = (self.fecha_vencimiento - hoy).days
         return delta
     
@@ -755,8 +755,8 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
 
         # Si se resuelve o cierra, agregar fecha de resolución automática
         if self.estado in ['resuelta', 'cerrada'] and not self.fecha_resolucion:
-            from datetime import date
-            self.fecha_resolucion = date.today()
+            from django.utils import timezone
+            self.fecha_resolucion = timezone.localdate()
 
         # Si la OT no está asignada pero la factura tiene OT, asignarla
         if not self.ot and self.invoice and self.invoice.ot:
@@ -1114,7 +1114,7 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
 
         # Auto-aplicar fecha si cambia a estado "aplicada"
         if self.estado == 'aplicada' and not self.fecha_aplicacion:
-            from datetime import date
+            from django.utils import timezone
         super().save(*args, **kwargs)
 
         if self.estado == 'aplicada' and self.invoice_relacionada:

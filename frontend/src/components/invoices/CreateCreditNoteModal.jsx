@@ -29,7 +29,7 @@ export function CreateCreditNoteModal({
     const [formData, setFormData] = useState({
         numero_nota: "",
         monto: "",
-        fecha_emision: new Date().toISOString().split("T")[0],
+        fecha_emision: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split("T")[0],
         motivo: "",
         pdf_file: null,
     });
@@ -79,7 +79,7 @@ export function CreateCreditNoteModal({
             setFormData({
                 numero_nota: "",
                 monto: "",
-                fecha_emision: new Date().toISOString().split("T")[0],
+                fecha_emision: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split("T")[0],
                 motivo: "",
                 pdf_file: null,
             });
