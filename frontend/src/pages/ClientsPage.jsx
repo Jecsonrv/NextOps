@@ -166,9 +166,9 @@ export default function ClientsPage() {
 
         try {
             await rejectMerge.mutateAsync({
-                source_alias_id: match.alias_1.id,
-                target_alias_id: match.alias_2.id,
-                reason: reason || "Sin razón",
+                alias_1_id: match.alias_1.id,
+                alias_2_id: match.alias_2.id,
+                notes: reason || "Sin razón",
             });
 
             setResultDialog({
@@ -1164,6 +1164,42 @@ function ApprovedTab({ matches, isLoading }) {
                             minute: '2-digit'
                         }) : 'Fecha desconocida';
 
+                        // Extraer los nombres desde review_notes si está disponible
+                        // Formato esperado: "Renombrado de 'OLD' a 'NEW'" o similar
+                        let sourceName = match.alias_1.original_name;
+                        let targetName = match.alias_2.original_name;
+                        let sourceOTs = match.alias_1.usage_count || 0;
+                        let targetOTs = match.alias_2.usage_count || 0;
+
+                        // Intentar detectar el orden correcto desde las notas
+                        if (match.review_notes) {
+                            const renameMatch = match.review_notes.match(/Renombrado de ['"](.+?)['"] a ['"](.+?)['"]/);
+                            const normMatch = match.review_notes.match(/Normalización masiva/);
+
+                            if (renameMatch) {
+                                sourceName = renameMatch[1];
+                                targetName = renameMatch[2];
+                            } else if (normMatch) {
+                                // En normalización masiva, buscar el patrón de OTs
+                                const otsMatch = match.review_notes.match(/(\d+) OTs/);
+                                if (otsMatch) {
+                                    const otsCount = parseInt(otsMatch[1]);
+                                    // El que tiene menos o igual OTs es el source
+                                    if (match.alias_1.usage_count <= match.alias_2.usage_count) {
+                                        sourceName = match.alias_1.original_name;
+                                        targetName = match.alias_2.original_name;
+                                        sourceOTs = match.alias_1.usage_count || 0;
+                                        targetOTs = match.alias_2.usage_count || 0;
+                                    } else {
+                                        sourceName = match.alias_2.original_name;
+                                        targetName = match.alias_1.original_name;
+                                        sourceOTs = match.alias_2.usage_count || 0;
+                                        targetOTs = match.alias_1.usage_count || 0;
+                                    }
+                                }
+                            }
+                        }
+
                         return (
                             <div
                                 key={match.id}
@@ -1185,13 +1221,13 @@ function ApprovedTab({ matches, isLoading }) {
                                     <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] items-center">
                                         <div className="space-y-1">
                                             <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
-                                                Cliente 1
+                                                Origen
                                             </p>
                                             <p className="text-sm font-medium text-gray-700">
-                                                {match.alias_1.original_name}
+                                                {sourceName}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                                {match.alias_1.usage_count || 0} OTs
+                                                {sourceOTs} OTs
                                             </p>
                                         </div>
 
@@ -1203,13 +1239,13 @@ function ApprovedTab({ matches, isLoading }) {
 
                                         <div className="space-y-1">
                                             <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
-                                                Cliente 2
+                                                Destino (actual)
                                             </p>
                                             <p className="text-sm font-medium text-gray-700">
-                                                {match.alias_2.original_name}
+                                                {targetName}
                                             </p>
                                             <p className="text-xs text-gray-500">
-                                                {match.alias_2.usage_count || 0} OTs
+                                                {targetOTs} OTs
                                             </p>
                                         </div>
                                     </div>

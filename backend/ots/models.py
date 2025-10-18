@@ -405,11 +405,22 @@ class OT(TimeStampedModel, SoftDeleteModel):
                 })
     
     def save(self, *args, **kwargs):
+        # Tracking de cliente para incrementar usage_count
+        is_new = self.pk is None
+        old_cliente_id = None
+
+        if not is_new:
+            try:
+                old_ot = OT.objects.get(pk=self.pk)
+                old_cliente_id = old_ot.cliente_id if old_ot.cliente else None
+            except OT.DoesNotExist:
+                pass
+
         # Debug: Ver qué valor llega ANTES de cualquier procesamiento
         print(f"🔵 [SAVE] Valores ANTES del procesamiento:")
         print(f"  - estado_provision: {self.estado_provision}")
         print(f"  - fecha_provision: {self.fecha_provision}")
-        
+
         # Normalizar número de OT a mayúsculas
         if self.numero_ot:
             self.numero_ot = self.numero_ot.upper().strip()
@@ -470,6 +481,49 @@ class OT(TimeStampedModel, SoftDeleteModel):
         
         self.full_clean()
         super().save(*args, **kwargs)
+
+        # Actualizar usage_count del cliente después de guardar
+        current_cliente_id = self.cliente_id if self.cliente else None
+
+        # Si cambió el cliente, actualizar ambos
+        if old_cliente_id != current_cliente_id:
+            # Decrementar el cliente anterior (si existía)
+            if old_cliente_id:
+                try:
+                    old_cliente = ClientAlias.objects.get(pk=old_cliente_id)
+                    # Recalcular el count del cliente anterior
+                    old_count = OT.objects.filter(
+                        cliente=old_cliente,
+                        deleted_at__isnull=True
+                    ).count()
+                    old_cliente.usage_count = old_count
+                    old_cliente.save(update_fields=['usage_count', 'updated_at'])
+                except ClientAlias.DoesNotExist:
+                    pass
+
+            # Incrementar el cliente nuevo (si existe)
+            if current_cliente_id:
+                try:
+                    # Recalcular el count del cliente actual
+                    new_count = OT.objects.filter(
+                        cliente=self.cliente,
+                        deleted_at__isnull=True
+                    ).count()
+                    self.cliente.usage_count = new_count
+                    self.cliente.save(update_fields=['usage_count', 'updated_at'])
+                except ClientAlias.DoesNotExist:
+                    pass
+        elif is_new and current_cliente_id:
+            # Si es nueva OT con cliente, incrementar
+            try:
+                new_count = OT.objects.filter(
+                    cliente=self.cliente,
+                    deleted_at__isnull=True
+                ).count()
+                self.cliente.usage_count = new_count
+                self.cliente.save(update_fields=['usage_count', 'updated_at'])
+            except ClientAlias.DoesNotExist:
+                pass
     
     def _normalize_contenedores(self):
         """Normaliza y valida la lista de contenedores."""

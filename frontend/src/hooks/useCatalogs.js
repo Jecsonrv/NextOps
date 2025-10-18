@@ -413,19 +413,20 @@ export function useRejectMerge() {
 
     return useMutation({
         mutationFn: async ({
-            source_alias_id,
-            target_alias_id,
-            reason = "",
+            alias_1_id,
+            alias_2_id,
+            notes = "",
         }) => {
             const response = await apiClient.post(
                 `/clients/client-aliases/reject_merge/`,
-                { source_alias_id, target_alias_id, reason }
+                { alias_1_id, alias_2_id, notes }
             );
             return response.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
             queryClient.invalidateQueries({ queryKey: ["similarity-matches"] });
+            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
         },
     });
 }
