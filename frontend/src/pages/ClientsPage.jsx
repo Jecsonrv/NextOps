@@ -35,6 +35,8 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { NormalizationModal } from "../components/NormalizationModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { InputDialog } from "../components/ui/InputDialog";
 import {
     useClientAliases,
     useSuggestAllMatches,
@@ -62,6 +64,11 @@ export default function ClientsPage() {
         similarityScore: 0,
         matchId: null,
     });
+
+    // Dialogs
+    const [detectDialog, setDetectDialog] = useState({ isOpen: false });
+    const [rejectDialog, setRejectDialog] = useState({ isOpen: false, match: null });
+    const [resultDialog, setResultDialog] = useState({ isOpen: false, title: '', message: '' });
 
     // Queries - datos reales de la BD
     const {
@@ -96,14 +103,12 @@ export default function ClientsPage() {
     const approvedMatches = matches.filter((m) => m.status === "approved");
 
     // Handler: Detección masiva
-    const handleDetectDuplicates = async () => {
-        const confirmed = confirm(
-            "¿Analizar TODOS los aliases de clientes?\n\n" +
-                "Esto comparará todos los nombres con fuzzy matching.\n" +
-                "Solo genera sugerencias, no fusiona automáticamente."
-        );
+    const handleDetectDuplicates = () => {
+        setDetectDialog({ isOpen: true });
+    };
 
-        if (!confirmed) return;
+    const confirmDetectDuplicates = async () => {
+        setDetectDialog({ isOpen: false });
 
         try {
             const result = await suggestMatches.mutateAsync({
@@ -111,20 +116,21 @@ export default function ClientsPage() {
                 limit_per_alias: 5,
             });
 
-            alert(
-                `✅ Análisis completado\n\n` +
-                    `• Aliases analizados: ${result.total_aliases_analyzed}\n` +
-                    `• Nuevas sugerencias: ${result.suggestions_created}\n` +
-                    `• Ya existían: ${result.suggestions_skipped}`
-            );
+            setResultDialog({
+                isOpen: true,
+                title: '✅ Análisis Completado',
+                message: `Clientes analizados: ${result.total_aliases_analyzed}\nNuevas sugerencias: ${result.suggestions_created}\nYa existían: ${result.suggestions_skipped}`
+            });
 
             refetchMatches();
             refetchStats();
             setActiveTab("pending");
         } catch (error) {
-            alert(
-                "❌ Error:\n" + (error.response?.data?.error || error.message)
-            );
+            setResultDialog({
+                isOpen: true,
+                title: '❌ Error',
+                message: error.response?.data?.error || error.message
+            });
         }
     };
 
@@ -150,16 +156,13 @@ export default function ClientsPage() {
     };
 
     // Handler: Rechazar sugerencia
-    const handleRejectMatch = async (match) => {
-        const reason = prompt(
-            `¿Por qué rechazas?\n\n` +
-                `"${match.alias_1.original_name}"\n` +
-                `vs\n` +
-                `"${match.alias_2.original_name}"\n\n` +
-                `Razón (opcional):`
-        );
+    const handleRejectMatch = (match) => {
+        setRejectDialog({ isOpen: true, match });
+    };
 
-        if (reason === null) return;
+    const confirmRejectMatch = async (reason) => {
+        const match = rejectDialog.match;
+        setRejectDialog({ isOpen: false, match: null });
 
         try {
             await rejectMerge.mutateAsync({
@@ -168,13 +171,20 @@ export default function ClientsPage() {
                 reason: reason || "Sin razón",
             });
 
-            alert("✅ Sugerencia rechazada");
+            setResultDialog({
+                isOpen: true,
+                title: '✅ Sugerencia Rechazada',
+                message: 'La sugerencia de duplicado ha sido rechazada exitosamente.'
+            });
+
             refetchMatches();
             refetchStats();
         } catch (error) {
-            alert(
-                "❌ Error:\n" + (error.response?.data?.error || error.message)
-            );
+            setResultDialog({
+                isOpen: true,
+                title: '❌ Error',
+                message: error.response?.data?.error || error.message
+            });
         }
     };
 
@@ -194,16 +204,6 @@ export default function ClientsPage() {
                 custom_target_name: customTargetName || undefined,
             });
 
-            alert(
-                `✅ ${result.message}\n\n` +
-                    `• OTs actualizadas: ${result.ots_updated}\n` +
-                    `• Cliente final: ${
-                        result.final_target_name ||
-                        result.target_alias?.original_name ||
-                        finalDisplayName
-                    }`
-            );
-
             setNormalizationModal({
                 isOpen: false,
                 sourceAlias: null,
@@ -212,13 +212,21 @@ export default function ClientsPage() {
                 matchId: null,
             });
 
+            setResultDialog({
+                isOpen: true,
+                title: '✅ ' + result.message,
+                message: `OTs actualizadas: ${result.ots_updated}\nCliente final: ${result.final_target_name || result.target_alias?.original_name || finalDisplayName}`
+            });
+
             refetchAliases();
             refetchMatches();
             refetchStats();
         } catch (error) {
-            alert(
-                "❌ Error:\n" + (error.response?.data?.error || error.message)
-            );
+            setResultDialog({
+                isOpen: true,
+                title: '❌ Error',
+                message: error.response?.data?.error || error.message
+            });
         }
     };
 
@@ -268,7 +276,7 @@ export default function ClientsPage() {
                             {stats?.total_aliases || 0}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                            En el sistema
+                            Nombres en el sistema
                         </p>
                     </CardContent>
                 </Card>
@@ -276,7 +284,7 @@ export default function ClientsPage() {
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Pendientes
+                            Duplicados Pendientes
                         </CardTitle>
                         <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
                     </CardHeader>
@@ -446,7 +454,7 @@ export default function ClientsPage() {
                 />
             )}
 
-            {/* Modal */}
+            {/* Modal de Normalización */}
             {normalizationModal.isOpen && (
                 <NormalizationModal
                     sourceAlias={normalizationModal.sourceAlias}
@@ -465,6 +473,47 @@ export default function ClientsPage() {
                     isLoading={applyNormalization.isPending}
                 />
             )}
+
+            {/* Dialog: Detectar Duplicados */}
+            <ConfirmDialog
+                isOpen={detectDialog.isOpen}
+                onClose={() => setDetectDialog({ isOpen: false })}
+                onConfirm={confirmDetectDuplicates}
+                title="¿Analizar TODOS los clientes?"
+                message="Esto comparará todos los nombres con fuzzy matching para detectar posibles duplicados.
+
+Solo genera sugerencias, no fusiona automáticamente."
+                confirmText="Analizar"
+                variant="default"
+                isConfirming={suggestMatches.isPending}
+            />
+
+            {/* Dialog: Rechazar Duplicado */}
+            {rejectDialog.match && (
+                <InputDialog
+                    isOpen={rejectDialog.isOpen}
+                    onClose={() => setRejectDialog({ isOpen: false, match: null })}
+                    onConfirm={confirmRejectMatch}
+                    title="¿Por qué no son duplicados?"
+                    message={`"${rejectDialog.match.alias_1.original_name}"\nvs\n"${rejectDialog.match.alias_2.original_name}"`}
+                    placeholder="Ej: Son de diferentes países, diferentes empresas, etc."
+                    multiline
+                    confirmText="Rechazar"
+                    isConfirming={rejectMerge.isPending}
+                />
+            )}
+
+            {/* Dialog: Resultados */}
+            <ConfirmDialog
+                isOpen={resultDialog.isOpen}
+                onClose={() => setResultDialog({ isOpen: false, title: '', message: '' })}
+                onConfirm={() => setResultDialog({ isOpen: false, title: '', message: '' })}
+                title={resultDialog.title}
+                message={resultDialog.message}
+                confirmText="Entendido"
+                cancelText=""
+                variant="default"
+            />
         </div>
     );
 }
@@ -791,7 +840,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                                 <div className="flex-1 space-y-2">
                                                     <p className="text-xs uppercase tracking-wide text-gray-400">
-                                                        Alias actual
+                                                        Cliente actual
                                                     </p>
                                                     <p className="text-base font-semibold text-gray-900">
                                                         {
@@ -848,7 +897,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
 
                                                 <div className="flex-1 space-y-2 text-left md:text-right">
                                                     <p className="text-xs uppercase tracking-wide text-gray-400">
-                                                        Alias sugerido
+                                                        Posible duplicado
                                                     </p>
                                                     <p className="text-base font-semibold text-gray-900">
                                                         {
@@ -930,7 +979,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                                                 <div className="grid gap-4 md:grid-cols-2">
                                                     <div className="rounded-xl border border-gray-100 bg-white p-3">
                                                         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                                            Alias 1 (Origen)
+                                                            Cliente 1
                                                         </h4>
                                                         <p className="mt-2 text-sm font-medium text-gray-900">
                                                             {
@@ -976,7 +1025,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                                                     </div>
                                                     <div className="rounded-xl border border-gray-100 bg-white p-3">
                                                         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                                            Alias 2 (Destino)
+                                                            Cliente 2
                                                         </h4>
                                                         <p className="mt-2 text-sm font-medium text-gray-900">
                                                             {
@@ -1085,7 +1134,7 @@ function ApprovedTab({ matches, isLoading }) {
                             Sin historial
                         </h3>
                         <p className="text-gray-500">
-                            Aún no hay normalizaciones
+                            Aún no hay normalizaciones aprobadas
                         </p>
                     </div>
                 </CardContent>
@@ -1096,47 +1145,95 @@ function ApprovedTab({ matches, isLoading }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    Historial ({matches.length})
+                <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Historial de Normalizaciones
+                    </span>
+                    <Badge variant="success">{matches.length}</Badge>
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">
-                    {matches.map((match) => (
-                        <div
-                            key={match.id}
-                            className="rounded-2xl border border-gray-200 bg-white/70 p-4"
-                        >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                <div className="min-w-0">
-                                    <p className="text-xs uppercase tracking-wide text-gray-400">
-                                        Alias fusionado
-                                    </p>
-                                    <p className="truncate text-sm text-gray-500 line-through">
-                                        {match.alias_1.original_name}
-                                    </p>
-                                </div>
-                                <div className="min-w-0 text-left md:text-center">
-                                    <p className="text-xs uppercase tracking-wide text-gray-400">
-                                        Alias principal
-                                    </p>
-                                    <p className="truncate text-sm font-semibold text-gray-900">
-                                        {match.alias_2.original_name}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col items-start gap-1 text-xs text-gray-500 md:items-end">
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-white px-3 py-1 text-emerald-600">
-                                        {match.similarity_score.toFixed(1)}%
-                                        similitud
-                                    </span>
-                                    <span className="text-[11px] text-gray-400">
-                                        {match.review_notes || "Sin notas"}
-                                    </span>
+                    {matches.map((match) => {
+                        const date = match.reviewed_at ? new Date(match.reviewed_at).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : 'Fecha desconocida';
+
+                        return (
+                            <div
+                                key={match.id}
+                                className="rounded-2xl border border-gray-200 bg-gradient-to-r from-green-50/50 to-white p-4 sm:p-5 transition-all hover:shadow-md"
+                            >
+                                <div className="space-y-4">
+                                    {/* Header con fecha y score */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span>{date}</span>
+                                        </div>
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-white px-3 py-1 text-xs font-medium text-emerald-600 w-fit">
+                                            {match.similarity_score.toFixed(1)}% similitud
+                                        </span>
+                                    </div>
+
+                                    {/* Nombres */}
+                                    <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] items-center">
+                                        <div className="space-y-1">
+                                            <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
+                                                Cliente 1
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {match.alias_1.original_name}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {match.alias_1.usage_count || 0} OTs
+                                            </p>
+                                        </div>
+
+                                        <div className="hidden sm:flex items-center justify-center text-gray-300">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                            </svg>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
+                                                Cliente 2
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {match.alias_2.original_name}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {match.alias_2.usage_count || 0} OTs
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Notas */}
+                                    {match.review_notes && (
+                                        <div className="pt-3 border-t border-gray-100">
+                                            <p className="text-xs text-gray-500 italic">
+                                                <strong className="font-medium text-gray-600 not-italic">Notas:</strong> {match.review_notes}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Revisor */}
+                                    {match.reviewed_by_name && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <Users className="w-3.5 h-3.5" />
+                                            <span>Revisado por: {match.reviewed_by_name}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </CardContent>
         </Card>
@@ -1171,7 +1268,7 @@ function AllAliasesTab({
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                    <span>Todos los Aliases</span>
+                    <span>Todos los Clientes</span>
                     <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600">
                         {aliasesData?.count || 0}
                     </span>

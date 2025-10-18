@@ -11,22 +11,35 @@ export function ConfirmDialog({
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   isConfirming = false,
+  variant = 'destructive', // destructive, default, success
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] px-4">
-        <DialogHeader className="text-center">
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-center sm:text-left">{title}</DialogTitle>
         </DialogHeader>
-        <div className="py-4 text-center">
-          <p className="text-sm text-gray-500">{message}</p>
+        <div className="px-6 py-4">
+          <p className="text-sm text-gray-600 text-center sm:text-left whitespace-pre-line">{message}</p>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isConfirming}>
-            {cancelText}
-          </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isConfirming}>
-            {isConfirming ? 'Confirmando...' : confirmText}
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          {cancelText && (
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isConfirming}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              {cancelText}
+            </Button>
+          )}
+          <Button
+            variant={variant}
+            onClick={onConfirm}
+            disabled={isConfirming}
+            className="w-full sm:w-auto order-1 sm:order-2"
+          >
+            {isConfirming ? 'Procesando...' : confirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

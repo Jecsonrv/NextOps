@@ -32,7 +32,7 @@ Dialog.propTypes = {
 export function DialogContent({ className = "", children = null }) {
     return (
         <div
-            className={`bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 ${className}`}
+            className={`bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto ${className}`}
         >
             {children}
         </div>
