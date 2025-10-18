@@ -174,7 +174,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         suggestion_updated = False
         try:
             suggestion = SimilarityMatch.objects.get(
-                Q(alias_1=source, alias_2=target) | Q(alias_1=target, alias_2=source),
+                Q(alias_1_id=source.id, alias_2_id=target.id) | Q(alias_1_id=target.id, alias_2_id=source.id),
                 status='pending'
             )
             suggestion.status = 'approved'
@@ -238,7 +238,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         # Buscar sugerencia existente
         try:
             suggestion = SimilarityMatch.objects.get(
-                Q(alias_1=alias_1, alias_2=alias_2) | Q(alias_1=alias_2, alias_2=alias_1),
+                Q(alias_1_id=alias_1.id, alias_2_id=alias_2.id) | Q(alias_1_id=alias_2.id, alias_2_id=alias_1.id),
                 status='pending'
             )
             suggestion.status = 'rejected'
@@ -332,8 +332,10 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
                     break
 
                 # Verificar si ya existe una sugerencia (aprobada o rechazada)
+                # Usar IDs explícitamente para evitar problemas con ForeignKey lookups
                 existing = SimilarityMatch.objects.filter(
-                    Q(alias_1=alias_1, alias_2=alias_2) | Q(alias_1=alias_2, alias_2=alias_1)
+                    Q(alias_1_id=alias_1.id, alias_2_id=alias_2.id) |
+                    Q(alias_1_id=alias_2.id, alias_2_id=alias_1.id)
                 ).exists()
 
                 if existing:
@@ -460,7 +462,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         suggestion_updated = False
         try:
             suggestion = SimilarityMatch.objects.get(
-                Q(alias_1=source, alias_2=target) | Q(alias_1=target, alias_2=source),
+                Q(alias_1_id=source.id, alias_2_id=target.id) | Q(alias_1_id=target.id, alias_2_id=source.id),
                 status='pending'
             )
             suggestion.status = 'approved'
