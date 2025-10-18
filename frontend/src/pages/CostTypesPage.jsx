@@ -13,17 +13,16 @@ import {
     useToggleCostTypeActive,
 } from "../hooks/useCatalogs";
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
+        Card, CardContent, CardFooter, CardHeader, CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 
 export function CostTypesPage() {
     const navigate = useNavigate();
-    const { data: costTypes, isLoading } = useCostTypes();
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const { data: costTypes, isLoading } = useCostTypes({ page, page_size: pageSize });
     const deleteMutation = useDeleteCostType();
     const toggleActiveMutation = useToggleCostTypeActive();
 
@@ -321,6 +320,40 @@ export function CostTypesPage() {
                         </div>
                     )}
                 </CardContent>
+                <CardFooter className="flex items-center justify-between py-4">
+                    <div className="text-sm text-muted-foreground">
+                        Mostrando {costTypes?.results?.length || 0} de {costTypes?.count || 0} tipos de costo.
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+                            className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                        >
+                            <option value="20">20 / página</option>
+                            <option value="50">50 / página</option>
+                            <option value="100">100 / página</option>
+                        </select>
+                        <div className="space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(page - 1)}
+                                disabled={page === 1}
+                            >
+                                Anterior
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(page + 1)}
+                                disabled={page * pageSize >= (costTypes?.count || 0)}
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
+                    </div>
+                </CardFooter>
             </Card>
         </div>
     );

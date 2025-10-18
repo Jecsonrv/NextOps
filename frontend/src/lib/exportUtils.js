@@ -35,7 +35,9 @@ export function exportOTsToExcel(ots, filename = "OTs") {
         ETD: formatDate(ot.etd),
         ETA: formatDate(ot.fecha_eta),
         "ETA Confirmada": formatDate(ot.fecha_llegada),
-        "House BLs": Array.isArray(ot.house_bls) ? ot.house_bls.join(", ") : "",
+        "House BLs": Array.isArray(ot.house_bls)
+            ? ot.house_bls.join(", ")
+            : (ot.house_bls || ""),
         "Estado Provisión": ot.estado_provision?.toUpperCase() || "",
         "Estado Facturado": ot.estado_facturado?.toUpperCase() || "",
         "Express Release": formatDate(ot.express_release_fecha),
@@ -400,23 +402,36 @@ export function exportInvoicesToExcel(invoices, filename = "Facturas") {
         return;
     }
 
-    // Preparar datos para exportar
+    // Preparar datos para exportar - TODOS LOS CAMPOS
     const exportData = invoices.map((invoice) => ({
         "ID": invoice.id,
-        "Número Factura": invoice.numero_factura,
+        "Número Factura": invoice.numero_factura || "",
         "OT": invoice.ot_data?.numero_ot || "",
         "Cliente": invoice.ot_data?.cliente || "",
+        "Operativo": invoice.ot_data?.operativo || "",
         "MBL": invoice.ot_data?.mbl || "",
-        "Proveedor": invoice.proveedor_data?.nombre || invoice.proveedor_nombre,
-        "Tipo Costo": invoice.tipo_costo_display,
-        "Estado Provisión": invoice.estado_provision_display,
-        "Monto": invoice.monto,
-        "Monto Aplicable": invoice.monto_aplicable,
+        "HBL": invoice.ot_data?.house_bls ?
+            (Array.isArray(invoice.ot_data.house_bls) ? invoice.ot_data.house_bls.join(", ") : invoice.ot_data.house_bls) : "",
+        "Naviera": invoice.ot_data?.naviera || "",
+        "Barco": invoice.ot_data?.barco || "",
+        "Contenedores": invoice.ot_data?.contenedores_list || "",
+        "Proveedor": invoice.proveedor_data?.nombre || invoice.proveedor_nombre || "",
+        "Tipo Proveedor": invoice.proveedor_data?.tipo_display || "",
+        "Tipo Costo": invoice.tipo_costo_display || "",
+        "Estado Provisión": invoice.estado_provision_display || "",
+        "Requiere Revisión": invoice.requiere_revision ? "SÍ" : "NO",
+        "Tiene Disputas": invoice.has_disputes ? "SÍ" : "NO",
+        "Tiene NC": invoice.has_credit_notes ? "SÍ" : "NO",
+        "Monto": invoice.monto || 0,
+        "Monto Aplicable": invoice.monto_aplicable || invoice.monto || 0,
+        "Moneda": invoice.moneda || "USD",
         "Fecha Emisión": formatDate(invoice.fecha_emision),
         "Fecha Vencimiento": formatDate(invoice.fecha_vencimiento),
         "Fecha Provisión": formatDate(invoice.fecha_provision),
         "Fecha Facturación": formatDate(invoice.fecha_facturacion),
+        "Observaciones": invoice.observaciones || "",
         "Creado": formatDate(invoice.created_at),
+        "Actualizado": formatDate(invoice.updated_at),
     }));
 
     // Crear worksheet
@@ -427,18 +442,30 @@ export function exportInvoicesToExcel(invoices, filename = "Facturas") {
         { wch: 8 },   // ID
         { wch: 20 },  // Número Factura
         { wch: 15 },  // OT
-        { wch: 25 },  // Cliente
+        { wch: 30 },  // Cliente
+        { wch: 20 },  // Operativo
         { wch: 20 },  // MBL
-        { wch: 25 },  // Proveedor
-        { wch: 15 },  // Tipo Costo
+        { wch: 35 },  // HBL
+        { wch: 25 },  // Naviera
+        { wch: 25 },  // Barco
+        { wch: 40 },  // Contenedores
+        { wch: 30 },  // Proveedor
+        { wch: 18 },  // Tipo Proveedor
+        { wch: 18 },  // Tipo Costo
         { wch: 18 },  // Estado Provisión
-        { wch: 12 },  // Monto
+        { wch: 15 },  // Requiere Revisión
+        { wch: 15 },  // Tiene Disputas
+        { wch: 12 },  // Tiene NC
+        { wch: 15 },  // Monto
         { wch: 15 },  // Monto Aplicable
+        { wch: 10 },  // Moneda
         { wch: 15 },  // Fecha Emisión
         { wch: 18 },  // Fecha Vencimiento
         { wch: 15 },  // Fecha Provisión
         { wch: 18 },  // Fecha Facturación
+        { wch: 40 },  // Observaciones
         { wch: 18 },  // Creado
+        { wch: 18 },  // Actualizado
     ];
     ws["!cols"] = columnWidths;
 

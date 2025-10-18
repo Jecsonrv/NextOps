@@ -6,6 +6,7 @@ import { formatDate } from "../lib/dateUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
 import {
     FileText,
     Search,
@@ -31,6 +32,7 @@ export function CreditNotesPage() {
     const queryClient = useQueryClient();
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [showFilters, setShowFilters] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({
@@ -44,12 +46,12 @@ export function CreditNotesPage() {
 
     // Obtener notas de crédito
     const { data, isLoading, error } = useQuery({
-        queryKey: ["credit-notes", page, search, filters],
+        queryKey: ["credit-notes", page, pageSize, search, filters],
         queryFn: async () => {
             const params = new URLSearchParams(
                 Object.entries({
                     page: page.toString(),
-                    page_size: "20",
+                    page_size: pageSize.toString(),
                     search,
                     ...filters
                 }).filter(([_, value]) => value)
@@ -115,117 +117,133 @@ export function CreditNotesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-bold text-gray-900">Notas de Crédito</h1>
-                    <p className="text-gray-600 mt-2">Gestión y seguimiento de notas de crédito de proveedores</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button onClick={() => setIsModalOpen(true)}>
-                        <FileMinus className="w-4 h-4 mr-2" />
-                        Crear Nota de Crédito
-                    </Button>
-                    <Button variant="outline">
-                        <Download className="w-4 h-4 mr-2" />
-                        Exportar
-                    </Button>
-                </div>
-            </div>
-
             {/* Estadísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Total Notas</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-2">
-                                    {statsData?.total_notas || 0}
-                                </p>
-                            </div>
-                            <div className="p-3 bg-blue-100 rounded-full">
-                                <FileText className="w-6 h-6 text-blue-600" />
-                            </div>
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Notas
+                        </CardTitle>
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {statsData?.total_notas || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Monto Total</p>
-                                <p className="text-3xl font-bold text-red-600 mt-2">
-                                    -${(statsData?.monto_total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                </p>
-                            </div>
-                            <div className="p-3 bg-red-100 rounded-full">
-                                <TrendingDown className="w-6 h-6 text-red-600" />
-                            </div>
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Monto Total
+                        </CardTitle>
+                        <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-red-600">
+                            -${(statsData?.monto_total || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Crédito aplicado
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Aplicadas</p>
-                                <p className="text-3xl font-bold text-green-600 mt-2">
-                                    {statsData?.aplicadas || 0}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    ${(statsData?.monto_aplicadas || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                </p>
-                            </div>
-                            <div className="p-3 bg-green-100 rounded-full">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                            </div>
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Aplicadas
+                        </CardTitle>
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {statsData?.aplicadas || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            ${(statsData?.monto_aplicadas || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                                <p className="text-3xl font-bold text-yellow-600 mt-2">
-                                    {statsData?.pendientes || 0}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    ${(statsData?.monto_pendientes || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                </p>
-                            </div>
-                            <div className="p-3 bg-yellow-100 rounded-full">
-                                <Clock className="w-6 h-6 text-yellow-600" />
-                            </div>
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Pendientes
+                        </CardTitle>
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+                            {statsData?.pendientes || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            ${(statsData?.monto_pendientes || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Búsqueda y Filtros */}
+            {/* Barra de búsqueda y acciones */}
             <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                placeholder="Buscar por número de nota, proveedor, factura, OT..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10"
-                            />
+                <CardContent className="pt-4 sm:pt-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                        {/* Search */}
+                        <div className="w-full">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input
+                                    placeholder="Buscar por número de nota, proveedor, factura, OT..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-10 h-10"
+                                />
+                                {search && (
+                                    <button
+                                        onClick={() => setSearch("")}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filtros
-                            {showFilters ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />}
-                        </Button>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex-1 sm:flex-none ${showFilters ? "bg-blue-50 border-blue-300" : ""}`}
+                            >
+                                <Filter className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Filtros</span>
+                                {showFilters ? <ChevronUp className="w-4 h-4 ml-2 hidden sm:inline" /> : <ChevronDown className="w-4 h-4 ml-2 hidden sm:inline" />}
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex-1 sm:flex-none"
+                            >
+                                <FileMinus className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Crear NC</span>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none"
+                            >
+                                <Download className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Exportar</span>
+                            </Button>
+                        </div>
                     </div>
-                </CardHeader>
+                </CardContent>
                 {showFilters && (
                     <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
@@ -400,21 +418,23 @@ export function CreditNotesPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                    <div className="flex items-center justify-center gap-1">
                                                         <Button
                                                             variant="ghost"
-                                                            size="sm"
+                                                            size="icon"
                                                             onClick={() => handleViewDetail(cn.id)}
                                                             title="Ver detalles"
+                                                            className="h-8 w-8"
                                                         >
                                                             <Eye className="w-4 h-4" />
                                                         </Button>
                                                         {cn.uploaded_file && (
                                                             <Button
                                                                 variant="ghost"
-                                                                size="sm"
+                                                                size="icon"
                                                                 onClick={() => handleDownloadPDF(cn)}
                                                                 title="Descargar PDF"
+                                                                className="h-8 w-8 hidden sm:inline-flex"
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </Button>
@@ -428,25 +448,41 @@ export function CreditNotesPage() {
                             </div>
 
                             {/* Paginación */}
-                            {data?.count > 20 && (
+                            {data?.count > pageSize && (
                                 <div className="mt-6 flex items-center justify-between border-t pt-4">
                                     <p className="text-sm text-gray-600">
-                                        Mostrando <span className="font-semibold">{(page - 1) * 20 + 1}</span> - <span className="font-semibold">{Math.min(page * 20, data.count)}</span> de <span className="font-semibold">{data.count}</span> notas
+                                        Mostrando <span className="font-semibold">{(page - 1) * pageSize + 1}</span> - <span className="font-semibold">{Math.min(page * pageSize, data.count)}</span> de <span className="font-semibold">{data.count}</span> notas
                                     </p>
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Select
+                                            value={pageSize.toString()}
+                                            onValueChange={(value) => {
+                                                setPageSize(parseInt(value, 10));
+                                                setPage(1);
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[120px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="20">20 / página</SelectItem>
+                                                <SelectItem value="50">50 / página</SelectItem>
+                                                <SelectItem value="100">100 / página</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                                            disabled={!data.previous}
+                                            onClick={() => setPage(page - 1)}
+                                            disabled={!data?.previous}
                                         >
                                             Anterior
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setPage(p => p + 1)}
-                                            disabled={!data.next}
+                                            onClick={() => setPage(page + 1)}
+                                            disabled={!data?.next}
                                         >
                                             Siguiente
                                         </Button>

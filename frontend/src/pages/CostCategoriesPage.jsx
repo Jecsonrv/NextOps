@@ -13,24 +13,26 @@ import {
     useToggleCostCategoryActive,
 } from "../hooks/useCatalogs";
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
+        Card, CardContent, CardFooter, CardHeader, CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
 
 export function CostCategoriesPage() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState("");
     const [filterActive, setFilterActive] = useState("all");
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
 
     const { data: categoriesData, isLoading } = useCostCategories({
         search: searchTerm,
         is_active:
             filterActive === "all" ? undefined : filterActive === "active",
+        page,
+        page_size: pageSize,
     });
 
     const deleteMutation = useDeleteCostCategory();
@@ -380,6 +382,44 @@ export function CostCategoriesPage() {
                         </div>
                     )}
                 </CardContent>
+                <CardFooter className="flex items-center justify-between py-4">
+                    <div className="text-sm text-muted-foreground">
+                        Mostrando {categories.length} de {totalCount} categorías.
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <Select
+                            value={pageSize.toString()}
+                            onValueChange={(value) => setPageSize(parseInt(value, 10))}
+                        >
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="20">20 / página</SelectItem>
+                                <SelectItem value="50">50 / página</SelectItem>
+                                <SelectItem value="100">100 / página</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div className="space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(page - 1)}
+                                disabled={page === 1}
+                            >
+                                Anterior
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(page + 1)}
+                                disabled={page * pageSize >= totalCount}
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
+                    </div>
+                </CardFooter>
             </Card>
         </div>
     );

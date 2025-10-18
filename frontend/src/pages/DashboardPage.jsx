@@ -67,28 +67,32 @@ export function DashboardPage() {
             value: otsStats?.total_ots || 0,
             subtitle: `${otsStats?.total_contenedores || 0} contenedores`,
             icon: Layers,
-            color: "text-blue-600",
+            iconColor: "text-blue-600",
+            valueColor: "text-gray-900",
         },
         {
             name: "Total Facturas",
             value: invoicesStats?.total || 0,
-            subtitle: `$${(invoicesStats?.total_monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            subtitle: `$${(invoicesStats?.total_monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
             icon: FileText,
-            color: "text-green-600",
+            iconColor: "text-blue-600",
+            valueColor: "text-gray-900",
         },
         {
-            name: "Facturas Provisionadas",
+            name: "Provisionadas",
             value: invoicesStats?.provisionadas || 0,
-            subtitle: "Estado provisionado",
+            subtitle: "Listas para facturar",
             icon: CheckCircle,
-            color: "text-green-600",
+            iconColor: "text-green-600",
+            valueColor: "text-green-600",
         },
         {
-            name: "Requieren Revisión",
+            name: "Pendientes",
             value: invoicesStats?.pendientes_revision || 0,
-            subtitle: "Facturas pendientes",
+            subtitle: "Requieren revisión",
             icon: AlertCircle,
-            color: "text-yellow-600",
+            iconColor: "text-yellow-600",
+            valueColor: "text-yellow-600",
         },
     ];
 
@@ -101,16 +105,16 @@ export function DashboardPage() {
                     return (
                         <Card key={stat.name} className="hover:shadow-lg transition-shadow">
                             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                                <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                                     {stat.name}
                                 </CardTitle>
-                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color} flex-shrink-0`} />
+                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor} flex-shrink-0`} />
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            <CardContent className="pt-0">
+                                <div className={`text-2xl sm:text-3xl font-bold ${stat.valueColor}`}>
                                     {stat.value}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1 hidden sm:block">
+                                <p className="text-xs text-gray-500 mt-1">
                                     {stat.subtitle}
                                 </p>
                             </CardContent>

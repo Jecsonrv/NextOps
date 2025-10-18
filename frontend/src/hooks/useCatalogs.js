@@ -322,9 +322,7 @@ export function useDeletePattern() {
  * Trae TODOS los aliases sin límite de paginación
  */
 export function useClientAliases(filters = {}, options = {}) {
-    const params = new URLSearchParams({
-        page_size: "1000", // Traer todos los aliases
-    });
+    const params = new URLSearchParams();
 
     if (filters.is_verified !== undefined)
         params.append("is_verified", filters.is_verified);
@@ -332,6 +330,7 @@ export function useClientAliases(filters = {}, options = {}) {
     if (filters.provider) params.append("provider", filters.provider);
     if (filters.search) params.append("search", filters.search);
     if (filters.page) params.append("page", filters.page);
+    if (filters.page_size) params.append("page_size", filters.page_size);
 
     return useQuery({
         queryKey: ["client-aliases", filters],
@@ -721,6 +720,8 @@ export function useCostCategories(params = {}) {
         queryParams.append("is_active", params.is_active);
     if (params.search) queryParams.append("search", params.search);
     if (params.ordering) queryParams.append("ordering", params.ordering);
+    if (params.page) queryParams.append("page", params.page);
+    if (params.page_size) queryParams.append("page_size", params.page_size);
 
     const queryString = queryParams.toString();
     const url = `/catalogs/cost-categories/${

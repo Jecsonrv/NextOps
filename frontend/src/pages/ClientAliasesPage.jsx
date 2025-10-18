@@ -37,6 +37,7 @@ import {
     CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
 
 export function ClientAliasesPage() {
     const navigate = useNavigate();
@@ -611,8 +612,21 @@ export function ClientAliasesPage() {
                     {/* Paginación */}
                     {totalPages > 1 && (
                         <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                            <div className="text-sm text-gray-700">
-                                Página {filters.page} de {totalPages}
+                            <div className="flex items-center gap-4 text-sm text-gray-700">
+                                <span>Página {filters.page} de {totalPages}</span>
+                                <Select
+                                    value={filters.page_size.toString()}
+                                    onValueChange={(value) => handleFilterChange('page_size', parseInt(value, 10))}
+                                >
+                                    <SelectTrigger className="w-[120px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="20">20 / página</SelectItem>
+                                        <SelectItem value="50">50 / página</SelectItem>
+                                        <SelectItem value="100">100 / página</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="flex gap-2">
                                 <Button

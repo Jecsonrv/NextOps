@@ -48,6 +48,7 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 export function InvoicesPage() {
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [showFilters, setShowFilters] = useState(false);
     const [selectedInvoiceForOT, setSelectedInvoiceForOT] = useState(null);
     const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -96,11 +97,11 @@ export function InvoicesPage() {
 
     // Fetch invoices data
     const { data, isLoading, error } = useQuery({
-        queryKey: ["invoices", page, search, filters],
+        queryKey: ["invoices", page, pageSize, search, filters],
         queryFn: async () => {
             const params = new URLSearchParams({
                 page: page.toString(),
-                page_size: "20",
+                page_size: pageSize.toString(),
                 ...(search && { search }),
                 ...(filters.estado_provision && {
                     estado_provision: filters.estado_provision,
@@ -155,11 +156,61 @@ export function InvoicesPage() {
     };
 
     // Función para exportar a Excel (usando backend)
-    const handleExportToExcel = () => {
-        if (data?.results) {
-            exportInvoicesToExcel(data.results, "Facturas_Export");
-        } else {
-            toast.error("No hay datos para exportar");
+    const handleExportToExcel = async () => {
+        try {
+            toast.loading("Exportando datos...", { id: "export-toast" });
+
+            // Construir parámetros con los filtros actuales
+            const baseParams = buildFilterParams();
+
+            // Obtener todos los datos haciendo múltiples peticiones si es necesario
+            let allInvoices = [];
+            let currentPage = 1;
+            let hasMoreData = true;
+            const pageSize = 200; // Usar el máximo permitido por el backend
+
+            while (hasMoreData) {
+                const exportParams = baseParams
+                    ? `${baseParams}&page=${currentPage}&page_size=${pageSize}`
+                    : `page=${currentPage}&page_size=${pageSize}`;
+
+                toast.loading(
+                    `Obteniendo datos... (${allInvoices.length} registros)`,
+                    { id: "export-toast" }
+                );
+
+                const response = await apiClient.get(`/invoices/?${exportParams}`);
+                const pageData = response.data.results || [];
+
+                allInvoices = [...allInvoices, ...pageData];
+
+                // Verificar si hay más páginas
+                hasMoreData = response.data.next !== null;
+                currentPage++;
+
+                // Seguridad: evitar bucle infinito
+                if (currentPage > 1000) {
+                    console.warn("Se alcanzó el límite de 1000 páginas");
+                    break;
+                }
+            }
+
+            if (!allInvoices || allInvoices.length === 0) {
+                toast.error("No hay datos para exportar", { id: "export-toast" });
+                return;
+            }
+
+            // Exportar todos los datos
+            toast.loading("Generando archivo Excel...", { id: "export-toast" });
+            exportInvoicesToExcel(allInvoices, "Facturas_Export");
+
+            toast.success(
+                `Se exportaron ${allInvoices.length} factura${allInvoices.length !== 1 ? "s" : ""} exitosamente`,
+                { id: "export-toast", duration: 4000 }
+            );
+        } catch (error) {
+            console.error("Error al exportar:", error);
+            toast.error("Error al exportar los datos", { id: "export-toast" });
         }
     };
 
@@ -309,33 +360,33 @@ export function InvoicesPage() {
                 <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                                 Total Facturas
                             </CardTitle>
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                                 {stats.total}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
-                                Todas las facturas
+                            <p className="text-xs text-gray-500 mt-1">
+                                En el sistema
                             </p>
                         </CardContent>
                     </Card>
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
-                                Pend. Provisión
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                                Pendientes
                             </CardTitle>
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
                                 {stats.pendientes_provision || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Por provisionar
                             </p>
                         </CardContent>
@@ -343,16 +394,16 @@ export function InvoicesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                                 Provisionadas
                             </CardTitle>
                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
                                 {stats.provisionadas || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Listas para facturar
                             </p>
                         </CardContent>
@@ -360,17 +411,17 @@ export function InvoicesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                                 Disputas
                             </CardTitle>
                             <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-red-600">
                                 {stats.pendientes_revision || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
-                                Facturas con disputa activa
+                            <p className="text-xs text-gray-500 mt-1">
+                                Requieren revisión
                             </p>
                         </CardContent>
                     </Card>
@@ -697,158 +748,161 @@ export function InvoicesPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto -mx-4 sm:mx-0">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 bg-gray-50">
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        selectedInvoices.length ===
-                                                            data?.results?.length &&
-                                                        data?.results?.length > 0
-                                                    }
-                                                    onChange={handleSelectAll}
-                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Operativo
-                                            </th>
-                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                OT
-                                            </th>
-                                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Cliente
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                MBL
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Naviera
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Proveedor
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Barco
-                                            </th>
-                                            <th className="hidden 2xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Tipo Prov.
-                                            </th>
-                                            <th className="hidden 2xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Tipo Costo
-                                            </th>
-                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Estado
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Factura
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                F. Emisión
-                                            </th>
-                                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                F. Provisión
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                F. Facturación
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Monto
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Acciones
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {data?.results?.map((invoice) => (
-                                            <tr
-                                                key={invoice.id}
-                                                className="hover:bg-blue-50 transition-colors"
-                                            >
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+                            {/* Indicador de scroll en móviles */}
+                            <div className="block sm:hidden mb-2 text-xs text-gray-500 text-center">
+                                ← Desliza para ver más columnas →
+                            </div>
+
+                            <div className="overflow-x-auto -mx-4 sm:mx-0 border-x sm:border-x-0">
+                                <div className="inline-block min-w-full align-middle">
+                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="sticky left-0 z-10 bg-gray-50 px-3 py-3 text-center whitespace-nowrap">
                                                     <input
                                                         type="checkbox"
-                                                        checked={selectedInvoices.includes(
-                                                            invoice.id
-                                                        )}
-                                                        onChange={() =>
-                                                            handleSelectOne(invoice.id)
+                                                        checked={
+                                                            selectedInvoices.length ===
+                                                                data?.results?.length &&
+                                                            data?.results?.length > 0
                                                         }
+                                                        onChange={handleSelectAll}
                                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     />
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.ot_data?.operativo || "-"}
-                                                </td>
-                                                <td className="hidden lg:table-cell px-4 py-3">
-                                                    {invoice.ot_data ? (
-                                                        <Link
-                                                            to={`/ots/${invoice.ot_data.id}`}
-                                                            className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
-                                                        >
-                                                            <Link2 className="w-3.5 h-3.5" />
-                                                            {invoice.ot_data.numero_ot}
-                                                        </Link>
-                                                    ) : (
-                                                        <span className="text-gray-400 text-sm italic">
-                                                            Sin asignar
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.ot_data?.cliente || "-"}
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {invoice.ot_data?.mbl || "-"}
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.ot_data?.naviera || "-"}
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900">
-                                                    <div className="truncate max-w-[120px] sm:max-w-none">
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Operativo
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    OT
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Cliente
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    MBL
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Naviera
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Proveedor
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Barco
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Tipo Prov.
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Tipo Costo
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Estado
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Factura
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. Emisión
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. Provisión
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. Facturación
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Monto
+                                                </th>
+                                                <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Acciones
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {data?.results?.map((invoice) => (
+                                                <tr
+                                                    key={invoice.id}
+                                                    className="hover:bg-gray-50 transition-colors"
+                                                >
+                                                    <td className="sticky left-0 z-10 bg-white px-3 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedInvoices.includes(
+                                                                invoice.id
+                                                            )}
+                                                            onChange={() =>
+                                                                handleSelectOne(invoice.id)
+                                                            }
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                        {invoice.ot_data?.operativo || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        {invoice.ot_data ? (
+                                                            <Link
+                                                                to={`/ots/${invoice.ot_data.id}`}
+                                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
+                                                            >
+                                                                <Link2 className="w-3.5 h-3.5" />
+                                                                {invoice.ot_data.numero_ot}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-sm italic">
+                                                                Sin asignar
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                        {invoice.ot_data?.cliente || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {invoice.ot_data?.mbl || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                        {invoice.ot_data?.naviera || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
                                                         {invoice.proveedor_data?.nombre || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.ot_data?.barco || "-"}
-                                                </td>
-                                                <td className="hidden 2xl:table-cell px-4 py-3">
-                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                                                        <Ship className="w-3.5 h-3.5" />
-                                                        <span className="hidden xl:inline">{invoice.proveedor_data?.tipo_display || "-"}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="hidden 2xl:table-cell px-4 py-3">
-                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        <DollarSign className="w-3.5 h-3.5" />
-                                                        {invoice.tipo_costo_display || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden lg:table-cell px-4 py-3">
-                                                    <div className="flex flex-col gap-1">
-                                                        <InvoiceStatusBadge invoice={invoice} />
-                                                        <div className="flex gap-1">
-                                                            <CostTypeBadge invoice={invoice} />
-                                                            <ExcludedFromStatsBadge invoice={invoice} />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                        {invoice.ot_data?.barco || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                                            <Ship className="w-3.5 h-3.5" />
+                                                            {invoice.proveedor_data?.tipo_display || "-"}
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1">
-                                                        <Link
-                                                            to={`/invoices/${invoice.id}`}
-                                                            className="font-medium text-xs sm:text-sm text-blue-600 hover:text-blue-800 truncate max-w-[100px] sm:max-w-none"
-                                                        >
-                                                            {invoice.numero_factura || "SIN-NUM"}
-                                                        </Link>
-                                                        <div className="flex items-center gap-1">
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            <DollarSign className="w-3.5 h-3.5" />
+                                                            {invoice.tipo_costo_display || "-"}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex flex-col gap-1">
+                                                            <InvoiceStatusBadge invoice={invoice} />
+                                                            <div className="flex gap-1">
+                                                                <CostTypeBadge invoice={invoice} />
+                                                                <ExcludedFromStatsBadge invoice={invoice} />
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Link
+                                                                to={`/invoices/${invoice.id}`}
+                                                                className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                {invoice.numero_factura || "SIN-NUM"}
+                                                            </Link>
                                                             {invoice.requiere_revision && (
                                                                 <AlertCircle
-                                                                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0"
+                                                                    className="w-3.5 h-3.5 text-red-500 flex-shrink-0"
                                                                     title="Requiere Revisión"
                                                                 />
                                                             )}
@@ -858,29 +912,27 @@ export function InvoicesPage() {
                                                                     onClick={(e) => e.stopPropagation()}
                                                                     title="Ver Disputa"
                                                                 >
-                                                                    <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
+                                                                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
                                                                 </Link>
                                                             )}
                                                             {invoice.has_credit_notes && (
                                                                 <FileMinus
-                                                                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-500 flex-shrink-0"
+                                                                    className="w-3.5 h-3.5 text-purple-500 flex-shrink-0"
                                                                     title="Tiene Notas de Crédito"
                                                                 />
                                                             )}
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {formatDate(invoice.fecha_emision)}
-                                                </td>
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {formatDate(invoice.fecha_provision)}
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {formatDate(invoice.fecha_facturacion)}
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-900">
-                                                    <div className="truncate">
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(invoice.fecha_emision)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(invoice.fecha_provision)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(invoice.fecha_facturacion)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">
                                                         ${(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
                                                             "es-MX",
                                                             {
@@ -888,89 +940,106 @@ export function InvoicesPage() {
                                                                 maximumFractionDigits: 0,
                                                             }
                                                         ) || "0"}
-                                                    </div>
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
-                                                    <div className="flex justify-end gap-0.5 sm:gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                (window.location.href = `/invoices/${invoice.id}`)
-                                                            }
-                                                            title="Ver detalles"
-                                                            className="h-8 w-8"
-                                                        >
-                                                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                setSelectedInvoiceForOT(
-                                                                    invoice
-                                                                )
-                                                            }
-                                                            title={
-                                                                invoice.ot_data
-                                                                    ? "Cambiar OT"
-                                                                    : "Asignar OT"
-                                                            }
-                                                            className="h-8 w-8 hidden sm:inline-flex"
-                                                        >
-                                                            <Link2 className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => {
-                                                                setSelectedInvoiceForDispute(invoice);
-                                                                setShowDisputeModal(true);
-                                                            }}
-                                                            title="Crear Disputa"
-                                                            className="h-8 w-8 hidden md:inline-flex"
-                                                        >
-                                                            <AlertTriangle className="w-4 h-4" />
-                                                        </Button>
-                                                        {invoice.file_url && (
+                                                    </td>
+                                                    <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
+                                                        <div className="flex justify-end gap-1">
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
-                                                                    window.open(
-                                                                        `${
-                                                                            import.meta
-                                                                                .env
-                                                                                .VITE_BASE_URL
-                                                                        }${
-                                                                            invoice.file_url
-                                                                        }`,
-                                                                        "_blank"
+                                                                    (window.location.href = `/invoices/${invoice.id}`)
+                                                                }
+                                                                title="Ver detalles"
+                                                                className="h-8 w-8"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    setSelectedInvoiceForOT(
+                                                                        invoice
                                                                     )
                                                                 }
-                                                                title="Descargar archivo"
-                                                                className="h-8 w-8 hidden lg:inline-flex"
+                                                                title={
+                                                                    invoice.ot_data
+                                                                        ? "Cambiar OT"
+                                                                        : "Asignar OT"
+                                                                }
+                                                                className="h-8 w-8 hidden sm:inline-flex"
                                                             >
-                                                                <Download className="w-4 h-4" />
+                                                                <Link2 className="w-4 h-4" />
                                                             </Button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => {
+                                                                    setSelectedInvoiceForDispute(invoice);
+                                                                    setShowDisputeModal(true);
+                                                                }}
+                                                                title="Crear Disputa"
+                                                                className="h-8 w-8 hidden md:inline-flex"
+                                                            >
+                                                                <AlertTriangle className="w-4 h-4" />
+                                                            </Button>
+                                                            {invoice.file_url && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        window.open(
+                                                                            `${
+                                                                                import.meta
+                                                                                    .env
+                                                                                    .VITE_BASE_URL
+                                                                            }${
+                                                                                invoice.file_url
+                                                                            }`,
+                                                                            "_blank"
+                                                                        )
+                                                                    }
+                                                                    title="Descargar archivo"
+                                                                    className="h-8 w-8 hidden lg:inline-flex"
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             {/* Pagination */}
-                            {data?.count > 20 && (
-                                <div className="mt-6 flex items-center justify-between">
+                            {data?.count > pageSize && (
+                                <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <p className="text-sm text-gray-600">
-                                        Mostrando {(page - 1) * 20 + 1} -{" "}
-                                        {Math.min(page * 20, data.count)} de{" "}
+                                        Mostrando {(page - 1) * pageSize + 1} -{" "}
+                                        {Math.min(page * pageSize, data.count)} de{" "}
                                         {data.count} facturas
                                     </p>
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-sm text-gray-600 hidden sm:inline">Mostrar:</label>
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => {
+                                                    setPageSize(parseInt(e.target.value, 10));
+                                                    setPage(1);
+                                                }}
+                                                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                            >
+                                                <option value="20">20</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                            </select>
+                                            <span className="text-sm text-gray-600 hidden sm:inline">por página</span>
+                                        </div>
+                                        <div className="h-5 w-px bg-gray-300 mx-1"></div>
                                         <Button
                                             variant="outline"
                                             size="sm"

@@ -52,6 +52,8 @@ export default function ClientsPage() {
         country: "",
         verified: "",
         merged: "false", // Solo activos por defecto
+        page: 1,
+        page_size: 20,
     });
     const [normalizationModal, setNormalizationModal] = useState({
         isOpen: false,
@@ -451,6 +453,7 @@ export default function ClientsPage() {
                     setFilters={setFilters}
                     isLoading={loadingAliases}
                     matches={matches}
+                    aliasesData={aliasesData}
                 />
             )}
 
@@ -1159,12 +1162,21 @@ function AllAliasesTab({
     setFilters,
     isLoading,
     matches,
+    aliasesData,
 }) {
-    const filtered = aliases.filter(
-        (alias) =>
-            !searchTerm ||
-            alias.original_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const totalPages = aliasesData?.count
+        ? Math.ceil(aliasesData.count / filters.page_size)
+        : 1;
+
+    const handlePageChange = (newPage) => {
+        if (newPage > 0 && newPage <= totalPages) {
+            setFilters({ ...filters, page: newPage });
+        }
+    };
+
+    const handlePageSizeChange = (newPageSize) => {
+        setFilters({ ...filters, page_size: newPageSize, page: 1 });
+    };
 
     return (
         <Card>
@@ -1172,7 +1184,7 @@ function AllAliasesTab({
                 <CardTitle className="flex items-center justify-between">
                     <span>Todos los Aliases</span>
                     <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600">
-                        {filtered.length}
+                        {aliasesData?.count || 0}
                     </span>
                 </CardTitle>
             </CardHeader>
@@ -1213,7 +1225,7 @@ function AllAliasesTab({
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                         <p className="text-gray-500">Cargando...</p>
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : aliases.length === 0 ? (
                     <div className="text-center py-12">
                         <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold mb-2">
@@ -1246,7 +1258,7 @@ function AllAliasesTab({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {filtered.map((alias) => {
+                                    {aliases.map((alias) => {
                                         const hasPending = matches.some(
                                             (m) =>
                                                 (m.alias_1.id === alias.id ||
@@ -1318,6 +1330,31 @@ function AllAliasesTab({
                                 </tbody>
                             </table>
                         </div>
+                         {totalPages > 1 && (
+                            <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+                                <div className="flex items-center gap-4 text-sm text-gray-700">
+                                    <span>Página {filters.page} de {totalPages}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={filters.page === 1}
+                                        onClick={() => handlePageChange(filters.page - 1)}
+                                    >
+                                        Anterior
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={filters.page === totalPages}
+                                        onClick={() => handlePageChange(filters.page + 1)}
+                                    >
+                                        Siguiente
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>

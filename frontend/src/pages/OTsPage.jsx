@@ -299,6 +299,7 @@ export function OTsPage() {
     const [showBulkSearch, setShowBulkSearch] = useState(false);
     const [showProvisionModal, setShowProvisionModal] = useState(false);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [bulkSearchText, setBulkSearchText] = useState("");
 
     const normalizedSearch = search.trim();
@@ -448,7 +449,7 @@ export function OTsPage() {
 
         if (includePageParams) {
             params.append("page", page.toString());
-            params.append("page_size", "20");
+            params.append("page_size", pageSize.toString());
         }
         // Si NO incluye page params, NO agregamos page_size tampoco
         // El endpoint cards-stats no necesita page_size (solo cuenta)
@@ -510,7 +511,7 @@ export function OTsPage() {
 
     // Fetch OTs data (paginado)
     const { data, isLoading, error } = useQuery({
-        queryKey: ["ots", page, normalizedSearch, filtersKey],
+        queryKey: ["ots", page, pageSize, normalizedSearch, filtersKey],
         queryFn: async () => {
             const params = buildFilterParams(true);
             const response = await apiClient.get(`/ots/?${params}`);
@@ -685,9 +686,61 @@ export function OTsPage() {
         staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     });
 
-    const handleExport = () => {
-        if (data?.results) {
-            exportOTsToExcel(data.results, "OTs_Export");
+    const handleExport = async () => {
+        try {
+            toast.loading("Exportando datos...", { id: "export-toast" });
+
+            // Construir parámetros con los filtros actuales
+            const baseParams = buildFilterParams(false); // false = no incluir paginación
+
+            // Obtener todos los datos haciendo múltiples peticiones si es necesario
+            let allOTs = [];
+            let currentPage = 1;
+            let hasMoreData = true;
+            const pageSize = 200; // Usar el máximo permitido por el backend
+
+            while (hasMoreData) {
+                const exportParams = baseParams
+                    ? `${baseParams}&page=${currentPage}&page_size=${pageSize}`
+                    : `page=${currentPage}&page_size=${pageSize}`;
+
+                toast.loading(
+                    `Obteniendo datos... (${allOTs.length} registros)`,
+                    { id: "export-toast" }
+                );
+
+                const response = await apiClient.get(`/ots/?${exportParams}`);
+                const pageData = response.data.results || [];
+
+                allOTs = [...allOTs, ...pageData];
+
+                // Verificar si hay más páginas
+                hasMoreData = response.data.next !== null;
+                currentPage++;
+
+                // Seguridad: evitar bucle infinito
+                if (currentPage > 1000) {
+                    console.warn("Se alcanzó el límite de 1000 páginas");
+                    break;
+                }
+            }
+
+            if (!allOTs || allOTs.length === 0) {
+                toast.error("No hay datos para exportar", { id: "export-toast" });
+                return;
+            }
+
+            // Exportar todos los datos
+            toast.loading("Generando archivo Excel...", { id: "export-toast" });
+            exportOTsToExcel(allOTs, "OTs_Export");
+
+            toast.success(
+                `Se exportaron ${allOTs.length} OT${allOTs.length !== 1 ? "s" : ""} exitosamente`,
+                { id: "export-toast", duration: 4000 }
+            );
+        } catch (error) {
+            console.error("Error al exportar:", error);
+            toast.error("Error al exportar los datos", { id: "export-toast" });
         }
     };
 
@@ -726,49 +779,49 @@ export function OTsPage() {
             <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                             Total OT's
                         </CardTitle>
                         <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-0">
                         <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                             {cardsStats?.total || 0}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 hidden sm:block">
+                        <p className="text-xs text-gray-500 mt-1">
                             {hasActiveFilters
                                 ? "Resultados filtrados"
-                                : "Total en sistema"}
+                                : "En el sistema"}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-gray-600">
-                            OT&apos;s Facturadas
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Facturadas
                         </CardTitle>
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-green-600">
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
                             {cardsStats?.facturadas || 0}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                            Con fecha de facturación
+                            Con F. facturación
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-gray-600">
-                            OT&apos;s Cerradas
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Cerradas
                         </CardTitle>
-                        <XCircle className="w-5 h-5 text-gray-600" />
+                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-gray-700">
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-700">
                             {cardsStats?.cerradas || 0}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
@@ -779,17 +832,17 @@ export function OTsPage() {
 
                 <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-gray-600">
-                            Pendientes Cierre
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Pendientes
                         </CardTitle>
-                        <Clock className="w-5 h-5 text-yellow-600" />
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold text-yellow-600">
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
                             {cardsStats?.pendientes_cierre || 0}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                            Estado finalizado
+                            Pendientes de cierre
                         </p>
                     </CardContent>
                 </Card>
@@ -1357,172 +1410,188 @@ export function OTsPage() {
                         )
                     ) : (
                         <>
-                            <div className="overflow-x-auto -mx-4 sm:mx-0">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 bg-gray-50">
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                OT
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Estatus
-                                            </th>
-                                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Cliente
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Operativo
-                                            </th>
-                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                MBL
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Contenedores
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Naviera
-                                            </th>
-                                            <th className="hidden 2xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Barco
-                                            </th>
-                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                F. Provisión
-                                            </th>
-                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                F. Facturación
-                                            </th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Acciones
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {data?.results?.map((ot) => (
-                                            <tr
-                                                key={ot.id}
-                                                className="hover:bg-blue-50 transition-colors"
-                                            >
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                                        <Link
-                                                            to={`/ots/${ot.id}`}
-                                                            className="font-medium text-xs sm:text-sm text-blue-600 hover:text-blue-800 truncate max-w-[120px] sm:max-w-none"
-                                                        >
-                                                            {ot.numero_ot}
-                                                        </Link>
-                                                        {ot.tipo_operacion === "exportacion" && (
-                                                            <Badge
-                                                                variant="warning"
-                                                                className="text-xs self-start"
-                                                            >
-                                                                EXP
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                                    <Badge
-                                                        variant={
-                                                            estadoColors[
-                                                                ot.estado
-                                                            ] || "default"
-                                                        }
-                                                        className="text-xs"
-                                                    >
-                                                        {ot.estado_display}
-                                                    </Badge>
-                                                </td>
-                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-900">
-                                                    <div className="truncate max-w-[150px]">
-                                                        {ot.cliente_nombre || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {ot.operativo || "-"}
-                                                </td>
-                                                <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    <div className="truncate max-w-[120px]">
-                                                        {ot.mbl || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    <div className="truncate max-w-[150px]">
-                                                        {ot.contenedores_list || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    <div className="truncate max-w-[120px]">
-                                                        {ot.proveedor_nombre || "-"}
-                                                    </div>
-                                                </td>
-                                                <td className="hidden 2xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {ot.barco || "-"}
-                                                </td>
-                                                <td className="hidden lg:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {formatDate(ot.fecha_provision)}
-                                                </td>
-                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
-                                                    {formatDate(ot.fecha_recepcion_factura)}
-                                                </td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
-                                                    <div className="flex justify-end gap-0.5 sm:gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                navigate(
-                                                                    `/ots/${ot.id}`
-                                                                )
-                                                            }
-                                                            title="Ver detalle"
-                                                            className="h-8 w-8"
-                                                        >
-                                                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                navigate(
-                                                                    `/ots/${ot.id}/edit`
-                                                                )
-                                                            }
-                                                            title="Editar"
-                                                            className="h-8 w-8 hidden sm:inline-flex"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                handleDelete(ot)
-                                                            }
-                                                            title="Eliminar"
-                                                            disabled={
-                                                                deleteMutation.isPending
-                                                            }
-                                                            className="h-8 w-8 hidden md:inline-flex"
-                                                        >
-                                                            <Trash2 className="w-4 h-4 text-red-600" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
+                            {/* Indicador de scroll en móviles */}
+                            <div className="block sm:hidden mb-2 text-xs text-gray-500 text-center">
+                                ← Desliza para ver más columnas →
+                            </div>
+
+                            <div className="overflow-x-auto -mx-4 sm:mx-0 border-x sm:border-x-0">
+                                <div className="inline-block min-w-full align-middle">
+                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    OT
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Estatus
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Cliente
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Operativo
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    MBL
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Contenedores
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Naviera
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Barco
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. Provisión
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. Facturación
+                                                </th>
+                                                <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    Acciones
+                                                </th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                            {data?.results?.map((ot) => (
+                                                <tr
+                                                    key={ot.id}
+                                                    className="hover:bg-gray-50 transition-colors"
+                                                >
+                                                    <td className="sticky left-0 z-10 bg-white px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex items-center gap-2">
+                                                            <Link
+                                                                to={`/ots/${ot.id}`}
+                                                                className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                {ot.numero_ot}
+                                                            </Link>
+                                                            {ot.tipo_operacion === "exportacion" && (
+                                                                <Badge
+                                                                    variant="warning"
+                                                                    className="text-xs"
+                                                                >
+                                                                    EXP
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <Badge
+                                                            variant={
+                                                                estadoColors[
+                                                                    ot.estado
+                                                                ] || "default"
+                                                            }
+                                                            className="text-xs"
+                                                        >
+                                                            {ot.estado_display}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                        {ot.cliente_nombre || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {ot.operativo || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {ot.mbl || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {ot.contenedores_list || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {ot.proveedor_nombre || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {ot.barco || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(ot.fecha_provision)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(ot.fecha_recepcion_factura)}
+                                                    </td>
+                                                    <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    navigate(
+                                                                        `/ots/${ot.id}`
+                                                                    )
+                                                                }
+                                                                title="Ver detalle"
+                                                                className="h-8 w-8"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    navigate(
+                                                                        `/ots/${ot.id}/edit`
+                                                                    )
+                                                                }
+                                                                title="Editar"
+                                                                className="h-8 w-8 hidden sm:inline-flex"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    handleDelete(ot)
+                                                                }
+                                                                title="Eliminar"
+                                                                disabled={
+                                                                    deleteMutation.isPending
+                                                                }
+                                                                className="h-8 w-8 hidden md:inline-flex"
+                                                            >
+                                                                <Trash2 className="w-4 h-4 text-red-600" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             {/* Pagination */}
-                            {data?.count > 20 && (
-                                <div className="mt-6 flex items-center justify-between">
+                            {data?.count > pageSize && (
+                                <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <p className="text-sm text-gray-600">
-                                        Mostrando {(page - 1) * 20 + 1} -{" "}
-                                        {Math.min(page * 20, data.count)} de{" "}
+                                        Mostrando {(page - 1) * pageSize + 1} -{" "}
+                                        {Math.min(page * pageSize, data.count)} de{" "}
                                         {data.count} OTs
                                     </p>
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-sm text-gray-600 hidden sm:inline">Mostrar:</label>
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => {
+                                                    setPageSize(parseInt(e.target.value, 10));
+                                                    setPage(1);
+                                                }}
+                                                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                            >
+                                                <option value="20">20</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                            </select>
+                                            <span className="text-sm text-gray-600 hidden sm:inline">por página</span>
+                                        </div>
+                                        <div className="h-5 w-px bg-gray-300 mx-1"></div>
                                         <Button
                                             variant="outline"
                                             size="sm"

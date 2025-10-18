@@ -60,6 +60,7 @@ const tipoDisputaBadgeVariant = {
 export function DisputesPage() {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [search, setSearch] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,7 +76,7 @@ export function DisputesPage() {
     // Queries
     const { data, isLoading, error: disputesError } = useDisputes({
         page,
-        page_size: 20,
+        page_size: pageSize,
         search,
         ...filters,
     });
@@ -136,50 +137,50 @@ export function DisputesPage() {
         <div className="space-y-6">
             {/* Stats Cards */}
             {stats && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-gray-600">
-                            Total Disputas
-                        </CardTitle>
-                        <AlertCircle className="w-5 h-5 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold text-gray-900">
-                            {stats.total}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Todas las disputas
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-gray-600">
-                            Abiertas
-                        </CardTitle>
-                        <XCircle className="w-5 h-5 text-red-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-4xl font-bold text-red-600">
-                            {stats.abiertas}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Requieren atención
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
+                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                    <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                                Total Disputas
+                            </CardTitle>
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                {stats.total}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                En el sistema
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                                Abiertas
+                            </CardTitle>
+                            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-red-600">
+                                {stats.abiertas}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Requieren atención
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="hover:shadow-lg transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
                                 Resueltas
                             </CardTitle>
-                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-bold text-green-600">
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
                                 {stats.resueltas}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
@@ -190,24 +191,23 @@ export function DisputesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
-                                Monto Disputado
+                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                                Monto Total
                             </CardTitle>
-                            <DollarSign className="w-5 h-5 text-purple-600" />
+                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-bold text-purple-600">
-                                $
-                                {stats.total_monto_disputado?.toLocaleString(
+                        <CardContent className="pt-0">
+                            <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+                                ${stats.total_monto_disputado?.toLocaleString(
                                     "es-MX",
                                     {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0,
                                     }
                                 )}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                                Total en disputa
+                                En disputa
                             </p>
                         </CardContent>
                     </Card>
@@ -544,12 +544,13 @@ export function DisputesPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="flex justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() => navigate(`/disputes/${dispute.id}`)}
                                                             title="Ver detalle"
+                                                            className="h-8 w-8"
                                                         >
                                                             <Eye className="w-4 h-4" />
                                                         </Button>
@@ -561,6 +562,7 @@ export function DisputesPage() {
                                                                 setIsModalOpen(true);
                                                             }}
                                                             title="Editar"
+                                                            className="h-8 w-8 hidden sm:inline-flex"
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </Button>
@@ -569,6 +571,7 @@ export function DisputesPage() {
                                                             size="icon"
                                                             onClick={() => handleDeleteClick(dispute)}
                                                             title="Eliminar"
+                                                            className="h-8 w-8 hidden md:inline-flex"
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -581,14 +584,26 @@ export function DisputesPage() {
                             </div>
 
                             {/* Pagination */}
-                            {data?.count > 20 && (
+                            {data?.count > pageSize && (
                                 <div className="mt-6 flex items-center justify-between">
                                     <p className="text-sm text-gray-600">
-                                        Mostrando {(page - 1) * 20 + 1} -{" "}
-                                        {Math.min(page * 20, data.count)} de{" "}
+                                        Mostrando {(page - 1) * pageSize + 1} -{" "}
+                                        {Math.min(page * pageSize, data.count)} de{" "}
                                         {data.count} disputas
                                     </p>
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={pageSize}
+                                            onChange={(e) => {
+                                                setPageSize(parseInt(e.target.value, 10));
+                                                setPage(1);
+                                            }}
+                                            className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                        >
+                                            <option value="20">20 / página</option>
+                                            <option value="50">50 / página</option>
+                                            <option value="100">100 / página</option>
+                                        </select>
                                         <Button
                                             variant="outline"
                                             size="sm"

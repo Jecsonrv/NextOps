@@ -501,8 +501,17 @@ export function PatternsPage() {
                     {/* Paginación */}
                     {totalPages > 1 && (
                         <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                            <div className="text-sm text-gray-700">
-                                Página {filters.page} de {totalPages}
+                            <div className="flex items-center gap-4 text-sm text-gray-700">
+                                <span>Página {filters.page} de {totalPages}</span>
+                                <select
+                                    value={filters.page_size}
+                                    onChange={(e) => handleFilterChange('page_size', parseInt(e.target.value, 10))}
+                                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                >
+                                    <option value="20">20 / página</option>
+                                    <option value="50">50 / página</option>
+                                    <option value="100">100 / página</option>
+                                </select>
                             </div>
                             <div className="flex gap-2">
                                 <Button
