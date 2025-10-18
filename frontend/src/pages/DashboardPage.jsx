@@ -93,24 +93,24 @@ export function DashboardPage() {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Stats Cards - Mismo estilo que OTsPage */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat) => {
                     const Icon = stat.icon;
                     return (
                         <Card key={stat.name} className="hover:shadow-lg transition-shadow">
                             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                                <CardTitle className="text-sm font-medium text-gray-600">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
                                     {stat.name}
                                 </CardTitle>
-                                <Icon className={`w-5 h-5 ${stat.color}`} />
+                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color} flex-shrink-0`} />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-gray-900">
+                                <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                                     {stat.value}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                                     {stat.subtitle}
                                 </p>
                             </CardContent>
@@ -120,7 +120,7 @@ export function DashboardPage() {
             </div>
 
             {/* Recent Activity */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                 {/* Recent Invoices */}
                 <Card>
                     <CardHeader>
@@ -140,18 +140,18 @@ export function DashboardPage() {
                                     <Link
                                         key={invoice.id}
                                         to={`/invoices/${invoice.id}`}
-                                        className="flex items-center justify-between pb-4 border-b last:border-b-0 last:pb-0 hover:bg-gray-50 transition-colors rounded-lg p-2"
+                                        className="flex items-center justify-between pb-3 sm:pb-4 border-b last:border-b-0 last:pb-0 hover:bg-gray-50 transition-colors rounded-lg p-2"
                                     >
-                                        <div className="flex items-center space-x-3">
-                                            <div className="p-2 bg-blue-50 rounded-lg">
-                                                <FileText className="w-4 h-4 text-blue-600" />
+                                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                                            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                                                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                                                     {invoice.numero_factura ||
                                                         "SIN NÚMERO"}
                                                 </p>
-                                                <p className="text-xs text-gray-600">
+                                                <p className="text-xs text-gray-600 truncate">
                                                     {invoice.proveedor_data
                                                         ?.nombre ||
                                                         invoice.proveedor_nombre ||
@@ -159,17 +159,17 @@ export function DashboardPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right flex-shrink-0 ml-2">
                                             <div className="flex items-center justify-end">
-                                                <DollarSign className="w-4 h-4 text-gray-500 mr-1" />
-                                                <p className="text-sm font-medium text-gray-900">
+                                                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 mr-0.5 sm:mr-1" />
+                                                <p className="text-xs sm:text-sm font-medium text-gray-900">
                                                     {invoice.monto?.toLocaleString(
                                                         "es-MX",
                                                         {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
+                                                            minimumFractionDigits: 0,
+                                                            maximumFractionDigits: 0,
                                                         }
-                                                    ) || "0.00"}
+                                                    ) || "0"}
                                                 </p>
                                             </div>
                                             <Badge
@@ -178,7 +178,7 @@ export function DashboardPage() {
                                                         invoice.estado_provision
                                                     ] || "secondary"
                                                 }
-                                                className="mt-1"
+                                                className="mt-1 text-xs"
                                             >
                                                 {invoice.estado_provision_display ||
                                                     invoice.estado_provision}
@@ -204,17 +204,17 @@ export function DashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-3">
+                        <div className="grid gap-2.5 sm:gap-3">
                             <Link
                                 to="/invoices/new"
-                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                                className="flex items-center p-3 sm:p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                             >
-                                <FileText className="w-5 h-5 mr-3 text-blue-600" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">
+                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900">
                                         Subir Facturas
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className="text-xs text-gray-600 hidden sm:block">
                                         Cargar facturas al sistema
                                     </p>
                                 </div>
@@ -222,14 +222,14 @@ export function DashboardPage() {
 
                             <Link
                                 to="/invoices"
-                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                                className="flex items-center p-3 sm:p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                             >
-                                <TrendingUp className="w-5 h-5 mr-3 text-blue-600" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">
+                                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900">
                                         Ver Facturas
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className="text-xs text-gray-600 hidden sm:block">
                                         Revisar y gestionar facturas
                                     </p>
                                 </div>
@@ -237,14 +237,14 @@ export function DashboardPage() {
 
                             <Link
                                 to="/ots"
-                                className="flex items-center p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                                className="flex items-center p-3 sm:p-4 text-left transition-colors bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                             >
-                                <Truck className="w-5 h-5 mr-3 text-blue-600" />
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">
+                                <Truck className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-blue-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="text-xs sm:text-sm font-medium text-gray-900">
                                         Ver OTs
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className="text-xs text-gray-600 hidden sm:block">
                                         Revisar órdenes de Trabajo
                                     </p>
                                 </div>

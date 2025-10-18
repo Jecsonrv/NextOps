@@ -1054,8 +1054,9 @@ class OTViewSet(viewsets.ModelViewSet):
         from datetime import datetime
 
         # Obtener queryset filtrado SIN PAGINACIÓN (todos los registros)
-        # Desactivar paginación temporalmente
-        self.pagination_class = None
+        # Forzar la no paginación estableciendo un tamaño de página muy grande
+        if self.paginator:
+            self.paginator.page_size = 10000
         queryset = self.filter_queryset(self.get_queryset())
 
         # Crear workbook

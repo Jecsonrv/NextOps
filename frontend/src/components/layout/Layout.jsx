@@ -255,16 +255,16 @@ export function Layout({ children }) {
             {/* Main content */}
             <div className="lg:pl-64">
                 {/* Header */}
-                <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-white border-b border-gray-200 lg:px-8">
+                <header className="sticky top-0 z-30 flex items-center h-14 sm:h-16 px-3 sm:px-4 lg:px-8 bg-white border-b border-gray-200">
                     <button
-                        className="lg:hidden mr-4"
+                        className="lg:hidden mr-2 sm:mr-4"
                         onClick={() => setSidebarOpen(true)}
                     >
-                        <Menu className="w-6 h-6" />
+                        <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
 
-                    <div className="flex-1">
-                        <h2 className="text-lg font-semibold text-gray-900">
+                    <div className="flex-1 min-w-0">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                             {(() => {
                                 // Find navigation item for current page
                                 const currentNav = navigationItems.find(
@@ -300,7 +300,7 @@ export function Layout({ children }) {
                 </header>
 
                 {/* Page content */}
-                <main className="p-4 lg:p-8">{children}</main>
+                <main className="p-3 sm:p-4 lg:p-8">{children}</main>
             </div>
         </div>
     );

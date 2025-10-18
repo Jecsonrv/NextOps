@@ -137,45 +137,49 @@ export function OTDetailPage() {
     const invoices = invoicesData?.results || [];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => navigate("/ots")}
+                        className="flex-shrink-0"
                     >
-                        <ArrowLeft className="h-4 w-4" />
+                        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-gray-900">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                                 {ot.numero_ot}
                             </h1>
-                            <Badge
-                                variant={estadoColors[ot.estado] || "default"}
-                            >
-                                {ot.estado_display ||
-                                    ot.get_estado_display ||
-                                    ot.estado?.toUpperCase()}
-                            </Badge>
-                            {ot.tipo_operacion === "exportacion" && (
-                                <Badge variant="warning">Exportación</Badge>
-                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Badge
+                                    variant={estadoColors[ot.estado] || "default"}
+                                    className="text-xs"
+                                >
+                                    {ot.estado_display ||
+                                        ot.get_estado_display ||
+                                        ot.estado?.toUpperCase()}
+                                </Badge>
+                                {ot.tipo_operacion === "exportacion" && (
+                                    <Badge variant="warning" className="text-xs">Exportación</Badge>
+                                )}
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500">
-                            Cliente: {ot.cliente?.original_name || "N/A"} •
-                            Operativo: {ot.operativo || "N/A"}
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
+                            {ot.cliente?.original_name || "N/A"} • {ot.operativo || "N/A"}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => exportOTDetailToExcel(ot)}
+                        className="hidden md:inline-flex"
                     >
                         <Download className="h-4 w-4 mr-2" />
                         Exportar
@@ -185,13 +189,14 @@ export function OTDetailPage() {
                         size="sm"
                         onClick={() => navigate(`/ots/${id}/edit`)}
                     >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
+                        <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button
                         variant="destructive"
                         size="sm"
                         onClick={handleDelete}
+                        className="hidden sm:inline-flex"
                     >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Eliminar
@@ -200,9 +205,9 @@ export function OTDetailPage() {
             </div>
 
             {/* Grid de información */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Columna principal */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                     {/* Información Básica */}
                     <Card>
                         <CardHeader>
@@ -211,12 +216,12 @@ export function OTDetailPage() {
                                 Información Básica
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-xs sm:text-sm font-medium text-gray-500">
                                     Número OT
                                 </p>
-                                <p className="text-base font-semibold">
+                                <p className="text-sm sm:text-base font-semibold break-all">
                                     {ot.numero_ot}
                                 </p>
                             </div>
@@ -345,7 +350,7 @@ export function OTDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
                                         <MapPin className="h-4 w-4" />
@@ -404,7 +409,7 @@ export function OTDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                                 <div>
                                     <p className="text-sm font-medium text-gray-500 mb-2">
                                         Express Release
@@ -505,7 +510,7 @@ export function OTDetailPage() {
                 </div>
 
                 {/* Columna lateral */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                     {/* Provisiones */}
                     <Card>
                         <CardHeader>
@@ -631,7 +636,7 @@ export function OTDetailPage() {
                                             <Link
                                                 to={`/invoices/${invoice.id}`}
                                                 state={{ from: `/ots/${id}` }}
-                                                className="block p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                                className="block p-2.5 sm:p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex-1 min-w-0">

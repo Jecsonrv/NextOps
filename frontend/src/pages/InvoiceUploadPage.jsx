@@ -118,7 +118,7 @@ export function InvoiceUploadPage() {
         setSelectedFiles([]);
         setUploadResults(null);
         setAutoParse(true);
-        setTipoCosto("OTRO");
+        setTipoCosto("");
         setSelectedProveedor("");
     };
 

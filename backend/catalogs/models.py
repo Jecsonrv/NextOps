@@ -113,12 +113,18 @@ class CostType(TimeStampedModel, SoftDeleteModel):
         help_text="Categoría del tipo de costo"
     )
     
+    # Comportamiento del tipo de costo
+    is_linked_to_ot = models.BooleanField(
+        default=False,
+        help_text="Indica si este tipo de costo debe enlazarse/sincronizarse con la OT (ej: Flete, Cargos de Naviera)"
+    )
+
     # Estado
     is_active = models.BooleanField(
         default=True,
         help_text="Indica si el tipo de costo está activo"
     )
-    
+
     # Orden de visualización
     display_order = models.PositiveIntegerField(
         default=0,

@@ -186,9 +186,8 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     # === Información de la Factura ===
     numero_factura = models.CharField(
         max_length=64,
-        unique=True,
         db_index=True,
-        help_text="Número único de la factura"
+        help_text="Número único de la factura (único solo entre facturas no eliminadas)"
     )
     
     fecha_emision = models.DateField(
@@ -357,6 +356,13 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
             models.Index(fields=['fecha_vencimiento']),
             models.Index(fields=['alerta_vencimiento']),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['numero_factura'],
+                condition=models.Q(is_deleted=False),
+                name='unique_numero_factura_not_deleted'
+            )
+        ]
         verbose_name = 'Factura'
         verbose_name_plural = 'Facturas'
     
@@ -403,13 +409,15 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
             self.estado_provision = 'provisionada'
         
         # Lógica de herencia de fechas desde la OT (solo si la factura no tiene fecha)
-        if self.es_costo_vinculado_ot() and self.ot and self.estado_provision not in ['anulada', 'anulada_parcialmente', 'disputada']:
+        if self.es_costo_vinculado_ot() and self.ot:
             if not self.fecha_provision and self.ot.fecha_provision:
                 self.fecha_provision = self.ot.fecha_provision
-                if self.estado_provision == 'pendiente':
+                # Solo cambiar estado si es pendiente o en revisión
+                if self.estado_provision in ['pendiente', 'en_revision']:
                     self.estado_provision = 'provisionada'
             if not self.fecha_facturacion and self.ot.fecha_recepcion_factura:
                 self.fecha_facturacion = self.ot.fecha_recepcion_factura
+                # Solo cambiar estado si es pendiente
                 if self.estado_facturacion == 'pendiente':
                     self.estado_facturacion = 'facturada'
         
@@ -452,78 +460,151 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     
     def _sincronizar_estado_con_ot(self):
         """
-        Sincroniza COMPLETO Invoice <-> OT (bidireccional).
+        Sincroniza Invoice -> OT considerando TODAS las facturas vinculadas a la OT.
         Solo se ejecuta para costos vinculados (Flete/Cargos Naviera).
 
-        SINCRONIZA:
-        - estado_provision <-> estado_provision (solo estados válidos en OT)
-        - fecha_provision <-> fecha_provision
-        - fecha_facturacion <-> fecha_recepcion_factura
+        LÓGICA DE CONSOLIDACIÓN (Optimista):
+        - Consulta TODAS las facturas vinculadas activas (no eliminadas, no anuladas)
+        - Aplica regla OPTIMISTA para el estado:
+          Prioridad: provisionada > disputada > revision > pendiente
+          → Si AL MENOS UNA está provisionada → OT = provisionada
+          → Si ninguna provisionada pero hay disputada → OT = disputada
+
+        FECHAS:
+        - fecha_provision: USA LA MÁS ANTIGUA de las facturas provisionadas
+        - fecha_facturacion: USA LA MÁS ANTIGUA de todas las facturas
+
+        EJEMPLOS:
+        ┌─────────────────┬─────────────────┬──────────────┬─────────────┐
+        │ Factura A       │ Factura B       │ Estado OT    │ Fecha OT    │
+        ├─────────────────┼─────────────────┼──────────────┼─────────────┤
+        │ provisionada    │ provisionada    │ provisionada │ MIN(A, B)   │
+        │ provisionada    │ disputada       │ provisionada │ fecha de A  │
+        │ disputada       │ pendiente       │ disputada    │ null        │
+        │ pendiente       │ pendiente       │ pendiente    │ null        │
+        └─────────────────┴─────────────────┴──────────────┴─────────────┘
 
         IMPORTANTE: OT no tiene estados 'anulada' o 'anulada_parcialmente'.
-        Estos estados son exclusivos de Invoice. Cuando una factura se anula,
-        la OT debe ir a 'revision' para revisión manual.
+        Estos estados son exclusivos de Invoice.
         """
         if not self.ot:
             return
 
+        # Obtener TODAS las facturas vinculadas a esta OT (no eliminadas, no anuladas)
+        facturas_vinculadas = Invoice.objects.filter(
+            ot=self.ot,
+            is_deleted=False
+        ).exclude(
+            estado_provision__in=['anulada', 'anulada_parcialmente', 'rechazada']
+        ).filter(
+            tipo_costo__in=['FLETE', 'CARGOS_NAVIERA']
+        )
+
+        # También incluir facturas con tipos dinámicos vinculados
+        from catalogs.models import CostType
+        tipos_vinculados = CostType.objects.filter(
+            is_linked_to_ot=True,
+            is_active=True,
+            is_deleted=False
+        ).values_list('code', flat=True)
+
+        if tipos_vinculados:
+            facturas_vinculadas = facturas_vinculadas | Invoice.objects.filter(
+                ot=self.ot,
+                is_deleted=False,
+                tipo_costo__in=list(tipos_vinculados)
+            ).exclude(
+                estado_provision__in=['anulada', 'anulada_parcialmente', 'rechazada']
+            )
+
+        facturas_vinculadas = facturas_vinculadas.distinct()
+
+        if not facturas_vinculadas.exists():
+            # Si no hay facturas vinculadas activas, resetear OT a pendiente
+            self.ot.estado_provision = 'pendiente'
+            self.ot.fecha_provision = None
+            self.ot.fecha_recepcion_factura = None
+            self.ot._skip_invoice_sync = True
+            self.ot.save(update_fields=['estado_provision', 'fecha_provision', 'fecha_recepcion_factura', 'updated_at'])
+            self.ot._skip_invoice_sync = False
+            return
+
+        # CONSOLIDAR ESTADOS - Nueva lógica optimista
+        # Prioridad: provisionada > disputada > revision > pendiente
+        # Si AL MENOS UNA está provisionada → OT = provisionada
+        estado_consolidado = 'pendiente'  # Default pesimista
+        fecha_provision_consolidada = None
+        fecha_facturacion_consolidada = None
+
+        tiene_provisionada = False
+        tiene_disputada = False
+        tiene_revision = False
+        tiene_pendiente = False
+        fechas_provision = []
+        fechas_facturacion = []
+
+        for factura in facturas_vinculadas:
+            # Verificar estados
+            if factura.estado_provision == 'provisionada':
+                tiene_provisionada = True
+            elif factura.estado_provision == 'disputada':
+                tiene_disputada = True
+            elif factura.estado_provision == 'revision':
+                tiene_revision = True
+            elif factura.estado_provision == 'pendiente':
+                tiene_pendiente = True
+
+            # Recolectar fechas de provisión SOLO de facturas provisionadas
+            if factura.fecha_provision and factura.estado_provision == 'provisionada':
+                fechas_provision.append(factura.fecha_provision)
+
+            # Recolectar fechas de facturación de TODAS las facturas
+            if factura.fecha_facturacion:
+                fechas_facturacion.append(factura.fecha_facturacion)
+
+        # Determinar estado consolidado según NUEVA prioridad
+        if tiene_provisionada:
+            # Si AL MENOS UNA está provisionada → OT = provisionada
+            estado_consolidado = 'provisionada'
+            # Usar la fecha MÁS ANTIGUA de las provisionadas
+            if fechas_provision:
+                fecha_provision_consolidada = min(fechas_provision)
+        elif tiene_disputada:
+            # Si ninguna provisionada pero hay disputada → OT = disputada
+            estado_consolidado = 'disputada'
+            fecha_provision_consolidada = None
+        elif tiene_revision:
+            # Si ninguna provisionada/disputada pero hay revision → OT = revision
+            estado_consolidado = 'revision'
+            fecha_provision_consolidada = None
+        else:
+            # Todas están pendientes
+            estado_consolidado = 'pendiente'
+            fecha_provision_consolidada = None
+
+        # Fecha de facturación: usar la MÁS ANTIGUA
+        if fechas_facturacion:
+            fecha_facturacion_consolidada = min(fechas_facturacion)
+
+        # Actualizar OT solo si hay cambios
         fields_to_update = []
 
-        # 1. SINCRONIZAR ESTADO Y FECHA DE PROVISIÓN
-        if self.estado_provision in ['disputada', 'revision']:
-            # Si la factura está en disputa o revisión, la OT también
-            if self.ot.estado_provision != self.estado_provision:
-                self.ot.estado_provision = self.estado_provision
-                fields_to_update.append('estado_provision')
+        if self.ot.estado_provision != estado_consolidado:
+            self.ot.estado_provision = estado_consolidado
+            fields_to_update.append('estado_provision')
 
-            # Limpiar fecha_provision de la OT
-            if self.ot.fecha_provision:
-                self.ot.fecha_provision = None
-                fields_to_update.append('fecha_provision')
+        if self.ot.fecha_provision != fecha_provision_consolidada:
+            self.ot.fecha_provision = fecha_provision_consolidada
+            fields_to_update.append('fecha_provision')
 
-        elif self.estado_provision in ['anulada', 'anulada_parcialmente']:
-            # NUEVO COMPORTAMIENTO: La OT vuelve a 'pendiente' para esperar la nueva factura del proveedor
-            # La factura anulada queda registrada para histórico, pero la OT debe estar lista para
-            # recibir la nueva factura que emita el proveedor
-            if self.ot.estado_provision != 'pendiente':
-                self.ot.estado_provision = 'pendiente'
-                fields_to_update.append('estado_provision')
-
-            # Limpiar fecha_provision de la OT
-            if self.ot.fecha_provision:
-                self.ot.fecha_provision = None
-                fields_to_update.append('fecha_provision')
-        
-        elif self.estado_provision == 'provisionada':
-            # Si la factura se provisiona, actualizar fecha en OT
-            if self.fecha_provision and self.ot.fecha_provision != self.fecha_provision:
-                self.ot.fecha_provision = self.fecha_provision
-                self.ot.estado_provision = 'provisionada'
-                fields_to_update.extend(['fecha_provision', 'estado_provision'])
-        
-        elif self.estado_provision == 'pendiente':
-            # Si vuelve a pendiente, sincronizar también
-            if self.ot.estado_provision != 'pendiente':
-                self.ot.estado_provision = 'pendiente'
-                fields_to_update.append('estado_provision')
-            if self.ot.fecha_provision:
-                self.ot.fecha_provision = None
-                fields_to_update.append('fecha_provision')
-        
-        # 2. SINCRONIZAR FECHA DE FACTURACIÓN (Invoice.fecha_facturacion <-> OT.fecha_recepcion_factura)
-        # Solo sincronizar si hay cambio real
-        if self.fecha_facturacion != self.ot.fecha_recepcion_factura:
-            self.ot.fecha_recepcion_factura = self.fecha_facturacion
+        if self.ot.fecha_recepcion_factura != fecha_facturacion_consolidada:
+            self.ot.fecha_recepcion_factura = fecha_facturacion_consolidada
             fields_to_update.append('fecha_recepcion_factura')
-        
-        # Guardar OT solo si hay cambios
+
         if fields_to_update:
             fields_to_update.append('updated_at')
-            # Remover duplicados
-            fields_to_update = list(set(fields_to_update))
-            # Marcar que estamos sincronizando desde Invoice para evitar bucle
             self.ot._skip_invoice_sync = True
-            self.ot.save(update_fields=fields_to_update)
+            self.ot.save(update_fields=list(set(fields_to_update)))
             self.ot._skip_invoice_sync = False
     
     def calcular_dias_hasta_vencimiento(self):
@@ -570,8 +651,29 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         """
         Determina si este costo está vinculado a la OT (Flete o Cargos de Naviera).
         Estos costos deben sincronizarse con la OT y seguir su flujo.
+
+        NOTA: Verifica tanto tipos hardcodeados (legacy) como tipos dinámicos desde CostType.
         """
-        return self.tipo_costo in ['FLETE', 'CARGOS_NAVIERA']
+        # Verificación legacy para tipos hardcodeados
+        if self.tipo_costo in ['FLETE', 'CARGOS_NAVIERA']:
+            return True
+
+        # Verificación dinámica: consultar el modelo CostType
+        from catalogs.models import CostType
+        try:
+            cost_type = CostType.objects.filter(
+                code=self.tipo_costo,
+                is_active=True,
+                is_deleted=False
+            ).first()
+
+            if cost_type:
+                return cost_type.is_linked_to_ot
+        except Exception:
+            # Si falla la consulta, usar verificación legacy
+            pass
+
+        return False
     
     def es_costo_auxiliar(self):
         """
@@ -972,9 +1074,8 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
 
     numero_nota = models.CharField(
         max_length=64,
-        unique=True,
         db_index=True,
-        help_text="Número único de la nota de crédito"
+        help_text="Número único de la nota de crédito (único solo entre notas no eliminadas)"
     )
 
     invoice_relacionada = models.ForeignKey(
@@ -1083,6 +1184,13 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
             models.Index(fields=['-fecha_emision']),
             models.Index(fields=['estado']),
             models.Index(fields=['-created_at']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['numero_nota'],
+                condition=models.Q(is_deleted=False),
+                name='unique_numero_nota_not_deleted'
+            )
         ]
         verbose_name = 'Nota de Crédito'
         verbose_name_plural = 'Notas de Crédito'

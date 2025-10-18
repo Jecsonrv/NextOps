@@ -602,9 +602,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         # Calcular estadísticas
         total = queryset.count()
         provisionadas = queryset.filter(estado_provision='provisionada').count()
-        disputadas = Invoice.objects.filter(is_deleted=False, estado_provision='disputada').count()
-        pendientes_queryset = Invoice.objects.filter(
-            is_deleted=False,
+        disputadas = queryset.filter(estado_provision='disputada').count()
+        pendientes_queryset = queryset.filter(
             estado_provision='pendiente',
             fecha_provision__isnull=True
         )
@@ -615,8 +614,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         # Estadísticas adicionales de disputas y anulaciones
         total_disputadas = disputadas
-        total_anuladas = Invoice.objects.filter(is_deleted=False, estado_provision='anulada').count()
-        total_anuladas_parcial = Invoice.objects.filter(is_deleted=False, estado_provision='anulada_parcialmente').count()
+        total_anuladas = queryset.filter(estado_provision='anulada').count()
+        total_anuladas_parcial = queryset.filter(estado_provision='anulada_parcialmente').count()
         
         # Monto total (usar monto_aplicable si existe, sino monto)
         # Usar Coalesce para obtener monto_aplicable si existe, sino monto
@@ -748,6 +747,33 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         serializer = InvoiceDetailSerializer(invoice)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """
+        Eliminar (soft delete) múltiples facturas.
+
+        Body:
+        {
+            "invoice_ids": [1, 2, 3, ...]
+        }
+        """
+        invoice_ids = request.data.get('invoice_ids', [])
+
+        if not invoice_ids:
+            return Response(
+                {'error': 'Debe proporcionar invoice_ids'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Filtrar solo las facturas que existen y no están ya eliminadas
+        invoices_to_delete = Invoice.objects.filter(id__in=invoice_ids, is_deleted=False)
+        deleted_count = invoices_to_delete.update(is_deleted=True)
+
+        return Response(
+            {'message': f'{deleted_count} facturas eliminadas exitosamente.'},
+            status=status.HTTP_200_OK
+        )
+
     @action(detail=False, methods=['get'], url_path='export-excel')
     def export_excel(self, request):
         """
@@ -766,8 +792,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from openpyxl.utils import get_column_letter
 
-        # Obtener queryset filtrado SIN PAGINACIÓN (todos los registros)
-        self.pagination_class = None
+        # Forzar la no paginación estableciendo un tamaño de página muy grande
+        if self.paginator:
+            self.paginator.page_size = 10000
         queryset = self.filter_queryset(self.get_queryset())
 
         # Crear workbook
@@ -857,24 +884,24 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     cell.alignment = data_alignment
                     
                     # Aplicar fondo alterno para mejor legibilidad
-                if row_num % 2 == 0:
-                    cell.fill = alt_fill
+                    if row_num % 2 == 0:
+                        cell.fill = alt_fill
 
-                # Formato de fechas (DD/MM/YYYY) - columnas 14, 15, 16, 17, 24
-                if col_num in [14, 15, 16, 17, 24]:
-                    if value:
-                        cell.number_format = 'DD/MM/YYYY'
+                    # Formato de fechas (DD/MM/YYYY) - columnas 14, 15, 16, 17, 24
+                    if col_num in [14, 15, 16, 17, 24]:
+                        if value:
+                            cell.number_format = 'DD/MM/YYYY'
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                    # Formato de moneda contable - columna 13 (Monto USD)
+                    if col_num == 13:
+                        cell.number_format = '$#,##0.00'
+                        cell.alignment = Alignment(horizontal="right", vertical="center")
+
+                    # Formato de porcentaje - columna 21 (Confianza Match)
+                    if col_num == 21:
+                        cell.number_format = '0.0%'
                         cell.alignment = Alignment(horizontal="center", vertical="center")
-
-                # Formato de moneda contable - columna 13 (Monto USD)
-                if col_num == 13:
-                    cell.number_format = '$#,##0.00'
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
-
-                # Formato de porcentaje - columna 21 (Confianza Match)
-                if col_num == 21:
-                    cell.number_format = '0.0%'
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error al exportar facturas a Excel: {e}", exc_info=True)

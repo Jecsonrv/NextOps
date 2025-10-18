@@ -125,6 +125,7 @@ class CostTypeListSerializer(serializers.ModelSerializer):
             'category_name',
             'category_color',
             'category_details',
+            'is_linked_to_ot',
             'is_active',
             'display_order',
         ]
@@ -138,7 +139,7 @@ class CostTypeSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_color = serializers.CharField(source='category.color', read_only=True)
     category_details = CostCategoryListSerializer(source='category', read_only=True)
-    
+
     class Meta:
         model = CostType
         fields = [
@@ -150,6 +151,7 @@ class CostTypeSerializer(serializers.ModelSerializer):
             'category_name',
             'category_color',
             'category_details',
+            'is_linked_to_ot',
             'is_active',
             'display_order',
             'created_at',

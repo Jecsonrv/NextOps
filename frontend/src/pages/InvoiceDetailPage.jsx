@@ -18,6 +18,7 @@ import { FilePreview } from "../components/ui/FilePreview";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
 import { AddProvisionDateModal } from "../components/invoices/AddProvisionDateModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import {
     Card,
     CardContent,
@@ -87,6 +88,7 @@ export function InvoiceDetailPage() {
     const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
     const [isAddProvisionDateModalOpen, setIsAddProvisionDateModalOpen] = useState(false);
     const [cnFileActions, setCnFileActions] = useState({ downloading: false, opening: false, error: null });
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         setFileCache(null);
@@ -282,15 +284,20 @@ export function InvoiceDetailPage() {
         },
     });
 
-    const handleDelete = async () => {
-        if (
-            window.confirm(
-                `¿Estás seguro de eliminar la factura ${
-                    invoice.numero_factura || "#" + id
-                }?\n\nEsta acción no se puede deshacer.`
-            )
-        ) {
-            deleteMutation.mutate();
+    const handleDelete = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        const toastId = toast.loading("Eliminando factura...");
+        try {
+            await deleteMutation.mutateAsync();
+            toast.success("Factura eliminada exitosamente", { id: toastId });
+            setShowDeleteConfirm(false);
+            navigate("/invoices");
+        } catch (error) {
+            console.error("Error eliminando factura:", error);
+            toast.error("Error al eliminar la factura", { id: toastId });
         }
     };
 
@@ -324,31 +331,32 @@ export function InvoiceDetailPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header con botones de acción */}
-            <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => navigate(originPage)}
                         title="Volver"
+                        className="flex-shrink-0"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Button>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-4xl font-bold text-gray-900">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 truncate">
                                 {invoice.numero_factura || `Factura #${id}`}
                             </h1>
                             {invoice.requiere_revision && (
-                                <Badge variant="warning" className="text-sm">
+                                <Badge variant="warning" className="text-xs sm:text-sm self-start">
                                     <AlertCircle className="w-3 h-3 mr-1" />
                                     Requiere Revisión
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-gray-600 mt-1 text-sm">
+                        <p className="text-gray-600 mt-1 text-xs sm:text-sm truncate">
                             {invoice.proveedor_data?.nombre ||
                                 invoice.proveedor_nombre ||
                                 "Sin proveedor"}
@@ -357,11 +365,12 @@ export function InvoiceDetailPage() {
                 </div>
 
                 {/* Botones de acción */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsAssignOTModalOpen(true)}
+                        className="hidden md:inline-flex"
                     >
                         <Link2 className="w-4 h-4 mr-2" />
                         Asignar OT
@@ -371,31 +380,31 @@ export function InvoiceDetailPage() {
                         size="sm"
                         onClick={() => navigate(`/invoices/${id}/edit`)}
                     >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
+                        <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
-                        className="text-orange-600 hover:bg-orange-50"
+                        className="text-orange-600 hover:bg-orange-50 hidden lg:inline-flex"
                         onClick={() => setIsDisputeModalOpen(true)}
                         disabled={invoice.disputas?.some(d => ['abierta', 'en_revision'].includes(d.estado))}
-                        title={invoice.disputas?.some(d => ['abierta', 'en_revision'].includes(d.estado)) 
-                            ? 'Ya existe una disputa activa para esta factura' 
+                        title={invoice.disputas?.some(d => ['abierta', 'en_revision'].includes(d.estado))
+                            ? 'Ya existe una disputa activa para esta factura'
                             : 'Crear nueva disputa'}
                     >
                         <AlertCircle className="w-4 h-4 mr-2" />
-                        Crear Disputa
+                        Disputa
                     </Button>
                     {['anulada', 'anulada_parcialmente'].includes(invoice.estado_provision) && (
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-blue-600 hover:bg-blue-50"
+                            className="text-blue-600 hover:bg-blue-50 hidden xl:inline-flex"
                             onClick={() => setIsAddProvisionDateModalOpen(true)}
                         >
                             <Calendar className="w-4 h-4 mr-2" />
-                            {invoice.fecha_provision ? 'Actualizar' : 'Agregar'} Fecha de Provisión
+                            {invoice.fecha_provision ? 'Actualizar' : 'Agregar'} Provisión
                         </Button>
                     )}
                     {invoice.uploaded_file_data && (
@@ -406,13 +415,11 @@ export function InvoiceDetailPage() {
                             disabled={fileActions.downloading}
                         >
                             {fileActions.downloading ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2 animate-spin" />
                             ) : (
-                                <Download className="w-4 h-4 mr-2" />
+                                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
                             )}
-                            {fileActions.downloading
-                                ? "Descargando..."
-                                : "Descargar"}
+                            <span className="hidden sm:inline">{fileActions.downloading ? "Descargando..." : "Descargar"}</span>
                         </Button>
                     )}
                     <Button
@@ -420,6 +427,7 @@ export function InvoiceDetailPage() {
                         size="sm"
                         onClick={handleDelete}
                         disabled={deleteMutation.isPending}
+                        className="hidden sm:inline-flex"
                     >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Eliminar
@@ -450,9 +458,9 @@ export function InvoiceDetailPage() {
                 </Card>
             )}
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                 {/* COLUMNA IZQUIERDA - Información Principal */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                     {/* Información de la OT Asignada */}
                     {invoice.ot_data && (
                         <Card className="border-blue-200">
@@ -535,12 +543,12 @@ export function InvoiceDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 gap-6 items-start">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-start">
                                 <div>
                                     <label className="text-xs font-medium text-gray-600 uppercase">
                                         Número de Factura
                                     </label>
-                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                    <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-all">
                                         {invoice.numero_factura || "SIN NÚMERO"}
                                     </p>
                                 </div>
@@ -578,7 +586,7 @@ export function InvoiceDetailPage() {
                                                     <label className="text-xs font-medium text-gray-600 uppercase">
                                                         Monto Total
                                                     </label>
-                                                    <p className="text-2xl font-bold text-green-600 mt-1">
+                                                    <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1 break-all">
                                                         ${montoOriginal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
@@ -590,11 +598,11 @@ export function InvoiceDetailPage() {
 
                                         // Si hay ajustes, mostrar el desglose
                                         return (
-                                            <div>
+                                            <div className="sm:col-span-2">
                                                 <label className="text-xs font-medium text-gray-600 uppercase">
                                                     Resumen de Montos
                                                 </label>
-                                                <div className={`mt-2 p-3 rounded-lg space-y-2 ${esAnulacionTotal ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
+                                                <div className={`mt-2 p-2.5 sm:p-3 rounded-lg space-y-2 ${esAnulacionTotal ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-sm text-gray-700">Monto Original:</span>
                                                         <span className={`font-semibold text-gray-900`}>
@@ -1193,6 +1201,17 @@ export function InvoiceDetailPage() {
                 isOpen={isAddProvisionDateModalOpen}
                 onClose={() => setIsAddProvisionDateModalOpen(false)}
                 invoice={invoice}
+            />
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                title="Confirmar Eliminación"
+                message={`¿Estás seguro de que deseas eliminar la factura ${invoice.numero_factura || "#" + id}? Esta acción no se puede deshacer.`}
+                confirmText="Sí, eliminar"
+                cancelText="Cancelar"
+                isConfirming={deleteMutation.isPending}
             />
         </div>
     );

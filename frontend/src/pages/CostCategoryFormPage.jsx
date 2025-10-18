@@ -63,7 +63,7 @@ export function CostCategoryFormPage() {
 
         // Convertir código a lowercase automáticamente
         if (name === "code") {
-            processedValue = value.toLowerCase().replace(/\s+/g, "_");
+            processedValue = value.replace(/\s+/g, "_");
         }
 
         // Convertir display_order a número
@@ -87,9 +87,9 @@ export function CostCategoryFormPage() {
 
         if (!formData.code.trim()) {
             newErrors.code = "El código es requerido";
-        } else if (!/^[a-z0-9_]+$/.test(formData.code)) {
+        } else if (!/^[a-zA-Z0-9_]+$/.test(formData.code)) {
             newErrors.code =
-                "El código solo puede contener letras minúsculas, números y guiones bajos";
+                "El código solo puede contener letras (mayúsculas o minúsculas), números y guiones bajos";
         }
 
         if (!formData.name.trim()) {
@@ -228,7 +228,7 @@ export function CostCategoryFormPage() {
                                     </p>
                                 )}
                                 <p className="text-gray-500 text-xs mt-1">
-                                    Solo letras minúsculas, números y guiones
+                                    Solo letras mayúsculas, números y guiones
                                     bajos
                                 </p>
                             </div>

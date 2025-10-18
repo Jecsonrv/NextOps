@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
 import { useProviders } from "../hooks/useInvoices";
+import { useCostTypes } from "../hooks/useCostTypes";
+import { useBulkDeleteInvoices } from "../hooks/useInvoices";
 import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
@@ -38,8 +40,10 @@ import {
     Truck,
     DollarSign,
 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
 import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 export function InvoicesPage() {
     const [search, setSearch] = useState("");
@@ -50,6 +54,8 @@ export function InvoicesPage() {
     const [selectedInvoiceForDispute, setSelectedInvoiceForDispute] = useState(null);
     const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
     const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+    const [isDeletingBulk, setIsDeletingBulk] = useState(false);
     const [filters, setFilters] = useState({
         estado_provision: "",
         estado_facturacion: "",
@@ -60,7 +66,10 @@ export function InvoicesPage() {
     });
 
     const { data: providers } = useProviders();
+    const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
     const queryClient = useQueryClient();
+
+    const bulkDeleteMutation = useBulkDeleteInvoices();
 
     // Mutation para asignar OT
     const assignOTMutation = useMutation({
@@ -250,6 +259,22 @@ export function InvoicesPage() {
         }
     };
 
+    const handleConfirmBulkDelete = async () => {
+        setIsDeletingBulk(true);
+        const toastId = toast.loading("Eliminando facturas seleccionadas...");
+        try {
+            await bulkDeleteMutation.mutateAsync(selectedInvoices);
+            toast.success(`${selectedInvoices.length} facturas eliminadas exitosamente`, { id: toastId });
+            setSelectedInvoices([]);
+            setShowBulkDeleteConfirm(false);
+        } catch (error) {
+            console.error("Error eliminando facturas en masa:", error);
+            toast.error("Error al eliminar las facturas seleccionadas", { id: toastId });
+        } finally {
+            setIsDeletingBulk(false);
+        }
+    };
+
     // Funciones para selección múltiple
     const handleSelectAll = () => {
         if (selectedInvoices.length === data?.results?.length) {
@@ -278,22 +303,22 @@ export function InvoicesPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Stats Cards */}
             {stats && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
                                 Total Facturas
                             </CardTitle>
-                            <FileText className="w-5 h-5 text-blue-600" />
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold text-gray-900">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                                 {stats.total}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                                 Todas las facturas
                             </p>
                         </CardContent>
@@ -301,16 +326,16 @@ export function InvoicesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
-                                Pendientes Provisión
+                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+                                Pend. Provisión
                             </CardTitle>
-                            <FileText className="w-5 h-5 text-yellow-600" />
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold text-gray-900">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                                 {stats.pendientes_provision || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                                 Por provisionar
                             </p>
                         </CardContent>
@@ -318,16 +343,16 @@ export function InvoicesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
                                 Provisionadas
                             </CardTitle>
-                            <FileText className="w-5 h-5 text-green-600" />
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold text-gray-900">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                                 {stats.provisionadas || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                                 Listas para facturar
                             </p>
                         </CardContent>
@@ -335,16 +360,16 @@ export function InvoicesPage() {
 
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-sm font-medium text-gray-600">
+                            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
                                 Disputas
                             </CardTitle>
-                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold text-gray-900">
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                                 {stats.pendientes_revision || 0}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                                 Facturas con disputa activa
                             </p>
                         </CardContent>
@@ -354,14 +379,14 @@ export function InvoicesPage() {
 
             {/* Filters and Actions */}
             <Card>
-                <CardContent className="pt-6">
-                    <div className="flex flex-col lg:flex-row gap-4">
+                <CardContent className="pt-4 sm:pt-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
                         {/* Search */}
-                        <div className="flex-1">
+                        <div className="w-full">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <Input
-                                    placeholder="Buscar por número de factura, proveedor, OT..."
+                                    placeholder="Buscar factura, proveedor, OT..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-10"
@@ -375,57 +400,61 @@ export function InvoicesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
+                                className="flex-1 sm:flex-none"
                             >
                                 {showFilters ? (
-                                    <ChevronUp className="w-4 h-4 mr-2" />
+                                    <ChevronUp className="w-4 h-4 sm:mr-2" />
                                 ) : (
-                                    <ChevronDown className="w-4 h-4 mr-2" />
+                                    <ChevronDown className="w-4 h-4 sm:mr-2" />
                                 )}
-                                Filtros
+                                <span className="hidden sm:inline">Filtros</span>
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={handleExportToExcel}
+                                className="flex-1 sm:flex-none"
                             >
-                                <Download className="w-4 h-4 mr-2" />
-                                Exportar Excel
+                                <Download className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Excel</span>
                             </Button>
                             <Button
                                 size="sm"
                                 onClick={() =>
                                     (window.location.href = "/invoices/new")
                                 }
+                                className="flex-1 sm:flex-none"
                             >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Subir Factura
+                                <Upload className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Subir</span>
                             </Button>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setIsCreditNoteModalOpen(true)}
+                                className="hidden md:inline-flex"
                             >
                                 <FileMinus className="w-4 h-4 mr-2" />
-                                Crear Nota de Crédito
+                                Nota de Crédito
                             </Button>
                         </div>
                     </div>
 
                     {/* Barra de Acciones Masivas */}
                     {selectedInvoices.length > 0 && (
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center justify-between flex-wrap gap-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-medium text-blue-900">
-                                        {selectedInvoices.length} factura(s) seleccionada(s)
+                        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-sm sm:text-base font-medium text-blue-900 truncate">
+                                        {selectedInvoices.length} seleccionada{selectedInvoices.length !== 1 ? 's' : ''}
                                     </span>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => setSelectedInvoices([])}
                                     >
-                                        <X className="w-4 h-4 mr-1" />
-                                        Limpiar
+                                        <X className="w-4 h-4 sm:mr-1" />
+                                        <span className="hidden sm:inline">Limpiar</span>
                                     </Button>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
@@ -433,17 +462,29 @@ export function InvoicesPage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={handleBulkPDF}
+                                        className="flex-1 sm:flex-none"
                                     >
-                                        <Package className="w-4 h-4 mr-2" />
-                                        Exportar PDF
+                                        <Package className="w-4 h-4 sm:mr-2" />
+                                        <span className="hidden sm:inline">PDF</span>
                                     </Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={handleBulkZIP}
+                                        className="hidden md:inline-flex"
                                     >
                                         <Archive className="w-4 h-4 mr-2" />
-                                        Exportar ZIP Estructurado
+                                        ZIP
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setShowBulkDeleteConfirm(true)}
+                                        disabled={bulkDeleteMutation.isPending}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        <Trash2 className="w-4 h-4 sm:mr-2" />
+                                        <span className="hidden sm:inline">Eliminar</span>
                                     </Button>
                                 </div>
                             </div>
@@ -524,18 +565,17 @@ export function InvoicesPage() {
                                             })
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        disabled={costTypesLoading}
                                     >
                                         <option value="">Todos</option>
-                                        <option value="FLETE">Flete</option>
-                                        <option value="TRANSPORTE">
-                                            Transporte
-                                        </option>
-                                        <option value="ADUANA">Aduana</option>
-                                        <option value="ALMACENAJE">
-                                            Almacenaje
-                                        </option>
-                                        <option value="DEMORA">Demora</option>
-                                        <option value="OTRO">Otro</option>
+                                        {costTypes?.results?.map((costType) => (
+                                            <option
+                                                key={costType.code}
+                                                value={costType.code}
+                                            >
+                                                {costType.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -657,11 +697,11 @@ export function InvoicesPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto -mx-4 sm:mx-0">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-gray-200 bg-gray-50">
-                                            <th className="px-4 py-3 text-center">
+                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                                                 <input
                                                     type="checkbox"
                                                     checked={
@@ -673,52 +713,52 @@ export function InvoicesPage() {
                                                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 />
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Operativo
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 OT
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Cliente
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 MBL
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Naviera
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Proveedor
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Barco
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden 2xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Tipo Prov.
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden 2xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Tipo Costo
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Estado
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                # Factura
+                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                                Factura
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Emisión
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Provisión
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 F. Facturación
                                             </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Monto
                                             </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                            <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                                                 Acciones
                                             </th>
                                         </tr>
@@ -729,7 +769,7 @@ export function InvoicesPage() {
                                                 key={invoice.id}
                                                 className="hover:bg-blue-50 transition-colors"
                                             >
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedInvoices.includes(
@@ -741,10 +781,10 @@ export function InvoicesPage() {
                                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                     />
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
                                                     {invoice.ot_data?.operativo || "-"}
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="hidden lg:table-cell px-4 py-3">
                                                     {invoice.ot_data ? (
                                                         <Link
                                                             to={`/ots/${invoice.ot_data.id}`}
@@ -759,34 +799,36 @@ export function InvoicesPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-900">
                                                     {invoice.ot_data?.cliente || "-"}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
                                                     {invoice.ot_data?.mbl || "-"}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
                                                     {invoice.ot_data?.naviera || "-"}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.proveedor_data?.nombre || "-"}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {invoice.ot_data?.barco || "-"}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                                                        <Ship className="w-3.5 h-3.5" />
-                                                        {invoice.proveedor_data?.tipo_display || "-"}
+                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900">
+                                                    <div className="truncate max-w-[120px] sm:max-w-none">
+                                                        {invoice.proveedor_data?.nombre || "-"}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-900">
+                                                    {invoice.ot_data?.barco || "-"}
+                                                </td>
+                                                <td className="hidden 2xl:table-cell px-4 py-3">
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                                        <Ship className="w-3.5 h-3.5" />
+                                                        <span className="hidden xl:inline">{invoice.proveedor_data?.tipo_display || "-"}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="hidden 2xl:table-cell px-4 py-3">
                                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                         <DollarSign className="w-3.5 h-3.5" />
                                                         {invoice.tipo_costo_display || "-"}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="hidden lg:table-cell px-4 py-3">
                                                     <div className="flex flex-col gap-1">
                                                         <InvoiceStatusBadge invoice={invoice} />
                                                         <div className="flex gap-1">
@@ -795,58 +837,61 @@ export function InvoicesPage() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-1">
+                                                <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1">
                                                         <Link
                                                             to={`/invoices/${invoice.id}`}
-                                                            className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                                            className="font-medium text-xs sm:text-sm text-blue-600 hover:text-blue-800 truncate max-w-[100px] sm:max-w-none"
                                                         >
                                                             {invoice.numero_factura || "SIN-NUM"}
                                                         </Link>
-                                                        {invoice.requiere_revision && (
-                                                            <AlertCircle 
-                                                                className="w-3.5 h-3.5 text-red-500 flex-shrink-0" 
-                                                                title="Requiere Revisión" 
-                                                            />
-                                                        )}
-                                                        {invoice.has_disputes && invoice.dispute_id && (
-                                                            <Link
-                                                                to={`/invoices/disputes/${invoice.dispute_id}`}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                title="Ver Disputa"
-                                                            >
-                                                                <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
-                                                            </Link>
-                                                        )}
-                                                        {invoice.has_credit_notes && (
-                                                            <FileMinus 
-                                                                className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" 
-                                                                title="Tiene Notas de Crédito" 
-                                                            />
-                                                        )}
+                                                        <div className="flex items-center gap-1">
+                                                            {invoice.requiere_revision && (
+                                                                <AlertCircle
+                                                                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0"
+                                                                    title="Requiere Revisión"
+                                                                />
+                                                            )}
+                                                            {invoice.has_disputes && invoice.dispute_id && (
+                                                                <Link
+                                                                    to={`/invoices/disputes/${invoice.dispute_id}`}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    title="Ver Disputa"
+                                                                >
+                                                                    <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
+                                                                </Link>
+                                                            )}
+                                                            {invoice.has_credit_notes && (
+                                                                <FileMinus
+                                                                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-500 flex-shrink-0"
+                                                                    title="Tiene Notas de Crédito"
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
                                                     {formatDate(invoice.fecha_emision)}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
                                                     {formatDate(invoice.fecha_provision)}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="hidden xl:table-cell px-4 py-3 text-sm text-gray-600">
                                                     {formatDate(invoice.fecha_facturacion)}
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                                                    $
-                                                    {(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
-                                                        "es-MX",
-                                                        {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        }
-                                                    ) || "0.00"}
+                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-900">
+                                                    <div className="truncate">
+                                                        ${(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
+                                                            "es-MX",
+                                                            {
+                                                                minimumFractionDigits: 0,
+                                                                maximumFractionDigits: 0,
+                                                            }
+                                                        ) || "0"}
+                                                    </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex justify-end gap-1">
+                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
+                                                    <div className="flex justify-end gap-0.5 sm:gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -854,8 +899,9 @@ export function InvoicesPage() {
                                                                 (window.location.href = `/invoices/${invoice.id}`)
                                                             }
                                                             title="Ver detalles"
+                                                            className="h-8 w-8"
                                                         >
-                                                            <Eye className="w-4 h-4" />
+                                                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
@@ -870,6 +916,7 @@ export function InvoicesPage() {
                                                                     ? "Cambiar OT"
                                                                     : "Asignar OT"
                                                             }
+                                                            className="h-8 w-8 hidden sm:inline-flex"
                                                         >
                                                             <Link2 className="w-4 h-4" />
                                                         </Button>
@@ -881,6 +928,7 @@ export function InvoicesPage() {
                                                                 setShowDisputeModal(true);
                                                             }}
                                                             title="Crear Disputa"
+                                                            className="h-8 w-8 hidden md:inline-flex"
                                                         >
                                                             <AlertTriangle className="w-4 h-4" />
                                                         </Button>
@@ -901,6 +949,7 @@ export function InvoicesPage() {
                                                                     )
                                                                 }
                                                                 title="Descargar archivo"
+                                                                className="h-8 w-8 hidden lg:inline-flex"
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </Button>
@@ -987,6 +1036,18 @@ export function InvoicesPage() {
                     }}
                 />
             )}
+
+            {/* Confirmación de eliminación masiva */}
+            <ConfirmDialog
+                isOpen={showBulkDeleteConfirm}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                onConfirm={handleConfirmBulkDelete}
+                title="Confirmar Eliminación Masiva"
+                message={`¿Estás seguro de que deseas eliminar ${selectedInvoices.length} facturas seleccionadas? Esta acción no se puede deshacer.`}
+                confirmText="Sí, eliminar"
+                cancelText="Cancelar"
+                isConfirming={isDeletingBulk}
+            />
         </div>
     );
 }

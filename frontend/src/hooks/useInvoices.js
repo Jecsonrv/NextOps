@@ -208,6 +208,28 @@ export function useInvoiceDelete(id) {
 }
 
 /**
+ * Hook para eliminar múltiples facturas (bulk delete)
+ * @param {Array<number>} invoiceIds - IDs de las facturas a eliminar
+ */
+export function useBulkDeleteInvoices() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (invoiceIds) => {
+            const response = await apiClient.post(
+                "/invoices/bulk-delete/",
+                { invoice_ids: invoiceIds }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["invoices-stats"] });
+        },
+    });
+}
+
+/**
  * Hook para obtener lista de proveedores del catálogo
  * @param {Object} options - Opciones de búsqueda y filtrado
  */

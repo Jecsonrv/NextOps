@@ -5,6 +5,7 @@ import {
     useInvoiceUpdate,
     useProviders,
 } from "../hooks/useInvoices";
+import { useCostTypes } from "../hooks/useCostTypes";
 import {
     Card,
     CardContent,
@@ -14,16 +15,6 @@ import {
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react";
-
-const TIPO_COSTO_OPTIONS = [
-    { value: "FLETE", label: "Flete" },
-    { value: "CARGOS_NAVIERA", label: "Cargos de Naviera" },
-    { value: "TRANSPORTE", label: "Transporte" },
-    { value: "ADUANA", label: "Aduana" },
-    { value: "ALMACENAJE", label: "Almacenaje" },
-    { value: "DEMORA", label: "Demora" },
-    { value: "OTRO", label: "Otro" },
-];
 
 const TIPO_PROVEEDOR_OPTIONS = [
     { value: "naviera", label: "Naviera" },
@@ -53,6 +44,7 @@ export function InvoiceEditPage() {
 
     const { data: invoice, isLoading, error } = useInvoiceDetail(id);
     const { data: providers, isLoading: providersLoading } = useProviders();
+    const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
     const updateMutation = useInvoiceUpdate(id);
 
     const [formData, setFormData] = useState({
@@ -372,13 +364,15 @@ export function InvoiceEditPage() {
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
+                                    disabled={costTypesLoading}
                                 >
-                                    {TIPO_COSTO_OPTIONS.map((option) => (
+                                    <option value="">Selecciona un tipo de costo...</option>
+                                    {costTypes?.results?.map((option) => (
                                         <option
-                                            key={option.value}
-                                            value={option.value}
+                                            key={option.code}
+                                            value={option.code}
                                         >
-                                            {option.label}
+                                            {option.name}
                                         </option>
                                     ))}
                                 </select>

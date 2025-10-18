@@ -41,6 +41,7 @@ export function CostTypeFormPage() {
         name: "",
         description: "",
         category: "",
+        is_linked_to_ot: false,
         is_active: true,
         display_order: 0,
     });
@@ -55,6 +56,7 @@ export function CostTypeFormPage() {
                 name: costType.name || "",
                 description: costType.description || "",
                 category: costType.category || "",
+                is_linked_to_ot: costType.is_linked_to_ot || false,
                 is_active: costType.is_active !== false,
                 display_order: costType.display_order || 0,
             });
@@ -335,6 +337,31 @@ export function CostTypeFormPage() {
                                 Número que determina el orden de aparición
                                 (menor número aparece primero)
                             </p>
+                        </div>
+
+                        {/* Enlace con OT */}
+                        <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <input
+                                type="checkbox"
+                                id="is_linked_to_ot"
+                                checked={formData.is_linked_to_ot}
+                                onChange={(e) =>
+                                    handleChange("is_linked_to_ot", e.target.checked)
+                                }
+                                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                                <label
+                                    htmlFor="is_linked_to_ot"
+                                    className="text-sm font-medium text-gray-900 cursor-pointer"
+                                >
+                                    Enlazar con Orden de Trabajo (OT)
+                                </label>
+                                <p className="text-xs text-gray-600 mt-1">
+                                    Si se marca, las facturas de este tipo de costo se sincronizarán automáticamente con la OT (ej: Flete, Cargos de Naviera).
+                                    Las fechas de provisión y facturación se heredarán de la OT.
+                                </p>
+                            </div>
                         </div>
 
                         {/* Estado */}
