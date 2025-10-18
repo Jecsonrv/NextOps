@@ -250,16 +250,23 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             created = False
         except SimilarityMatch.DoesNotExist:
             # Crear un rechazo explícito para evitar sugerencias futuras
-            suggestion = SimilarityMatch.objects.create(
-                alias_1=alias_1,
-                alias_2=alias_2,
-                similarity_score=0.0,  # Rechazo manual
-                detection_method='manual',
-                status='rejected',
-                reviewed_by=request.user,
-                reviewed_at=timezone.now(),
-                review_notes=notes
-            )
+            # Usar create directo sin validación para permitir rechazar incluso si ya están fusionados
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO similarity_matches
+                    (alias_1_id, alias_2_id, similarity_score, detection_method, status, reviewed_by_id, reviewed_at, review_notes, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                """, [
+                    alias_1.id,
+                    alias_2.id,
+                    0.0,
+                    'manual',
+                    'rejected',
+                    request.user.id,
+                    timezone.now(),
+                    notes or 'Sin razón'
+                ])
             created = True
         
         return Response({
@@ -314,9 +321,10 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         # PASO 1: Limpiar sugerencias obsoletas (falsos positivos del algoritmo anterior)
         obsolete_removed = self._clean_obsolete_suggestions(threshold, request.user)
 
-        # PASO 2: Obtener aliases sin fusionar
+        # PASO 2: Obtener aliases sin fusionar y activos
         aliases = self.get_queryset().filter(
-            merged_into__isnull=True
+            merged_into__isnull=True,
+            deleted_at__isnull=True
         ).order_by('id')
 
         suggestions_created = 0
@@ -372,8 +380,9 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         """
         Limpia sugerencias obsoletas que ya no cumplen con el nuevo algoritmo.
 
-        Esto elimina falsos positivos antiguos cuando mejoramos el algoritmo de
-        fuzzy matching.
+        Esto elimina:
+        1. Falsos positivos antiguos cuando mejoramos el algoritmo de fuzzy matching
+        2. Sugerencias donde alguno de los aliases ya está fusionado
 
         Args:
             current_threshold: Umbral mínimo de similitud
@@ -382,7 +391,24 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         Returns:
             int: Cantidad de sugerencias eliminadas/rechazadas
         """
-        # Obtener todas las sugerencias pendientes con aliases activos
+        obsolete_count = 0
+
+        # PASO 1: Rechazar sugerencias donde algún alias ya está fusionado
+        merged_suggestions = SimilarityMatch.objects.filter(
+            status='pending'
+        ).filter(
+            Q(alias_1__merged_into__isnull=False) | Q(alias_2__merged_into__isnull=False)
+        )
+
+        for match in merged_suggestions:
+            match.status = 'rejected'
+            match.review_notes = 'Auto-rechazado: uno o ambos clientes ya fueron fusionados/normalizados'
+            match.reviewed_by = user
+            match.reviewed_at = timezone.now()
+            match.save(update_fields=['status', 'review_notes', 'reviewed_by', 'reviewed_at'])
+            obsolete_count += 1
+
+        # PASO 2: Obtener sugerencias pendientes con aliases activos y NO fusionados
         pending_matches = SimilarityMatch.objects.filter(
             status='pending',
             alias_1__deleted_at__isnull=True,
@@ -390,8 +416,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             alias_1__merged_into__isnull=True,
             alias_2__merged_into__isnull=True
         ).select_related('alias_1', 'alias_2')
-
-        obsolete_count = 0
 
         for match in pending_matches:
             # Recalcular similitud con el algoritmo mejorado actual
@@ -411,7 +435,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
                 )
                 match.reviewed_by = user
                 match.reviewed_at = timezone.now()
-                match.save()
+                match.save(update_fields=['status', 'review_notes', 'reviewed_by', 'reviewed_at'])
                 obsolete_count += 1
 
         return obsolete_count

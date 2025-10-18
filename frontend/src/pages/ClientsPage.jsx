@@ -99,7 +99,13 @@ export default function ClientsPage() {
     // Datos procesados
     const aliases = aliasesData?.results || [];
     const matches = matchesData?.results || [];
-    const pendingMatches = matches.filter((m) => m.status === "pending");
+
+    // Filtrar pendientes: solo mostrar si AMBOS clientes NO están fusionados
+    const pendingMatches = matches.filter((m) =>
+        m.status === "pending" &&
+        !m.alias_1.merged_into &&
+        !m.alias_2.merged_into
+    );
     const approvedMatches = matches.filter((m) => m.status === "approved");
 
     // Handler: Detección masiva
