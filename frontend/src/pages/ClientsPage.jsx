@@ -254,135 +254,124 @@ export default function ClientsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                        <Users className="w-8 h-8 text-blue-600" />
-                        Gestión de Clientes
-                    </h1>
-                    <p className="text-gray-500 mt-2">
-                        Normalización de clientes de tus OTs importadas
-                    </p>
-                    <p className="text-sm text-gray-400 mt-1">
-                        ✓ {stats?.total_aliases || aliases.length} clientes
-                        reales de tu base de datos
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        onClick={() => {
-                            refetchAliases();
-                            refetchMatches();
-                            refetchStats();
-                        }}
-                        variant="outline"
-                        disabled={loadingAliases || loadingMatches}
-                    >
-                        <RefreshCw
-                            className={`w-4 h-4 mr-2 ${
-                                loadingAliases || loadingMatches
-                                    ? "animate-spin"
-                                    : ""
-                            }`}
-                        />
-                        Actualizar
-                    </Button>
-                    <Button
-                        onClick={handleDetectDuplicates}
-                        disabled={suggestMatches.isPending}
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        {suggestMatches.isPending
-                            ? "Analizando..."
-                            : "Detectar Duplicados"}
-                    </Button>
-                </div>
-            </div>
-
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">
-                                    Total Clientes
-                                </p>
-                                <p className="text-2xl font-bold">
-                                    {stats?.total_aliases || 0}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Aliases únicos activos
-                                </p>
-                            </div>
-                            <Users className="w-10 h-10 text-blue-500 opacity-20" />
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Clientes
+                        </CardTitle>
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {stats?.total_aliases || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">
-                                    Pendientes
-                                </p>
-                                <p className="text-2xl font-bold text-orange-600">
-                                    {stats?.pending_matches || 0}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Requieren revisión
-                                </p>
-                            </div>
-                            <Clock className="w-10 h-10 text-orange-500 opacity-20" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Pendientes
+                        </CardTitle>
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+                            {stats?.pending_matches || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Requieren revisión
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">
-                                    Normalizados
-                                </p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {stats?.approved_matches || 0}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Fusiones aprobadas
-                                </p>
-                            </div>
-                            <CheckCircle2 className="w-10 h-10 text-green-500 opacity-20" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Normalizados
+                        </CardTitle>
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {stats?.approved_matches || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Fusiones aprobadas
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500">
-                                    Verificados
-                                </p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                    {stats?.verified_count || 0}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Revisados manualmente
-                                </p>
-                            </div>
-                            <CheckCircle className="w-10 h-10 text-blue-500 opacity-20" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Verificados
+                        </CardTitle>
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+                            {stats?.verified_count || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Revisados manualmente
+                        </p>
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Barra de búsqueda y acciones */}
+            <Card>
+                <CardContent className="pt-4 sm:pt-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    refetchAliases();
+                                    refetchMatches();
+                                    refetchStats();
+                                }}
+                                disabled={loadingAliases || loadingMatches}
+                                className="flex-1 sm:flex-none"
+                            >
+                                <RefreshCw
+                                    className={`w-4 h-4 sm:mr-2 ${
+                                        loadingAliases || loadingMatches
+                                            ? "animate-spin"
+                                            : ""
+                                    }`}
+                                />
+                                <span className="hidden sm:inline">Actualizar</span>
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleDetectDuplicates}
+                                disabled={suggestMatches.isPending}
+                                className="flex-1 sm:flex-none"
+                            >
+                                <TrendingUp className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">
+                                    {suggestMatches.isPending
+                                        ? "Analizando..."
+                                        : "Detectar Duplicados"}
+                                </span>
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-4">
+            <div className="border-b border-gray-200 overflow-x-auto">
+                <nav className="-mb-px flex space-x-2 sm:space-x-4">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -392,7 +381,7 @@ export default function ClientsPage() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`
-                                    flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm
+                                    flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap
                                     ${
                                         isActive
                                             ? "border-blue-500 text-blue-600"
@@ -401,9 +390,9 @@ export default function ClientsPage() {
                                 `}
                             >
                                 <Icon className="w-4 h-4" />
-                                {tab.label}
+                                <span className="hidden sm:inline">{tab.label}</span>
                                 {tab.count > 0 && (
-                                    <Badge variant={tab.badge || "secondary"}>
+                                    <Badge variant={tab.badge || "secondary"} className="text-xs">
                                         {tab.count}
                                     </Badge>
                                 )}
