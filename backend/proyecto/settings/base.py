@@ -25,11 +25,6 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-
-    # Cloud Storage - DEBE estar ANTES de staticfiles
-    'cloudinary_storage',
-    'cloudinary',
-
     'django.contrib.staticfiles',
     'django.contrib.postgres',
 
@@ -39,6 +34,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
+
+    # Cloudinary (solo la librería base, no django-cloudinary-storage)
+    'cloudinary',
 
     # Local apps
     'common',
@@ -137,31 +135,29 @@ MEDIA_ROOT = BASE_DIR / 'media'
 BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 
 # Cloudinary Configuration (Cloud Storage)
-# IMPORTANTE: Debe estar ANTES de cualquier import que use default_storage
 USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
 
-# Configure cloudinary library directly (debe ser antes de DEFAULT_FILE_STORAGE)
-if USE_CLOUDINARY:
-    import cloudinary
-    import cloudinary.uploader
-    import cloudinary.api
+# Configure cloudinary library directly
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
-    cloudinary.config(
-        cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
-        api_key=config('CLOUDINARY_API_KEY', default=''),
-        api_secret=config('CLOUDINARY_API_SECRET', default=''),
-        secure=True
-    )
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
+    api_key=config('CLOUDINARY_API_KEY', default=''),
+    api_secret=config('CLOUDINARY_API_SECRET', default=''),
+    secure=True
+)
 
-    # Set as default storage
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-# Cloudinary settings dict (requerido por django-cloudinary-storage)
+# Cloudinary settings dict
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
     'API_KEY': config('CLOUDINARY_API_KEY', default=''),
     'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
 }
+
+# Use custom storage backend que maneja Cloudinary y FileSystem
+DEFAULT_FILE_STORAGE = 'common.storage_backends.CloudinaryMediaStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
