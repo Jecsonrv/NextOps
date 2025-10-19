@@ -38,6 +38,17 @@ def cloudinary_status(request):
     storage_backend = getattr(settings, 'DEFAULT_FILE_STORAGE', 'django.core.files.storage.FileSystemStorage')
     use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
 
+    # Get sample invoice info
+    from invoices.models import Invoice
+    sample = Invoice.objects.filter(uploaded_file__isnull=False, deleted_at__isnull=True).order_by('-id').first()
+    sample_info = None
+    if sample:
+        sample_info = {
+            'id': sample.id,
+            'uploaded_file_id': sample.uploaded_file.id if sample.uploaded_file else None,
+            'uploaded_file_path': sample.uploaded_file.path if sample.uploaded_file else None,
+        }
+
     return Response({
         'use_cloudinary': use_cloudinary,
         'storage_backend': storage_backend,
@@ -52,6 +63,7 @@ def cloudinary_status(request):
             'api_secret': 'SET' if settings.CLOUDINARY_STORAGE.get('API_SECRET') else 'NOT SET',
         },
         'is_using_cloudinary': 'cloudinary' in storage_backend.lower(),
+        'latest_invoice_sample': sample_info,
     }, status=status.HTTP_200_OK)
 
 
