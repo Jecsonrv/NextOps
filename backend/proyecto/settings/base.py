@@ -25,19 +25,20 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+
+    # Cloud Storage - DEBE estar ANTES de staticfiles
+    'cloudinary_storage',
+    'cloudinary',
+
     'django.contrib.staticfiles',
     'django.contrib.postgres',
-    
+
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
-
-    # Cloud Storage
-    'cloudinary_storage',
-    'cloudinary',
 
     # Local apps
     'common',
