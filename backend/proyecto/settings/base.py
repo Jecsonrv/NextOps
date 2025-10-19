@@ -127,6 +127,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Backend URL for absolute media URLs (important for Railway/production)
+# Should be set in environment: https://your-backend.railway.app
+BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

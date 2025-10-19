@@ -6,6 +6,7 @@ Maneja la serialización de facturas y archivos subidos.
 from rest_framework import serializers
 from decimal import Decimal
 from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
+from .utils import get_absolute_media_url
 from ots.models import OT
 from catalogs.models import Provider
 
@@ -25,8 +26,8 @@ class UploadedFileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'sha256', 'created_at']
     
     def get_file_url(self, obj):
-        """Genera URL del archivo"""
-        return f"/media/{obj.path}"
+        """Genera URL completa del archivo"""
+        return get_absolute_media_url(obj.path)
     
     def get_size_mb(self, obj):
         """Tamaño en MB"""
@@ -139,15 +140,17 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     def get_tipo_costo_display(self, obj):
         """Display del tipo de costo"""
         return obj.get_tipo_costo_display() if obj.tipo_costo else None
-    
+
     def get_confidence_level(self, obj):
         """Nivel de confianza legible"""
         return obj.get_confidence_level()
-    
+
     def get_file_url(self, obj):
-        """URL del archivo"""
-        return obj.get_file_url()
-    
+        """URL completa del archivo"""
+        if obj.uploaded_file:
+            return get_absolute_media_url(obj.uploaded_file.path)
+        return None
+
     def get_dias_hasta_vencimiento(self, obj):
         """Días hasta el vencimiento"""
         return obj.calcular_dias_hasta_vencimiento()
@@ -301,11 +304,13 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     def get_confidence_level(self, obj):
         """Nivel de confianza legible"""
         return obj.get_confidence_level()
-    
+
     def get_file_url(self, obj):
-        """URL del archivo"""
-        return obj.get_file_url()
-    
+        """URL completa del archivo"""
+        if obj.uploaded_file:
+            return get_absolute_media_url(obj.uploaded_file.path)
+        return None
+
     def get_dias_hasta_vencimiento(self, obj):
         """Días hasta el vencimiento"""
         return obj.calcular_dias_hasta_vencimiento()
@@ -993,9 +998,9 @@ class CreditNoteListSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_url(self, obj):
-        """URL del archivo de la nota de crédito"""
+        """URL completa del archivo de la nota de crédito"""
         if obj.uploaded_file:
-            return f"/media/{obj.uploaded_file.path}"
+            return get_absolute_media_url(obj.uploaded_file.path)
         return None
 
     def get_proveedor_data(self, obj):
@@ -1072,9 +1077,9 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_file_url(self, obj):
-        """URL del archivo"""
+        """URL completa del archivo"""
         if obj.uploaded_file:
-            return f"/media/{obj.uploaded_file.path}"
+            return get_absolute_media_url(obj.uploaded_file.path)
         return None
 
     def get_ot_data(self, obj):
