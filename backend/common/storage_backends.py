@@ -36,19 +36,30 @@ class CloudinaryMediaStorage(FileSystemStorage):
             folder = os.path.dirname(name)
             filename = os.path.basename(name)
 
+            # Sanitize filename - remove special characters but keep extension
+            import re
+            from urllib.parse import quote
+            base_name, ext = os.path.splitext(filename)
+            # Remove special chars, keep alphanumeric, hyphens, underscores
+            sanitized_base = re.sub(r'[^a-zA-Z0-9_-]', '_', base_name)
+            sanitized_filename = f"{sanitized_base}{ext}"
+
             # Upload to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file_content,
                 folder=folder,
-                public_id=os.path.splitext(filename)[0],
+                public_id=os.path.splitext(sanitized_filename)[0],
                 resource_type='auto',
-                use_filename=True,
+                use_filename=False,  # Let Cloudinary generate unique name
                 unique_filename=True
             )
 
-            # Return the Cloudinary public_id as the "name"
-            # Format: folder/public_id.extension
-            return upload_result['public_id']
+            # Return the full path including extension
+            # Cloudinary public_id might not include extension, so add it
+            public_id = upload_result['public_id']
+            if not public_id.endswith(ext):
+                return f"{public_id}{ext}"
+            return public_id
 
         except Exception as e:
             raise IOError(f"Error uploading to Cloudinary: {e}")
@@ -99,17 +110,30 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
         # Generate Cloudinary URL
         try:
-            # Determine resource type based on extension
+            # Remove extension for public_id if it exists
+            base_name = name
             ext = os.path.splitext(name)[1].lower()
-            if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+
+            # Remove extension from name for Cloudinary public_id
+            if ext:
+                base_name = name[:-len(ext)]
+
+            # Determine resource type based on extension
+            if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff']:
                 resource_type = 'image'
-            elif ext in ['.mp4', '.avi', '.mov', '.webm']:
+            elif ext in ['.mp4', '.avi', '.mov', '.webm', '.flv']:
                 resource_type = 'video'
             else:
                 resource_type = 'raw'
 
+            # For raw files (PDFs, etc), include the extension
+            if resource_type == 'raw':
+                public_id = name  # Keep full name with extension
+            else:
+                public_id = base_name
+
             url, options = cloudinary.utils.cloudinary_url(
-                name,
+                public_id,
                 resource_type=resource_type,
                 secure=True
             )
