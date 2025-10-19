@@ -581,7 +581,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """
         Estadísticas REALES de clientes/aliases.
-        
+
         Devuelve datos precisos de la BD:
         - Total de aliases activos
         - Clientes verificados
@@ -590,27 +590,27 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         - Top 10 clientes por uso
         """
         from django.db.models import Count, Q
-        
+
         # Aliases activos (no eliminados, no fusionados)
         active_aliases = self.get_queryset().filter(merged_into__isnull=True)
-        
+
         # Contadores básicos
         total_aliases = active_aliases.count()
         verified_count = active_aliases.filter(is_verified=True).count()
         merged_count = self.get_queryset().filter(merged_into__isnull=False).count()
-        
+
         # Sugerencias de normalización
         pending_matches = SimilarityMatch.objects.filter(status='pending').count()
         approved_matches = SimilarityMatch.objects.filter(status='approved').count()
         rejected_matches = SimilarityMatch.objects.filter(status='rejected').count()
-        
+
         # Top 10 clientes por uso real
         top_clients = list(
             active_aliases
             .order_by('-usage_count')[:10]
             .values('id', 'original_name', 'usage_count')
         )
-        
+
         return Response({
             'total_aliases': total_aliases,
             'verified_count': verified_count,
@@ -620,6 +620,46 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             'rejected_matches': rejected_matches,
             'top_clients': top_clients,
         }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    def fix_production(self, request):
+        """
+        ENDPOINT TEMPORAL para arreglar problemas de producción.
+
+        Ejecuta:
+        1. Recalcula usage_count de todos los clientes
+        2. Limpia sugerencias obsoletas (clientes fusionados/eliminados)
+
+        NOTA: Este endpoint debería ser eliminado después de usarlo.
+        """
+        from django.core.management import call_command
+        from io import StringIO
+        import sys
+
+        # Capturar la salida de los comandos
+        output = StringIO()
+
+        try:
+            # PASO 1: Recalcular usage_count
+            call_command('recalculate_client_usage', stdout=output)
+
+            # PASO 2: Limpiar duplicados obsoletos
+            call_command('clean_obsolete_matches', stdout=output)
+
+            output_text = output.getvalue()
+
+            return Response({
+                'success': True,
+                'message': 'Producción arreglada exitosamente',
+                'details': output_text
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e),
+                'details': output.getvalue()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
     def generate_short_names(self, request):
