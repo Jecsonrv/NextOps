@@ -1,9 +1,17 @@
 """
-Comando para limpiar facturas soft-deleted duplicadas.
+Comando de mantenimiento para limpiar facturas eliminadas (soft delete).
 
-Elimina permanentemente facturas que:
-1. Están marcadas como eliminadas (deleted_at IS NOT NULL)
-2. Tienen un uploaded_file_id que está siendo usado por otra factura activa
+Uso:
+    python manage.py cleanup_deleted_invoices --dry-run      # Ver qué se eliminaría
+    python manage.py cleanup_deleted_invoices --hard-delete  # Eliminar permanentemente
+
+⚠️ ADVERTENCIA: --hard-delete elimina permanentemente los registros de la BD.
+   Solo usar cuando estés seguro de que no necesitas recuperar esas facturas.
+
+Útil para:
+- Liberar espacio en la base de datos
+- Limpiar uploaded_file_id para permitir re-carga de archivos
+- Mantenimiento periódico de la BD
 """
 
 from django.core.management.base import BaseCommand
