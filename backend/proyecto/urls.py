@@ -67,6 +67,43 @@ def cloudinary_status(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_cloudinary_simple(request):
+    """Test simple de Cloudinary sin archivos grandes."""
+    import cloudinary.uploader
+    from django.conf import settings
+
+    try:
+        # Test simple: subir texto
+        result = cloudinary.uploader.upload(
+            "data:text/plain;base64,SGVsbG8gQ2xvdWRpbmFyeQ==",  # "Hello Cloudinary" en base64
+            folder="test",
+            resource_type="raw",
+            timeout=10
+        )
+
+        return Response({
+            'success': True,
+            'public_id': result.get('public_id'),
+            'url': result.get('secure_url'),
+            'resource_type': result.get('resource_type'),
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        import traceback
+        return Response({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc(),
+            'cloudinary_config': {
+                'cloud_name': settings.CLOUDINARY_STORAGE.get('CLOUD_NAME'),
+                'has_api_key': bool(settings.CLOUDINARY_STORAGE.get('API_KEY')),
+                'has_secret': bool(settings.CLOUDINARY_STORAGE.get('API_SECRET')),
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def test_cloudinary_upload(request):
@@ -136,6 +173,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health-check'),
     path('api/cloudinary-status/', cloudinary_status, name='cloudinary-status'),
+    path('api/test-cloudinary-simple/', test_cloudinary_simple, name='test-cloudinary-simple'),
     path('api/test-cloudinary/', test_cloudinary_upload, name='test-cloudinary'),
     
     # API Documentation

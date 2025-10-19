@@ -43,14 +43,15 @@ class CloudinaryMediaStorage(FileSystemStorage):
             sanitized_base = re.sub(r'[^a-zA-Z0-9_-]', '_', base_name)
             sanitized_filename = f"{sanitized_base}{ext}"
 
-            # Upload to Cloudinary
+            # Upload to Cloudinary with timeout
             upload_result = cloudinary.uploader.upload(
                 file_content,
                 folder=folder,
                 public_id=os.path.splitext(sanitized_filename)[0],
                 resource_type='auto',
                 use_filename=False,  # Let Cloudinary generate unique name
-                unique_filename=True
+                unique_filename=True,
+                timeout=60  # 60 second timeout
             )
 
             # Return the full path including extension
