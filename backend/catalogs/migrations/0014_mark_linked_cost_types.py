@@ -19,7 +19,7 @@ def unmark_linked_cost_types(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("catalogs", "0010_add_is_linked_to_ot_to_cost_type"),
+        ("catalogs", "0013_ignore_index_rename"),
     ]
 
     operations = [
