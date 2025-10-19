@@ -117,14 +117,27 @@ class CloudinaryMediaStorage(FileSystemStorage):
         """
         Check if file exists in storage.
 
-        For Cloudinary: We assume if we have a path, it exists.
-        API checks are expensive and unnecessary since files are immutable.
+        For Cloudinary: We assume files DON'T exist (always upload new).
+        This prevents expensive API calls and avoids infinite loops in get_available_name().
         """
         if not self.use_cloudinary:
             return super().exists(name)
 
-        # For Cloudinary, assume file exists if we have a name
-        return bool(name)
+        # For Cloudinary, always return False to allow uploads
+        # Cloudinary handles duplicates with unique_filename=True
+        return False
+
+    def get_available_name(self, name, max_length=None):
+        """
+        Override to skip the exists() loop for Cloudinary.
+        Cloudinary handles unique filenames automatically.
+        """
+        if not self.use_cloudinary:
+            return super().get_available_name(name, max_length)
+
+        # For Cloudinary, return the name as-is
+        # Cloudinary will add hash if unique_filename=True
+        return name
 
     def url(self, name):
         """
