@@ -6,6 +6,10 @@ from .base import *
 
 DEBUG = False
 
+# Cloudinary Storage
+USE_CLOUDINARY = config('USE_CLOUDINARY', default=True, cast=bool)
+
+
 # Security Settings
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
