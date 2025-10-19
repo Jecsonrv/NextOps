@@ -38,7 +38,6 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
             # Sanitize filename - remove special characters but keep extension
             import re
-            from urllib.parse import quote
             base_name, ext = os.path.splitext(filename)
             # Remove special chars, keep alphanumeric, hyphens, underscores
             sanitized_base = re.sub(r'[^a-zA-Z0-9_-]', '_', base_name)
@@ -66,28 +65,21 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
     def _open(self, name, mode='rb'):
         """
-        Open file from Cloudinary or local filesystem
+        Open file from Cloudinary or local filesystem.
+
+        NOTE: For Cloudinary files, this should NOT be used.
+        Instead, use url() and redirect directly to Cloudinary.
+        This method is only for backward compatibility.
         """
         if not self.use_cloudinary:
             return super()._open(name, mode)
 
-        # Download file from Cloudinary and return as file-like object
-        try:
-            from django.core.files.base import ContentFile
-            import requests
-
-            # Get Cloudinary URL
-            url = self.url(name)
-
-            # Download file
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-
-            # Return as ContentFile (file-like object)
-            return ContentFile(response.content)
-
-        except Exception as e:
-            raise IOError(f"Error opening file from Cloudinary: {e}")
+        # For Cloudinary, we don't support opening files
+        # The views should redirect to url() instead
+        raise NotImplementedError(
+            "Cannot open Cloudinary files directly. "
+            "Use storage.url() and redirect to the URL instead."
+        )
 
     def exists(self, name):
         """

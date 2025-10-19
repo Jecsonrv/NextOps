@@ -145,6 +145,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='file')
     def retrieve_file(self, request, pk=None):
         """Permite descargar o previsualizar el archivo original de la factura."""
+        from django.shortcuts import redirect
+        from django.conf import settings
+
         invoice = self.get_object()
 
         if not invoice.uploaded_file:
@@ -155,6 +158,19 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         storage_path = invoice.uploaded_file.path
 
+        # If using Cloudinary, redirect directly to Cloudinary URL (fast!)
+        if getattr(settings, 'USE_CLOUDINARY', False):
+            try:
+                storage = get_storage()
+                cloudinary_url = storage.url(storage_path)
+                return redirect(cloudinary_url)
+            except Exception as exc:
+                return Response(
+                    {'detail': f'Error al obtener URL del archivo: {exc}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # For local filesystem, serve file normally
         if not get_storage().exists(storage_path):
             return Response(
                 {'detail': 'Archivo no encontrado en el almacenamiento.'},
@@ -174,7 +190,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         if not filename:
             # Fallback al nombre original
             filename = invoice.uploaded_file.filename or storage_path.split('/')[-1]
-        
+
         content_type = invoice.uploaded_file.content_type or 'application/octet-stream'
 
         response = FileResponse(file_handle, content_type=content_type)
@@ -1825,10 +1841,28 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='file')
     def retrieve_file(self, request, pk=None):
+        from django.shortcuts import redirect
+        from django.conf import settings
+
         credit_note = self.get_object()
         if not credit_note.uploaded_file:
             return Response({'detail': 'La nota de crédito no tiene archivo asociado.'}, status=status.HTTP_404_NOT_FOUND)
+
         storage_path = credit_note.uploaded_file.path
+
+        # If using Cloudinary, redirect directly to Cloudinary URL (fast!)
+        if getattr(settings, 'USE_CLOUDINARY', False):
+            try:
+                storage = get_storage()
+                cloudinary_url = storage.url(storage_path)
+                return redirect(cloudinary_url)
+            except Exception as exc:
+                return Response(
+                    {'detail': f'Error al obtener URL del archivo: {exc}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        # For local filesystem, serve file normally
         if not get_storage().exists(storage_path):
             return Response({'detail': 'Archivo no encontrado en el almacenamiento.'}, status=status.HTTP_404_NOT_FOUND)
         try:
