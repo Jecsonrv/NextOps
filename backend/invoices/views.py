@@ -339,13 +339,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
                 # Guardar archivo (solo si no existe) o reutilizar el existente
                 if not existing_file:
-                    from django.core.files.base import ContentFile
+                    # Reset file pointer y usar el objeto original (streaming eficiente)
+                    file.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
 
-                    # Crear ContentFile desde bytes ya leídos
-                    file_obj = ContentFile(file_content, name=safe_filename)
-                    path = get_storage().save(f'invoices/{safe_filename}', file_obj)
+                    # Pasar file object directamente (NO ContentFile) - más eficiente
+                    path = get_storage().save(f'invoices/{safe_filename}', file)
 
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
