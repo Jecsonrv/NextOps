@@ -156,7 +156,17 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
 }
 
-# Use custom storage backend que maneja Cloudinary y FileSystem
+# Django 4.2+ STORAGES configuration
+STORAGES = {
+    "default": {
+        "BACKEND": "common.storage_backends.CloudinaryMediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Legacy support for older Django code
 DEFAULT_FILE_STORAGE = 'common.storage_backends.CloudinaryMediaStorage'
 
 # Default primary key field type

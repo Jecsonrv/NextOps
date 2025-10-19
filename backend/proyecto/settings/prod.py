@@ -6,8 +6,8 @@ from .base import *
 
 DEBUG = False
 
-# Cloudinary Storage
-USE_CLOUDINARY = True
+# NOTE: USE_CLOUDINARY se configura via variable de entorno
+# Ver backend/.env.example y Railway variables
 
 
 # Security Settings
