@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.utils import timezone
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -54,10 +55,64 @@ def cloudinary_status(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def test_cloudinary_upload(request):
+    """Endpoint de prueba para verificar que Cloudinary funciona."""
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+    import json
+
+    try:
+        # Crear un archivo de prueba
+        test_content = b"Test file for Cloudinary - " + str(timezone.now()).encode()
+        test_file = ContentFile(test_content, name='test_cloudinary.txt')
+
+        # Intentar guardar
+        path = default_storage.save('test/test_cloudinary.txt', test_file)
+
+        # Verificar si existe
+        exists = default_storage.exists(path)
+
+        # Obtener URL
+        url = default_storage.url(path)
+
+        # Intentar leer
+        try:
+            stored_file = default_storage.open(path, 'rb')
+            content_check = stored_file.read()
+            stored_file.close()
+            read_success = True
+        except Exception as read_error:
+            content_check = str(read_error)
+            read_success = False
+
+        return Response({
+            'success': True,
+            'storage_backend': str(type(default_storage)),
+            'saved_path': path,
+            'exists': exists,
+            'url': url,
+            'read_success': read_success,
+            'content_match': content_check == test_content if read_success else False,
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        import traceback
+        return Response({
+            'success': False,
+            'error': str(e),
+            'error_type': type(e).__name__,
+            'traceback': traceback.format_exc(),
+            'storage_backend': str(type(default_storage)),
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health-check'),
     path('api/cloudinary-status/', cloudinary_status, name='cloudinary-status'),
+    path('api/test-cloudinary/', test_cloudinary_upload, name='test-cloudinary'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
