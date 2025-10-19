@@ -28,9 +28,8 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
         # Upload to Cloudinary
         try:
-            # Read file content
+            # Reset file pointer
             content.seek(0)
-            file_content = content.read()
 
             # Extract folder and filename
             folder = os.path.dirname(name)
@@ -41,28 +40,29 @@ class CloudinaryMediaStorage(FileSystemStorage):
             base_name, ext = os.path.splitext(filename)
             # Remove special chars, keep alphanumeric, hyphens, underscores
             sanitized_base = re.sub(r'[^a-zA-Z0-9_-]', '_', base_name)
-            sanitized_filename = f"{sanitized_base}{ext}"
 
-            # Upload to Cloudinary with timeout
+            # Upload directly from file object (streaming, no memory read)
             upload_result = cloudinary.uploader.upload(
-                file_content,
+                content,  # Pass file object directly, not .read()
                 folder=folder,
-                public_id=os.path.splitext(sanitized_filename)[0],
-                resource_type='auto',
-                use_filename=False,  # Let Cloudinary generate unique name
+                public_id=sanitized_base,
+                resource_type='raw',  # Force raw for PDFs
+                use_filename=False,
                 unique_filename=True,
-                timeout=60  # 60 second timeout
+                timeout=120,  # 2 minute timeout
+                chunk_size=6000000  # 6MB chunks for large files
             )
 
             # Return the full path including extension
-            # Cloudinary public_id might not include extension, so add it
             public_id = upload_result['public_id']
             if not public_id.endswith(ext):
                 return f"{public_id}{ext}"
             return public_id
 
         except Exception as e:
-            raise IOError(f"Error uploading to Cloudinary: {e}")
+            import traceback
+            error_detail = traceback.format_exc()
+            raise IOError(f"Error uploading to Cloudinary: {e}\n{error_detail}")
 
     def _open(self, name, mode='rb'):
         """
