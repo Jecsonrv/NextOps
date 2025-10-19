@@ -309,10 +309,14 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         for file in files:
             try:
-                # Calcular hash
+                # Calcular hash de forma streaming (sin cargar todo a memoria)
                 file.seek(0)
-                file_content = file.read()
-                file_hash = UploadedFile.calculate_hash(file_content)
+                import hashlib
+                hasher = hashlib.sha256()
+                for chunk in file.chunks():
+                    hasher.update(chunk)
+                file_hash = hasher.hexdigest()
+                file.seek(0)  # Reset for later use
                 
                 # Verificar duplicado: buscar archivo por hash
                 existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
@@ -333,14 +337,20 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         continue
                     # Si no hay facturas activas, permitir re-subir (reutilizar el mismo archivo)
                 
+                # Leer archivo UNA SOLA VEZ para PDF extraction Y upload
+                file.seek(0)
+                file_content_bytes = None
+                if auto_parse and file.content_type == 'application/pdf':
+                    file_content_bytes = file.read()
+                    file.seek(0)  # Reset para el save()
+
                 # Guardar archivo (solo si no existe) o reutilizar el existente
                 if not existing_file:
-                    file.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
-                    
+
                     path = get_storage().save(f'invoices/{safe_filename}', file)
-                    
+
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
                         path=path,
@@ -351,7 +361,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 else:
                     # Reutilizar archivo existente (fue eliminado anteriormente)
                     uploaded_file = existing_file
-                
+
                 # Datos extraídos (con valores por defecto)
                 extracted_data = {
                     'numero_factura': None,
@@ -363,13 +373,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     'confidence': 0.0,
                     'extraction_details': {},
                 }
-                
-                # Auto-parsing con patrones
-                if auto_parse and file.content_type == 'application/pdf':
+
+                # Auto-parsing con patrones (usando contenido ya leído)
+                if auto_parse and file.content_type == 'application/pdf' and file_content_bytes:
                     try:
-                        # 1. Extraer texto del PDF
-                        file.seek(0)
-                        pdf_result = pdf_extractor.extract(file.read())
+                        # 1. Extraer texto del PDF (ya tenemos el contenido)
+                        pdf_result = pdf_extractor.extract(file_content_bytes)
                         text = pdf_extractor.text
                         
                         # 2. Aplicar patrones
