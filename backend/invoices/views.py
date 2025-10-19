@@ -309,18 +309,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         for file in files:
             try:
-                # Calcular hash de forma streaming (sin cargar todo a memoria)
+                # Leer archivo UNA SOLA VEZ al inicio
                 file.seek(0)
+                file_content = file.read()
+
+                # Calcular hash
                 import hashlib
-                hasher = hashlib.sha256()
-                for chunk in file.chunks():
-                    hasher.update(chunk)
-                file_hash = hasher.hexdigest()
-                file.seek(0)  # Reset for later use
-                
+                file_hash = hashlib.sha256(file_content).hexdigest()
+
                 # Verificar duplicado: buscar archivo por hash
                 existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
-                
+
                 if existing_file:
                     # Verificar si hay facturas ACTIVAS asociadas a este archivo
                     # Si todas las facturas fueron eliminadas (is_deleted=True), permitir re-subir
@@ -328,7 +327,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         uploaded_file=existing_file,
                         is_deleted=False
                     ).exists()
-                    
+
                     if active_invoices:
                         results['duplicates'].append({
                             'filename': file.name,
@@ -336,26 +335,22 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         })
                         continue
                     # Si no hay facturas activas, permitir re-subir (reutilizar el mismo archivo)
-                
-                # Leer archivo UNA SOLA VEZ para PDF extraction Y upload
-                file.seek(0)
-                file_content_bytes = None
-                if auto_parse and file.content_type == 'application/pdf':
-                    file_content_bytes = file.read()
-                    file.seek(0)  # Reset para el save()
 
                 # Guardar archivo (solo si no existe) o reutilizar el existente
                 if not existing_file:
+                    from django.core.files.base import ContentFile
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
 
-                    path = get_storage().save(f'invoices/{safe_filename}', file)
+                    # Crear ContentFile desde bytes ya leídos
+                    file_obj = ContentFile(file_content, name=safe_filename)
+                    path = get_storage().save(f'invoices/{safe_filename}', file_obj)
 
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
                         path=path,
                         sha256=file_hash,
-                        size=file.size,
+                        size=len(file_content),
                         content_type=file.content_type
                     )
                 else:
@@ -375,10 +370,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 }
 
                 # Auto-parsing con patrones (usando contenido ya leído)
-                if auto_parse and file.content_type == 'application/pdf' and file_content_bytes:
+                if auto_parse and file.content_type == 'application/pdf':
                     try:
                         # 1. Extraer texto del PDF (ya tenemos el contenido)
-                        pdf_result = pdf_extractor.extract(file_content_bytes)
+                        pdf_result = pdf_extractor.extract(file_content)
                         text = pdf_extractor.text
                         
                         # 2. Aplicar patrones
