@@ -1203,13 +1203,57 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             response['Content-Length'] = len(zip_content)
 
             return response
-            
+
         except Exception as e:
             logger.error(f"Error creando ZIP estructurado: {e}")
             return Response(
                 {'error': f'Error al crear archivo ZIP: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def check_duplicates(self, request):
+        """
+        ENDPOINT TEMPORAL para diagnosticar duplicados de uploaded_file_id.
+
+        Retorna información sobre:
+        - Total de facturas activas
+        - Total de facturas eliminadas
+        - Duplicados activos (si existen)
+        """
+        from django.db.models import Count
+
+        # Contar facturas activas y eliminadas
+        active_count = Invoice.objects.filter(deleted_at__isnull=True).count()
+        deleted_count = Invoice.objects.filter(deleted_at__isnull=False).count()
+
+        # Encontrar duplicados activos (si existen)
+        duplicates = Invoice.objects.filter(
+            deleted_at__isnull=True
+        ).values('uploaded_file_id').annotate(
+            count=Count('id')
+        ).filter(count__gt=1)
+
+        duplicate_details = []
+        for dup in duplicates:
+            invoices = Invoice.objects.filter(
+                uploaded_file_id=dup['uploaded_file_id'],
+                deleted_at__isnull=True
+            ).values('id', 'numero_factura', 'created_at')
+
+            duplicate_details.append({
+                'uploaded_file_id': dup['uploaded_file_id'],
+                'count': dup['count'],
+                'invoices': list(invoices)
+            })
+
+        return Response({
+            'active_invoices': active_count,
+            'deleted_invoices': deleted_count,
+            'active_duplicates': len(duplicate_details),
+            'duplicate_details': duplicate_details,
+            'message': 'Si hay duplicados activos, la migración debería limpiarlos automáticamente'
+        })
 
 
 class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
