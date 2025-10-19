@@ -7,7 +7,14 @@
       "Bash(git add backend/catalogs/migrations/0013_*.py)",
       "Bash(git add railway.json)",
       "Bash(git commit -m \"Add: Railway volume para persistir archivos media\n\nPROBLEMA CRÍTICO: Railway no persiste archivos entre deploys\nSOLUCIÓN: Configurar volume para /app/media\n\nEsto arregla el error 404 al descargar PDFs en producción.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
-      "Bash(docker exec nextops_backend python manage.py shell -c \"from django.core.files.storage import default_storage; print(f''Storage: {default_storage.__class__.__name__}''); print(f''Module: {default_storage.__class__.__module__}'')\")"
+      "Bash(docker exec nextops_backend python manage.py shell -c \"from django.core.files.storage import default_storage; print(f''Storage: {default_storage.__class__.__name__}''); print(f''Module: {default_storage.__class__.__module__}'')\")",
+      "Bash(python test_cloudinary.py)",
+      "Bash(docker exec nextops_backend python test_cloudinary.py)",
+      "Bash(docker exec nextops_backend env)",
+      "Bash(cat .env)",
+      "Bash(docker exec nextops_backend python test_cloudinary_real.py)",
+      "Bash(python3 test_cloudinary_real.py)",
+      "Bash(docker exec -e DJANGO_SETTINGS_MODULE=\"\" nextops_backend python3 test_cloudinary_real.py)"
     ],
     "deny": [],
     "ask": []

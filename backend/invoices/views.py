@@ -306,57 +306,62 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             'errors': [],
             'duplicates': [],
             'patterns_used': pattern_service.get_patterns_summary(),  # Para mostrar en frontend
-        }
+                }
         
         for file in files:
             try:
-                # Leer archivo UNA SOLA VEZ al inicio
+                logger.info(f"Processing file: {file.name} (size: {file.size} bytes)")
+
+                # === PASO 1: Leer archivo y calcular hash ===
                 file.seek(0)
                 file_content = file.read()
+                file.size = len(file_content)  # Update size in case it wasn't set
 
-                # Calcular hash
                 import hashlib
                 file_hash = hashlib.sha256(file_content).hexdigest()
+                logger.debug(f"File hash: {file_hash}")
 
-                # Verificar duplicado: buscar archivo por hash
+                # === PASO 2: Verificar duplicado ===
                 existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
 
                 if existing_file:
                     # Verificar si hay facturas ACTIVAS asociadas a este archivo
-                    # Si todas las facturas fueron eliminadas (is_deleted=True), permitir re-subir
                     active_invoices = Invoice.objects.filter(
                         uploaded_file=existing_file,
                         is_deleted=False
                     ).exists()
 
                     if active_invoices:
+                        logger.warning(f"Duplicate file detected: {file.name} (hash: {file_hash[:8]})")
                         results['duplicates'].append({
                             'filename': file.name,
                             'reason': f'Archivo duplicado con factura activa (SHA256: {file_hash[:8]}...)'
                         })
                         continue
-                    # Si no hay facturas activas, permitir re-subir (reutilizar el mismo archivo)
 
-                # Guardar archivo (solo si no existe) o reutilizar el existente
-                if not existing_file:
-                    # Reset file pointer y usar el objeto original (streaming eficiente)
+                    logger.info(f"Reusing existing file: {existing_file.path}")
+                    uploaded_file = existing_file
+                else:
+                    # === PASO 3: Guardar archivo nuevo ===
                     file.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
 
-                    # Pasar file object directamente (NO ContentFile) - más eficiente
+                    logger.info(f"Uploading new file: {safe_filename}")
+
+                    # CRITICAL: Pass file object directly (streaming)
                     path = get_storage().save(f'invoices/{safe_filename}', file)
+
+                    logger.info(f"✓ File saved successfully: {path}")
 
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
                         path=path,
                         sha256=file_hash,
-                        size=len(file_content),
-                        content_type=file.content_type
+                        size=file.size,
+                        content_type=file.content_type or 'application/pdf'
                     )
-                else:
-                    # Reutilizar archivo existente (fue eliminado anteriormente)
-                    uploaded_file = existing_file
+                    logger.info(f"✓ UploadedFile record created: ID={uploaded_file.id}")
 
                 # Datos extraídos (con valores por defecto)
                 extracted_data = {
@@ -556,12 +561,23 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 result_item['message'] = " | ".join(messages) if messages else "Procesada"
                 
                 results['success'].append(result_item)
-                
+
             except Exception as e:
-                logger.error(f"Error procesando {file.name}: {e}", exc_info=True)
+                # Log detailed error with stack trace
+                logger.error(f"✗ Error procesando {file.name}: {e}", exc_info=True)
+
+                # Return user-friendly error message
+                error_message = str(e)
+                if 'Cloudinary' in error_message:
+                    error_message = f"Error al subir a Cloudinary: {e}"
+                elif 'hash' in error_message.lower():
+                    error_message = f"Error al calcular hash del archivo: {e}"
+                else:
+                    error_message = f"Error inesperado: {e}"
+
                 results['errors'].append({
                     'filename': file.name,
-                    'error': str(e)
+                    'error': error_message
                 })
         
         return Response({
