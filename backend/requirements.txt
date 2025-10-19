@@ -50,6 +50,10 @@ django-redis==5.4.0
 gunicorn==23.0.0
 whitenoise==6.8.2
 
+# Cloud Storage
+cloudinary==1.41.0
+django-cloudinary-storage==0.3.0
+
 # Development
 django-debug-toolbar==4.4.6
 django-extensions==3.2.3

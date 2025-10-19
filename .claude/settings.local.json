@@ -4,7 +4,9 @@
       "Bash(git push origin main)",
       "Bash(docker exec nextops_backend python manage.py makemigrations catalogs --dry-run)",
       "Bash(docker exec nextops_backend python manage.py makemigrations catalogs)",
-      "Bash(git add backend/catalogs/migrations/0013_*.py)"
+      "Bash(git add backend/catalogs/migrations/0013_*.py)",
+      "Bash(git add railway.json)",
+      "Bash(git commit -m \"Add: Railway volume para persistir archivos media\n\nPROBLEMA CRÍTICO: Railway no persiste archivos entre deploys\nSOLUCIÓN: Configurar volume para /app/media\n\nEsto arregla el error 404 al descargar PDFs en producción.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

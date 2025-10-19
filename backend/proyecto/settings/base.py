@@ -34,7 +34,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
-    
+
+    # Cloud Storage
+    'cloudinary_storage',
+    'cloudinary',
+
     # Local apps
     'common',
     'accounts',
@@ -130,6 +134,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Backend URL for absolute media URLs (important for Railway/production)
 # Should be set in environment: https://your-backend.railway.app
 BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
+
+# Cloudinary Configuration (Cloud Storage)
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
+    'API_KEY': config('CLOUDINARY_API_KEY', default=''),
+    'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
+}
+
+# Use Cloudinary for media files in production
+if config('USE_CLOUDINARY', default=False, cast=bool):
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
