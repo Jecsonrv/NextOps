@@ -166,21 +166,52 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 import cloudinary.utils
                 import requests
 
-                # Generate temporary signed download URL
-                download_url = cloudinary.utils.private_download_url(
-                    storage_path,
-                    format=None,
-                    resource_type='raw',
-                    attachment=False,
-                )
+                logger.info(f"Fetching file from Cloudinary: {storage_path}")
+                logger.info(f"Invoice ID: {invoice.id}, Filename: {invoice.uploaded_file.filename}")
 
-                logger.info(f"Downloading file from Cloudinary: {storage_path}")
+                # IMPORTANT: Cloudinary private_download_url expects the public_id WITHOUT extension
+                # But our storage_path includes the extension, so we need to check
+                public_id = storage_path
+
+                # Try to generate signed download URL
+                try:
+                    download_url = cloudinary.utils.private_download_url(
+                        public_id,
+                        format=None,  # Don't add format, it's in the public_id
+                        resource_type='raw',
+                        attachment=False,
+                    )
+                    logger.info(f"Generated download URL: {download_url[:100]}...")
+                except Exception as url_error:
+                    logger.error(f"Error generating download URL: {url_error}")
+                    # Fallback: Try without extension
+                    import os
+                    base_name = os.path.splitext(storage_path)[0]
+                    ext = os.path.splitext(storage_path)[1].lstrip('.')
+                    download_url = cloudinary.utils.private_download_url(
+                        base_name,
+                        format=ext if ext else None,
+                        resource_type='raw',
+                        attachment=False,
+                    )
+                    logger.info(f"Generated download URL (fallback): {download_url[:100]}...")
 
                 # Download file from Cloudinary
+                logger.info(f"Downloading from Cloudinary...")
                 cloudinary_response = requests.get(download_url, timeout=30)
+
+                logger.info(f"Cloudinary response status: {cloudinary_response.status_code}")
+
+                if cloudinary_response.status_code == 404:
+                    logger.error(f"File not found in Cloudinary: {public_id}")
+                    return Response(
+                        {'detail': f'Archivo no encontrado en Cloudinary. Por favor, suba la factura nuevamente.'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
 
                 if cloudinary_response.status_code != 200:
                     logger.error(f"Cloudinary download failed: {cloudinary_response.status_code}")
+                    logger.error(f"Response: {cloudinary_response.text[:500]}")
                     return Response(
                         {'detail': f'Error al descargar archivo de Cloudinary: {cloudinary_response.status_code}'},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -188,10 +219,11 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
                 # Serve file content through our backend
                 from django.http import HttpResponse
-                from io import BytesIO
 
                 content_type = invoice.uploaded_file.content_type or 'application/pdf'
                 file_content = cloudinary_response.content
+
+                logger.info(f"File downloaded, size: {len(file_content)} bytes")
 
                 # Generate friendly filename
                 filename = self._generate_friendly_filename(invoice)
@@ -209,10 +241,22 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 logger.info(f"✓ File served successfully: {filename}")
                 return response
 
-            except Exception as exc:
-                logger.error(f'Error al servir archivo de Cloudinary: {exc}', exc_info=True)
+            except requests.exceptions.Timeout:
+                logger.error(f'Timeout al descargar de Cloudinary')
                 return Response(
-                    {'detail': f'Error al obtener archivo: {exc}'},
+                    {'detail': 'Timeout al descargar el archivo. Intente nuevamente.'},
+                    status=status.HTTP_504_GATEWAY_TIMEOUT
+                )
+            except requests.exceptions.RequestException as req_exc:
+                logger.error(f'Error de red al descargar de Cloudinary: {req_exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error de conexión con Cloudinary: {req_exc}'},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+            except Exception as exc:
+                logger.error(f'Error inesperado al servir archivo de Cloudinary: {exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error al obtener archivo: {str(exc)}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
