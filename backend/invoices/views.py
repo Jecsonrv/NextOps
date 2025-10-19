@@ -176,61 +176,79 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 # But we may have saved it WITH extension in older uploads
                 # Try both approaches
 
-                # First, remove extension if present (new behavior)
                 import os
                 base_name, ext = os.path.splitext(storage_path)
                 ext_clean = ext.lstrip('.')
 
                 # Try 1: Without extension (correct for raw files)
-                public_id = base_name if ext else storage_path
+                public_id_candidates = []
+                if ext:
+                    public_id_candidates.append(base_name)
+                public_id_candidates.append(storage_path)
+                unique_candidates = []
+                for candidate in public_id_candidates:
+                    if candidate and candidate not in unique_candidates:
+                        unique_candidates.append(candidate)
 
-                logger.info(f"Trying public_id: {public_id}")
+                cloudinary_response = None
+                last_status = None
 
-                try:
-                    # CRITICAL: Use type='authenticated' to match upload type
-                    # This bypasses Cloudinary's "untrusted customer" restrictions
-                    download_url = cloudinary.utils.private_download_url(
-                        public_id,
-                        format=ext_clean if ext_clean else None,
-                        resource_type='raw',
-                        type='authenticated',  # Must match upload type
-                        attachment=False,
-                    )
-                    logger.info(f"Generated download URL (authenticated): {download_url[:100]}...")
-                except Exception as url_error:
-                    logger.error(f"Error generating download URL: {url_error}")
-                    # Fallback: Try with type='upload' for older files
-                    try:
-                        download_url = cloudinary.utils.private_download_url(
-                            public_id,
-                            format=ext_clean if ext_clean else None,
-                            resource_type='raw',
-                            type='upload',
-                            attachment=False,
+                for public_id in unique_candidates:
+                    logger.info(f"Trying public_id: {public_id}")
+                    for cloudinary_type in ('authenticated', 'upload'):
+                        try:
+                            format_arg = None
+                            if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
+                                format_arg = ext_clean
+
+                            cloudinary_options = {
+                                'resource_type': 'raw',
+                                'type': cloudinary_type,
+                                'secure': True,
+                                'sign_url': True,
+                            }
+                            if format_arg:
+                                cloudinary_options['format'] = format_arg
+
+                            download_url, _ = cloudinary.utils.cloudinary_url(
+                                public_id,
+                                **cloudinary_options,
+                            )
+                            logger.info(f"Generated signed CDN URL ({cloudinary_type}): {download_url[:100]}...")
+                        except Exception as url_error:
+                            logger.error(f"Error generating signed URL ({cloudinary_type}): {url_error}")
+                            continue
+
+                        logger.info(f"Downloading from Cloudinary CDN...")
+                        response = requests.get(download_url, timeout=30)
+                        logger.info(f"Cloudinary response status: {response.status_code}")
+
+                        if response.status_code == 200:
+                            cloudinary_response = response
+                            break
+
+                        if response.status_code == 404:
+                            logger.error(f"File not found in Cloudinary: {public_id}")
+                            last_status = 404
+                            continue
+
+                        logger.error(f"Cloudinary download failed: {response.status_code}")
+                        logger.error(f"Response: {response.text[:500]}")
+                        last_status = response.status_code
+
+                    if cloudinary_response:
+                        break
+
+                if not cloudinary_response:
+                    if last_status == 404:
+                        return Response(
+                            {'detail': f'Archivo no encontrado en Cloudinary. Por favor, suba la factura nuevamente.'},
+                            status=status.HTTP_404_NOT_FOUND
                         )
-                        logger.info(f"Generated download URL (upload fallback): {download_url[:100]}...")
-                    except Exception as fallback_error:
-                        logger.error(f"Fallback also failed: {fallback_error}")
-                        raise
 
-                # Download file from Cloudinary
-                logger.info(f"Downloading from Cloudinary...")
-                cloudinary_response = requests.get(download_url, timeout=30)
-
-                logger.info(f"Cloudinary response status: {cloudinary_response.status_code}")
-
-                if cloudinary_response.status_code == 404:
-                    logger.error(f"File not found in Cloudinary: {public_id}")
+                    detail_status = last_status or 'desconocido'
                     return Response(
-                        {'detail': f'Archivo no encontrado en Cloudinary. Por favor, suba la factura nuevamente.'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                if cloudinary_response.status_code != 200:
-                    logger.error(f"Cloudinary download failed: {cloudinary_response.status_code}")
-                    logger.error(f"Response: {cloudinary_response.text[:500]}")
-                    return Response(
-                        {'detail': f'Error al descargar archivo de Cloudinary: {cloudinary_response.status_code}'},
+                        {'detail': f'Error al descargar archivo de Cloudinary: {detail_status}'},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
