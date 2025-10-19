@@ -273,7 +273,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist('files[]')
         proveedor_id = request.data.get('proveedor_id')
         tipo_costo = request.data.get('tipo_costo', 'OTRO')
-        auto_parse = request.data.get('auto_parse', 'true').lower() == 'true'
+        # CAMBIO: auto_parse desactivado por defecto para evitar timeouts
+        auto_parse = request.data.get('auto_parse', 'false').lower() == 'true'
         
         if not files:
             return Response(
