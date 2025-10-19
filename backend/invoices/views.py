@@ -187,15 +187,31 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 logger.info(f"Trying public_id: {public_id}")
 
                 try:
+                    # CRITICAL: Use type='authenticated' to match upload type
+                    # This bypasses Cloudinary's "untrusted customer" restrictions
                     download_url = cloudinary.utils.private_download_url(
                         public_id,
                         format=ext_clean if ext_clean else None,
                         resource_type='raw',
+                        type='authenticated',  # Must match upload type
                         attachment=False,
                     )
-                    logger.info(f"Generated download URL: {download_url[:100]}...")
+                    logger.info(f"Generated download URL (authenticated): {download_url[:100]}...")
                 except Exception as url_error:
                     logger.error(f"Error generating download URL: {url_error}")
+                    # Fallback: Try with type='upload' for older files
+                    try:
+                        download_url = cloudinary.utils.private_download_url(
+                            public_id,
+                            format=ext_clean if ext_clean else None,
+                            resource_type='raw',
+                            type='upload',
+                            attachment=False,
+                        )
+                        logger.info(f"Generated download URL (upload fallback): {download_url[:100]}...")
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback also failed: {fallback_error}")
+                        raise
 
                 # Download file from Cloudinary
                 logger.info(f"Downloading from Cloudinary...")

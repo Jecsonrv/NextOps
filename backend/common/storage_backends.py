@@ -71,7 +71,8 @@ class CloudinaryMediaStorage(FileSystemStorage):
             logger.info(f"Uploading to Cloudinary: {public_id} (original: {name})")
 
             # Upload file to Cloudinary (streaming, not reading full content)
-            # Use 'upload' type with public access for simplicity
+            # CRITICAL: Use 'authenticated' type to bypass "untrusted customer" restrictions
+            # This allows us to use private_download_url for secure access
             upload_result = cloudinary.uploader.upload(
                 content,  # Pass file object directly for streaming
                 folder=folder,
@@ -81,7 +82,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 unique_filename=True,  # Add hash to avoid collisions
                 timeout=120,  # 2 minutes timeout
                 chunk_size=6000000,  # 6MB chunks for efficient upload
-                type='upload',  # Use standard upload type
+                type='authenticated',  # Use authenticated type to bypass untrusted restrictions
             )
 
             # Get the public_id returned by Cloudinary
