@@ -27,9 +27,37 @@ def health_check(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def cloudinary_status(request):
+    """Endpoint para verificar configuración de Cloudinary."""
+    import cloudinary
+
+    config = cloudinary.config()
+    storage_backend = getattr(settings, 'DEFAULT_FILE_STORAGE', 'django.core.files.storage.FileSystemStorage')
+    use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
+
+    return Response({
+        'use_cloudinary': use_cloudinary,
+        'storage_backend': storage_backend,
+        'cloudinary_config': {
+            'cloud_name': config.cloud_name or 'NOT SET',
+            'api_key': 'SET' if config.api_key else 'NOT SET',
+            'api_secret': 'SET' if config.api_secret else 'NOT SET',
+        },
+        'cloudinary_storage_dict': {
+            'cloud_name': settings.CLOUDINARY_STORAGE.get('CLOUD_NAME') or 'NOT SET',
+            'api_key': 'SET' if settings.CLOUDINARY_STORAGE.get('API_KEY') else 'NOT SET',
+            'api_secret': 'SET' if settings.CLOUDINARY_STORAGE.get('API_SECRET') else 'NOT SET',
+        },
+        'is_using_cloudinary': 'cloudinary' in storage_backend.lower(),
+    }, status=status.HTTP_200_OK)
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health-check'),
+    path('api/cloudinary-status/', cloudinary_status, name='cloudinary-status'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
