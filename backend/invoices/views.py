@@ -158,15 +158,61 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         storage_path = invoice.uploaded_file.path
 
-        # If using Cloudinary, redirect directly to Cloudinary URL (fast!)
+        # If using Cloudinary, fetch and serve file (proxy)
+        # CRITICAL: Cloudinary raw files (PDFs) cannot be accessed directly via public URLs
+        # We need to download from Cloudinary using signed URLs and serve through our backend
         if getattr(settings, 'USE_CLOUDINARY', False):
             try:
-                storage = get_storage()
-                cloudinary_url = storage.url(storage_path)
-                return redirect(cloudinary_url)
+                import cloudinary.utils
+                import requests
+
+                # Generate temporary signed download URL
+                download_url = cloudinary.utils.private_download_url(
+                    storage_path,
+                    format=None,
+                    resource_type='raw',
+                    attachment=False,
+                )
+
+                logger.info(f"Downloading file from Cloudinary: {storage_path}")
+
+                # Download file from Cloudinary
+                cloudinary_response = requests.get(download_url, timeout=30)
+
+                if cloudinary_response.status_code != 200:
+                    logger.error(f"Cloudinary download failed: {cloudinary_response.status_code}")
+                    return Response(
+                        {'detail': f'Error al descargar archivo de Cloudinary: {cloudinary_response.status_code}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                # Serve file content through our backend
+                from django.http import HttpResponse
+                from io import BytesIO
+
+                content_type = invoice.uploaded_file.content_type or 'application/pdf'
+                file_content = cloudinary_response.content
+
+                # Generate friendly filename
+                filename = self._generate_friendly_filename(invoice)
+                if not filename:
+                    filename = invoice.uploaded_file.filename or storage_path.split('/')[-1]
+
+                response = HttpResponse(file_content, content_type=content_type)
+
+                download_flag = str(request.query_params.get('download', '')).lower()
+                disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
+                response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+                response['Content-Length'] = len(file_content)
+                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+
+                logger.info(f"✓ File served successfully: {filename}")
+                return response
+
             except Exception as exc:
+                logger.error(f'Error al servir archivo de Cloudinary: {exc}', exc_info=True)
                 return Response(
-                    {'detail': f'Error al obtener URL del archivo: {exc}'},
+                    {'detail': f'Error al obtener archivo: {exc}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
