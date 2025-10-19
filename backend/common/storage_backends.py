@@ -71,6 +71,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
             logger.info(f"Uploading to Cloudinary: {public_id} (original: {name})")
 
             # Upload file to Cloudinary (streaming, not reading full content)
+            # Use 'upload' type with public access for simplicity
             upload_result = cloudinary.uploader.upload(
                 content,  # Pass file object directly for streaming
                 folder=folder,
@@ -80,6 +81,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 unique_filename=True,  # Add hash to avoid collisions
                 timeout=120,  # 2 minutes timeout
                 chunk_size=6000000,  # 6MB chunks for efficient upload
+                type='upload',  # Use standard upload type
             )
 
             # Get the public_id returned by Cloudinary
@@ -143,8 +145,11 @@ class CloudinaryMediaStorage(FileSystemStorage):
         """
         Get public URL for file.
 
+        For Cloudinary files, generates a public URL directly from cloud name and path.
+        This is the simplest and most reliable approach.
+
         Args:
-            name (str): File path/public_id
+            name (str): File path/public_id (e.g., "invoices/20251019_123456_file.pdf")
 
         Returns:
             str: Public URL for accessing the file
@@ -152,37 +157,25 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().url(name)
 
-        # Generate Cloudinary URL
-        try:
-            # Detect resource type based on extension
-            ext = os.path.splitext(name)[1].lower()
+        # Simple, reliable URL generation
+        cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
 
-            # Determine resource type
-            if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']:
-                resource_type = 'image'
-            elif ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv']:
-                resource_type = 'video'
-            else:
-                resource_type = 'raw'  # PDFs, documents, etc.
+        # Detect resource type based on extension
+        ext = os.path.splitext(name)[1].lower()
 
-            # For raw files, keep the full name with extension
-            public_id = name
+        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']:
+            resource_type = 'image'
+        elif ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv']:
+            resource_type = 'video'
+        else:
+            resource_type = 'raw'  # PDFs, documents, etc.
 
-            # Generate secure URL
-            url, _ = cloudinary.utils.cloudinary_url(
-                public_id,
-                resource_type=resource_type,
-                secure=True,  # Always use HTTPS
-            )
+        # Construct simple public URL
+        # Format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{public_id}
+        url = f"https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{name}"
 
-            logger.debug(f"Generated Cloudinary URL: {url}")
-            return url
-
-        except Exception as e:
-            logger.error(f"Error generating Cloudinary URL for {name}: {e}")
-            # Fallback URL construction
-            cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
-            return f"https://res.cloudinary.com/{cloud_name}/raw/upload/{name}"
+        logger.debug(f"Generated Cloudinary URL: {url}")
+        return url
 
     def delete(self, name):
         """
