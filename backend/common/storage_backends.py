@@ -60,9 +60,23 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super()._open(name, mode)
 
-        # For Cloudinary, we don't support direct file opening
-        # The file should be accessed via URL
-        raise NotImplementedError("Direct file opening not supported with Cloudinary. Use url() method instead.")
+        # Download file from Cloudinary and return as file-like object
+        try:
+            from django.core.files.base import ContentFile
+            import requests
+
+            # Get Cloudinary URL
+            url = self.url(name)
+
+            # Download file
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+
+            # Return as ContentFile (file-like object)
+            return ContentFile(response.content)
+
+        except Exception as e:
+            raise IOError(f"Error opening file from Cloudinary: {e}")
 
     def exists(self, name):
         """
@@ -71,15 +85,10 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().exists(name)
 
-        try:
-            # Try to get resource info from Cloudinary
-            cloudinary.api.resource(name, resource_type='raw')
-            return True
-        except cloudinary.api.NotFound:
-            return False
-        except Exception:
-            # If we can't check, assume it doesn't exist
-            return False
+        # For Cloudinary, if we have a name/path, assume it exists
+        # Checking via API is expensive and unnecessary
+        # Files are immutable once uploaded
+        return bool(name)
 
     def url(self, name):
         """
