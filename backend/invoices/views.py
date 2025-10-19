@@ -439,15 +439,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                                 
                                 # Si no encuentra exacto, buscar parcial en el array
                                 if not matched_ot:
-                                    all_ots = OT.objects.filter(is_deleted=False)
-                                    for ot in all_ots:
-                                        if ot.contenedores and isinstance(ot.contenedores, list):
-                                            for cont in ot.contenedores:
-                                                if contenedor.upper() in cont.upper():
-                                                    matched_ot = ot
-                                                    break
-                                        if matched_ot:
-                                            break
+                                    # Búsqueda parcial eficiente usando icontains en el campo JSON.
+                                    # Esto es mucho más rápido que iterar todas las OTs en Python.
+                                    matched_ot = OT.objects.filter(
+                                        contenedores__icontains=contenedor,
+                                        is_deleted=False
+                                    ).first()
                                 
                                 if matched_ot:
                                     match_method = 'Contenedor'
