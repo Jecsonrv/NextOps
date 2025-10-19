@@ -1,20 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mv:*)",
-      "Bash(sed:*)",
-      "Bash(docker-compose exec backend python manage.py migrate:*)",
-      "Bash(docker-compose restart:*)",
-      "Bash(docker-compose exec:*)",
-      "Bash(curl:*)",
-      "Bash(python:*)",
-      "Bash(docker-compose logs:*)",
-      "Bash(docker exec nextops_backend python manage.py sync_invoices_to_ots --dry-run)",
-      "Bash(docker restart nextops_backend)",
-      "Bash(docker exec nextops_backend python -c \"from django.conf import settings; print(f''DEBUG: {settings.DEBUG}'')\")",
-      "Bash(docker exec nextops_backend ls -la media/)",
-      "Bash(docker exec nextops_backend ls -la media/invoices/)",
-      "Bash(docker exec nextops_backend python manage.py shell -c \"from invoices.models import Invoice; inv = Invoice.objects.filter(uploaded_file__isnull=False).first(); print(f''ID: {inv.id}''); print(f''Numero: {inv.numero_factura}''); print(f''File URL: {inv.get_file_url()}''); print(f''Uploaded file path: {inv.uploaded_file.path}'')\")"
+      "Bash(docker exec nextops_backend python manage.py shell -c \"from invoices.models import Invoice; inv = Invoice.objects.filter(id=36).first(); print(f''Factura 36 existe: {inv is not None}''); print(f''Tiene uploaded_file: {inv.uploaded_file is not None if inv else False}''); print(f''Path: {inv.uploaded_file.path if inv and inv.uploaded_file else None}'')\")"
     ],
     "deny": [],
     "ask": []

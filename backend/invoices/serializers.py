@@ -187,14 +187,22 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     def get_disputas(self, obj):
         """Serializar disputas básicas para listas"""
         try:
-            return DisputeListSerializer(obj.disputas.all(), many=True).data
+            return DisputeListSerializer(
+                obj.disputas.all(),
+                many=True,
+                context=self.context
+            ).data
         except NameError:
             return []
 
     def get_notas_credito(self, obj):
         """Serializar notas de crédito básicas para listas"""
         try:
-            return CreditNoteListSerializer(obj.notas_credito.all(), many=True).data
+            return CreditNoteListSerializer(
+                obj.notas_credito.all(),
+                many=True,
+                context=self.context
+            ).data
         except NameError:
             return []
 
@@ -269,7 +277,11 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     def get_disputas(self, obj):
         """Serializar disputas relacionadas usando DisputeListSerializer definida más abajo"""
         try:
-            return DisputeListSerializer(obj.disputas.all(), many=True).data
+            return DisputeListSerializer(
+                obj.disputas.all(),
+                many=True,
+                context=self.context
+            ).data
         except NameError:
             # If serializer is not yet defined for some reason, return empty list
             return []
@@ -277,7 +289,11 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     def get_notas_credito(self, obj):
         """Serializar notas de crédito relacionadas usando CreditNoteListSerializer"""
         try:
-            return CreditNoteListSerializer(obj.notas_credito.all(), many=True).data
+            return CreditNoteListSerializer(
+                obj.notas_credito.all(),
+                many=True,
+                context=self.context
+            ).data
         except NameError:
             return []
     
