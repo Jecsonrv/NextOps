@@ -59,27 +59,30 @@ def cloudinary_status(request):
 @permission_classes([AllowAny])
 def test_cloudinary_upload(request):
     """Endpoint de prueba para verificar que Cloudinary funciona."""
-    from django.core.files.storage import default_storage
+    from django.core.files.storage import storages
     from django.core.files.base import ContentFile
     import json
 
     try:
+        # Usar el storage configurado en DEFAULT_FILE_STORAGE
+        storage = storages['default']
+
         # Crear un archivo de prueba
         test_content = b"Test file for Cloudinary - " + str(timezone.now()).encode()
         test_file = ContentFile(test_content, name='test_cloudinary.txt')
 
         # Intentar guardar
-        path = default_storage.save('test/test_cloudinary.txt', test_file)
+        path = storage.save('test/test_cloudinary.txt', test_file)
 
         # Verificar si existe
-        exists = default_storage.exists(path)
+        exists = storage.exists(path)
 
         # Obtener URL
-        url = default_storage.url(path)
+        url = storage.url(path)
 
         # Intentar leer
         try:
-            stored_file = default_storage.open(path, 'rb')
+            stored_file = storage.open(path, 'rb')
             content_check = stored_file.read()
             stored_file.close()
             read_success = True
@@ -89,7 +92,8 @@ def test_cloudinary_upload(request):
 
         return Response({
             'success': True,
-            'storage_backend': str(type(default_storage)),
+            'storage_backend': str(type(storage)),
+            'storage_class_name': storage.__class__.__name__,
             'saved_path': path,
             'exists': exists,
             'url': url,
@@ -99,12 +103,14 @@ def test_cloudinary_upload(request):
 
     except Exception as e:
         import traceback
+        from django.core.files.storage import storages
+        storage = storages['default']
         return Response({
             'success': False,
             'error': str(e),
             'error_type': type(e).__name__,
             'traceback': traceback.format_exc(),
-            'storage_backend': str(type(default_storage)),
+            'storage_backend': str(type(storage)),
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

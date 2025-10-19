@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
-from django.core.files.storage import default_storage
+from django.core.files.storage import storages
 from django.http import FileResponse, HttpResponse
 from decimal import Decimal
 from datetime import datetime, date
@@ -19,6 +19,11 @@ import re
 import zipfile
 from io import BytesIO
 import logging
+
+# Helper function to get the configured storage
+def get_storage():
+    """Returns the configured default storage (FileSystem or Cloudinary)"""
+    return storages['default']
 
 from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
 from ots.models import OT
@@ -150,14 +155,14 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         storage_path = invoice.uploaded_file.path
 
-        if not default_storage.exists(storage_path):
+        if not get_storage().exists(storage_path):
             return Response(
                 {'detail': 'Archivo no encontrado en el almacenamiento.'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         try:
-            file_handle = default_storage.open(storage_path, 'rb')
+            file_handle = get_storage().open(storage_path, 'rb')
         except Exception as exc:  # pragma: no cover
             return Response(
                 {'detail': f'No se pudo abrir el archivo: {exc}'},
@@ -318,7 +323,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
                     
-                    path = default_storage.save(f'invoices/{safe_filename}', file)
+                    path = get_storage().save(f'invoices/{safe_filename}', file)
                     
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
@@ -983,14 +988,14 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 )
             
             storage_path = invoice.uploaded_file.path
-            if not default_storage.exists(storage_path):
+            if not get_storage().exists(storage_path):
                 return Response(
                     {'error': 'Archivo no encontrado'},
                     status=status.HTTP_404_NOT_FOUND
                 )
             
             try:
-                file_handle = default_storage.open(storage_path, 'rb')
+                file_handle = get_storage().open(storage_path, 'rb')
                 filename = self._generate_friendly_filename(invoice)
                 if not filename:
                     filename = invoice.uploaded_file.filename or 'factura.pdf'
@@ -1022,13 +1027,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
                     storage_path = invoice.uploaded_file.path
 
-                    if not default_storage.exists(storage_path):
+                    if not get_storage().exists(storage_path):
                         logger.warning(f"Archivo no encontrado: {storage_path}")
                         continue
 
                     try:
                         # Leer archivo del storage
-                        with default_storage.open(storage_path, 'rb') as file_handle:
+                        with get_storage().open(storage_path, 'rb') as file_handle:
                             file_content = file_handle.read()
 
                         # Generar nombre amigable
@@ -1121,13 +1126,13 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
                     storage_path = invoice.uploaded_file.path
 
-                    if not default_storage.exists(storage_path):
+                    if not get_storage().exists(storage_path):
                         logger.warning(f"Archivo no encontrado: {storage_path}")
                         continue
 
                     try:
                         # Leer archivo del storage
-                        with default_storage.open(storage_path, 'rb') as file_handle:
+                        with get_storage().open(storage_path, 'rb') as file_handle:
                             file_content = file_handle.read()
 
                         # 1. Carpeta de Cliente (usar short_name o normalized_name)
@@ -1408,7 +1413,7 @@ class DisputeViewSet(viewsets.ModelViewSet):
                     nota_credito_archivo.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{nota_credito_archivo.name}"
-                    path = default_storage.save(f'credit_notes/{safe_filename}', nota_credito_archivo)
+                    path = get_storage().save(f'credit_notes/{safe_filename}', nota_credito_archivo)
 
                     uploaded_file = UploadedFile.objects.create(
                         filename=nota_credito_archivo.name,
@@ -1657,7 +1662,7 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                     file.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
-                    path = default_storage.save(f'credit_notes/{safe_filename}', file)
+                    path = get_storage().save(f'credit_notes/{safe_filename}', file)
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name, path=path, sha256=file_hash, size=file.size, content_type=file.content_type
                     )
@@ -1780,7 +1785,7 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                     file.seek(0)
                     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
                     safe_filename = f"{timestamp}_{file.name}"
-                    path = default_storage.save(f'credit_notes/{safe_filename}', file)
+                    path = get_storage().save(f'credit_notes/{safe_filename}', file)
 
                     uploaded_file = UploadedFile.objects.create(
                         filename=file.name,
@@ -1824,10 +1829,10 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
         if not credit_note.uploaded_file:
             return Response({'detail': 'La nota de crédito no tiene archivo asociado.'}, status=status.HTTP_404_NOT_FOUND)
         storage_path = credit_note.uploaded_file.path
-        if not default_storage.exists(storage_path):
+        if not get_storage().exists(storage_path):
             return Response({'detail': 'Archivo no encontrado en el almacenamiento.'}, status=status.HTTP_404_NOT_FOUND)
         try:
-            file_handle = default_storage.open(storage_path, 'rb')
+            file_handle = get_storage().open(storage_path, 'rb')
         except Exception as exc:
             return Response({'detail': f'No se pudo abrir el archivo: {exc}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
