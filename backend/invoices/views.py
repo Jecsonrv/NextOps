@@ -20,6 +20,9 @@ import zipfile
 from io import BytesIO
 import logging
 
+# Setup logger
+logger = logging.getLogger(__name__)
+
 # Helper function to get the configured storage
 def get_storage():
     """Returns the configured default storage (FileSystem or Cloudinary)"""
