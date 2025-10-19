@@ -641,8 +641,13 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
 
         NOTA: Verifica tanto tipos hardcodeados (legacy) como tipos dinámicos desde CostType.
         """
-        # Verificación legacy para tipos hardcodeados
+        # Verificación legacy para tipos hardcodeados/prefijos comunes
         if self.tipo_costo in ['FLETE', 'CARGOS_NAVIERA']:
+            return True
+
+        # Soportar variantes basadas en prefijos (ej. FLETE_MARITIMO)
+        prefijos_vinculados = ('FLETE', 'CARGOS_NAVIERA')
+        if any(self.tipo_costo.startswith(prefijo) for prefijo in prefijos_vinculados):
             return True
 
         # Verificación dinámica: consultar el modelo CostType
