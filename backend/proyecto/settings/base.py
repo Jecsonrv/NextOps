@@ -136,14 +136,25 @@ MEDIA_ROOT = BASE_DIR / 'media'
 BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 
 # Cloudinary Configuration (Cloud Storage)
+USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
+
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
     'API_KEY': config('CLOUDINARY_API_KEY', default=''),
     'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
 }
 
+# Configure cloudinary library directly
+import cloudinary
+cloudinary.config(
+    cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
+    api_key=config('CLOUDINARY_API_KEY', default=''),
+    api_secret=config('CLOUDINARY_API_SECRET', default=''),
+    secure=True
+)
+
 # Use Cloudinary for media files in production
-if config('USE_CLOUDINARY', default=False, cast=bool):
+if USE_CLOUDINARY:
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Default primary key field type
