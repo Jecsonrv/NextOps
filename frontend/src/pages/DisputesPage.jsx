@@ -48,13 +48,12 @@ const estadoBadgeVariant = {
 };
 
 const tipoDisputaBadgeVariant = {
-    cantidad: "warning",
-    servicio: "destructive",
-    duplicada: "secondary",
-    precio: "warning",
+    servicio_no_prestado: "destructive",
+    almacenaje_no_aplica: "warning",
+    dias_libres_incorrectos: "warning",
+    cargo_no_aplica: "warning",
+    demoras_no_aplican: "warning",
     otro: "secondary",
-    flete: "warning",
-    cargos_naviera: "warning",
 };
 
 export function DisputesPage() {
@@ -317,12 +316,11 @@ export function DisputesPage() {
                                     <option value="">Todos los tipos</option>
                                     {filterValues?.tipos_disputa?.map((tipo) => (
                                         <option key={tipo} value={tipo}>
-                                            {tipo === 'flete' ? 'Flete' :
-                                             tipo === 'cargos_naviera' ? 'Cargos Naviera' :
-                                             tipo === 'cantidad' ? 'Cantidad Incorrecta' :
-                                             tipo === 'servicio' ? 'Servicio No Prestado' :
-                                             tipo === 'duplicada' ? 'Duplicada' :
-                                             tipo === 'precio' ? 'Diferencias Valor' :
+                                            {tipo === 'servicio_no_prestado' ? 'Servicio No Prestado' :
+                                             tipo === 'almacenaje_no_aplica' ? 'Almacenaje No Aplica' :
+                                             tipo === 'dias_libres_incorrectos' ? 'No Se Están Aplicando Correctamente Los Días Libres' :
+                                             tipo === 'cargo_no_aplica' ? 'Cargo No Aplica' :
+                                             tipo === 'demoras_no_aplican' ? 'Demoras No Aplican' :
                                              tipo === 'otro' ? 'Otro' : tipo}
                                         </option>
                                     ))}

@@ -11,12 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { InvoiceSelector } from "./InvoiceSelector";
 
 const TIPO_DISPUTA_CHOICES = [
-    { value: "flete", label: "Flete" },
-    { value: "cargos_naviera", label: "Cargos de Naviera" },
-    { value: "cantidad", label: "Cantidad Incorrecta" },
-    { value: "servicio", label: "Servicio No Prestado" },
-    { value: "duplicada", label: "Factura Duplicada" },
-    { value: "precio", label: "Diferencias de Valor" },
+    { value: "servicio_no_prestado", label: "Servicio No Prestado" },
+    { value: "almacenaje_no_aplica", label: "Almacenaje No Aplica" },
+    { value: "dias_libres_incorrectos", label: "No Se Están Aplicando Correctamente Los Días Libres" },
+    { value: "cargo_no_aplica", label: "Cargo No Aplica" },
+    { value: "demoras_no_aplican", label: "Demoras No Aplican" },
     { value: "otro", label: "Otro" },
 ];
 
@@ -24,7 +23,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
     const queryClient = useQueryClient();
     const [formData, setFormData] = useState({
         invoice_id: "",
-        tipo_disputa: "precio",
+        tipo_disputa: "servicio_no_prestado",
         detalle: "",
         monto_disputa: "",
         numero_caso: "",
@@ -85,7 +84,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                 // Modo edición
                 setFormData({
                     invoice_id: dispute.invoice || "",
-                    tipo_disputa: dispute.tipo_disputa || "precio",
+                    tipo_disputa: dispute.tipo_disputa || "servicio_no_prestado",
                     detalle: dispute.detalle || "",
                     monto_disputa: dispute.monto_disputa || "",
                     numero_caso: dispute.numero_caso || "",
@@ -96,7 +95,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                 // Crear desde factura
                 setFormData({
                     invoice_id: invoice.id,
-                    tipo_disputa: "precio",
+                    tipo_disputa: "servicio_no_prestado",
                     detalle: "",
                     monto_disputa: invoice.monto || "",
                     numero_caso: "",
@@ -107,7 +106,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                 // Crear nueva disputa sin factura preseleccionada
                 setFormData({
                     invoice_id: "",
-                    tipo_disputa: "precio",
+                    tipo_disputa: "servicio_no_prestado",
                     detalle: "",
                     monto_disputa: "",
                     numero_caso: "",

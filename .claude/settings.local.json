@@ -8,7 +8,9 @@
       "Bash(docker-compose exec:*)",
       "Bash(curl:*)",
       "Bash(python:*)",
-      "Bash(docker-compose logs:*)"
+      "Bash(docker-compose logs:*)",
+      "Bash(docker exec nextops_backend python manage.py sync_invoices_to_ots --dry-run)",
+      "Bash(docker restart nextops_backend)"
     ],
     "deny": [],
     "ask": []

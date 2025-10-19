@@ -422,24 +422,11 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
                     self.estado_facturacion = 'facturada'
         
         super().save(*args, **kwargs)
-        
-        # --- Lógica de Sincronización POST-SAVE ---
-        is_transitioning_to_anulada = (
-            old_estado_provision not in ['anulada', 'anulada_parcialmente'] and
-            self.estado_provision in ['anulada', 'anulada_parcialmente']
-        )
 
-        # Determinar si se debe sincronizar
-        should_sync = False
-        # Sincronizar si es una actualización normal de una factura no anulada
-        if self.estado_provision not in ['anulada', 'anulada_parcialmente']:
-            should_sync = True
-        # O sincronizar si es el momento exacto de la transición a un estado anulado (para resetear la OT)
-        elif is_transitioning_to_anulada:
-            should_sync = True
-
-        if should_sync and self.es_costo_vinculado_ot() and self.ot:
-            self._sincronizar_estado_con_ot()
+        # NOTA: La sincronización Invoice -> OT ahora se maneja mediante señal
+        # post_save en invoices/signals.py (sync_invoice_to_ot_on_assignment)
+        # Esto garantiza que SIEMPRE se sincronice, incluso cuando se asigna una OT
+        # a una factura existente o cuando se actualiza cualquier campo relevante.
     
     def get_confidence_level(self):
         """Retorna el nivel de confianza en formato legible"""
@@ -710,12 +697,11 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
     """
 
     TIPO_DISPUTA_CHOICES = [
-        ('flete', 'Flete'),
-        ('cargos_naviera', 'Cargos de Naviera'),
-        ('cantidad', 'Cantidad Incorrecta'),
-        ('servicio', 'Servicio No Prestado'),
-        ('duplicada', 'Factura Duplicada'),
-        ('precio', 'Diferencias de Valor'), # Renamed from 'Precio Incorrecto'
+        ('servicio_no_prestado', 'Servicio No Prestado'),
+        ('almacenaje_no_aplica', 'Almacenaje No Aplica'),
+        ('dias_libres_incorrectos', 'No Se Están Aplicando Correctamente Los Días Libres'),
+        ('cargo_no_aplica', 'Cargo No Aplica'),
+        ('demoras_no_aplican', 'Demoras No Aplican'),
         ('otro', 'Otro'),
     ]
 

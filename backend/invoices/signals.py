@@ -3,9 +3,10 @@ Signals para el módulo de Invoices.
 Sincronización bidireccional de fechas entre Invoice y OT.
 """
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from ots.models import OT
+from invoices.models import Invoice
 
 
 @receiver(post_save, sender=OT)
@@ -76,3 +77,41 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
     if count > 0:
         print(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: Sincronizadas {count} facturas no anuladas.")
         print(f"  - Datos aplicados: {update_data}")
+
+
+@receiver(post_save, sender=Invoice)
+def sync_invoice_to_ot_on_assignment(sender, instance, created, **kwargs):
+    """
+    Sincronización Invoice -> OT cuando se asigna o actualiza una factura.
+
+    REGLAS DE NEGOCIO:
+    - Cuando se crea o actualiza una factura vinculada (FLETE/CARGOS_NAVIERA),
+      debe actualizar el estado de su OT según las reglas de consolidación.
+    - Ignora facturas anuladas o sin OT asignada.
+    - Usa el método _sincronizar_estado_con_ot() del modelo Invoice.
+    """
+    # Evitar loops infinitos de sincronización
+    if getattr(instance, '_skip_signal_sync', False):
+        return
+
+    # Solo procesar facturas vinculadas a OT
+    if not instance.ot:
+        return
+
+    # Solo procesar facturas de tipo vinculado (FLETE, CARGOS_NAVIERA, o dinámicos)
+    if not instance.es_costo_vinculado_ot():
+        return
+
+    # No sincronizar facturas anuladas
+    if instance.estado_provision in ['anulada', 'anulada_parcialmente', 'rechazada']:
+        return
+
+    # Ejecutar sincronización Invoice -> OT
+    print(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura}: Sincronizando con OT {instance.ot.numero_ot}")
+
+    # Marcar para evitar loop
+    instance._skip_signal_sync = True
+    try:
+        instance._sincronizar_estado_con_ot()
+    finally:
+        instance._skip_signal_sync = False
