@@ -7,7 +7,7 @@ from .base import *
 DEBUG = False
 
 # Cloudinary Storage
-USE_CLOUDINARY = config('USE_CLOUDINARY', default=True, cast=bool)
+USE_CLOUDINARY = True
 
 
 # Security Settings
