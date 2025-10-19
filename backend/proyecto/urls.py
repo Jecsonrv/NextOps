@@ -67,6 +67,9 @@ def test_cloudinary_upload(request):
         # Usar el storage configurado en DEFAULT_FILE_STORAGE
         storage = storages['default']
 
+        # Debug info
+        use_cloudinary_attr = getattr(storage, 'use_cloudinary', 'NO ATTRIBUTE')
+
         # Crear un archivo de prueba
         test_content = b"Test file for Cloudinary - " + str(timezone.now()).encode()
         test_file = ContentFile(test_content, name='test_cloudinary.txt')
@@ -94,6 +97,8 @@ def test_cloudinary_upload(request):
             'success': True,
             'storage_backend': str(type(storage)),
             'storage_class_name': storage.__class__.__name__,
+            'use_cloudinary_setting': getattr(settings, 'USE_CLOUDINARY', False),
+            'use_cloudinary_attr': use_cloudinary_attr,
             'saved_path': path,
             'exists': exists,
             'url': url,
@@ -111,6 +116,7 @@ def test_cloudinary_upload(request):
             'error_type': type(e).__name__,
             'traceback': traceback.format_exc(),
             'storage_backend': str(type(storage)),
+            'use_cloudinary_attr': getattr(storage, 'use_cloudinary', 'NO ATTRIBUTE'),
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
