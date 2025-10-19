@@ -85,13 +85,15 @@ class CloudinaryMediaStorage(FileSystemStorage):
             )
 
             # Get the public_id returned by Cloudinary
+            # IMPORTANT: For 'raw' resources, Cloudinary returns public_id WITHOUT extension
+            # We must use this exact public_id for future access
             cloudinary_path = upload_result['public_id']
 
-            # Re-add extension if needed (Cloudinary strips it)
-            if not cloudinary_path.endswith(ext) and ext:
-                cloudinary_path = f"{cloudinary_path}{ext}"
+            # DO NOT add extension back - use the public_id exactly as Cloudinary returns it
+            # This ensures consistency between what's saved in DB and what exists in Cloudinary
 
             logger.info(f"✓ Upload successful: {cloudinary_path}")
+            logger.info(f"  Cloudinary URL: {upload_result.get('secure_url', 'N/A')}")
             return cloudinary_path
 
         except Exception as e:
@@ -145,36 +147,29 @@ class CloudinaryMediaStorage(FileSystemStorage):
         """
         Get public URL for file.
 
-        For Cloudinary files, generates a public URL directly from cloud name and path.
-        This is the simplest and most reliable approach.
+        For Cloudinary raw files (PDFs), this returns a placeholder.
+        Actual file access should use private_download_url in views.
 
         Args:
-            name (str): File path/public_id (e.g., "invoices/20251019_123456_file.pdf")
+            name (str): File path/public_id (e.g., "invoices/20251019_123456_file")
 
         Returns:
-            str: Public URL for accessing the file
+            str: Placeholder URL (not directly accessible for raw files)
         """
         if not self.use_cloudinary:
             return super().url(name)
 
-        # Simple, reliable URL generation
+        # For Cloudinary, we return a placeholder URL
+        # The actual file access is handled in views.py via private_download_url
+        # This is because raw files (PDFs) cannot be accessed with simple public URLs
+
         cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
 
-        # Detect resource type based on extension
-        ext = os.path.splitext(name)[1].lower()
+        # Return a placeholder that indicates it's a Cloudinary file
+        # The view will intercept this and serve the file properly
+        url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{name}"
 
-        if ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']:
-            resource_type = 'image'
-        elif ext in ['.mp4', '.avi', '.mov', '.webm', '.mkv']:
-            resource_type = 'video'
-        else:
-            resource_type = 'raw'  # PDFs, documents, etc.
-
-        # Construct simple public URL
-        # Format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{public_id}
-        url = f"https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{name}"
-
-        logger.debug(f"Generated Cloudinary URL: {url}")
+        logger.debug(f"Generated Cloudinary URL (placeholder): {url}")
         return url
 
     def delete(self, name):

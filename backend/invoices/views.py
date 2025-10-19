@@ -172,32 +172,30 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 logger.info(f"Fetching file from Cloudinary: {storage_path}")
                 logger.info(f"Invoice ID: {invoice.id}, Filename: {invoice.uploaded_file.filename}")
 
-                # IMPORTANT: Cloudinary private_download_url expects the public_id WITHOUT extension
-                # But our storage_path includes the extension, so we need to check
-                public_id = storage_path
+                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
+                # But we may have saved it WITH extension in older uploads
+                # Try both approaches
 
-                # Try to generate signed download URL
+                # First, remove extension if present (new behavior)
+                import os
+                base_name, ext = os.path.splitext(storage_path)
+                ext_clean = ext.lstrip('.')
+
+                # Try 1: Without extension (correct for raw files)
+                public_id = base_name if ext else storage_path
+
+                logger.info(f"Trying public_id: {public_id}")
+
                 try:
                     download_url = cloudinary.utils.private_download_url(
                         public_id,
-                        format=None,  # Don't add format, it's in the public_id
+                        format=ext_clean if ext_clean else None,
                         resource_type='raw',
                         attachment=False,
                     )
                     logger.info(f"Generated download URL: {download_url[:100]}...")
                 except Exception as url_error:
                     logger.error(f"Error generating download URL: {url_error}")
-                    # Fallback: Try without extension
-                    import os
-                    base_name = os.path.splitext(storage_path)[0]
-                    ext = os.path.splitext(storage_path)[1].lstrip('.')
-                    download_url = cloudinary.utils.private_download_url(
-                        base_name,
-                        format=ext if ext else None,
-                        resource_type='raw',
-                        attachment=False,
-                    )
-                    logger.info(f"Generated download URL (fallback): {download_url[:100]}...")
 
                 # Download file from Cloudinary
                 logger.info(f"Downloading from Cloudinary...")
