@@ -6,6 +6,7 @@ para identificar campos clave como número de factura, fecha, monto, etc.
 """
 
 import re
+import unicodedata
 from decimal import Decimal
 from datetime import datetime
 from typing import Dict, Any, Optional, List
@@ -22,6 +23,7 @@ class PDFExtractor:
     
     def __init__(self):
         self.text = ""
+        self.normalized_text = ""
         self.errors = []
         self.patterns = self._init_patterns()
     
@@ -48,6 +50,7 @@ class PDFExtractor:
         try:
             # Intentar extraer texto con pdfplumber
             self.text = self._extract_text_pdfplumber(file_content)
+            self.normalized_text = self._normalize_text(self.text)
             
             # Si no se pudo extraer texto, podría ser un PDF escaneado
             if not self.text or len(self.text.strip()) < 50:
@@ -119,18 +122,24 @@ class PDFExtractor:
                 re.compile(r'(?:FACTURA|INVOICE|FACT\.?)\s*(?:N[OÚ]\.?|#|NO\.?)\s*[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
                 re.compile(r'(?:N[OÚ]MERO|NUMBER|NO\.?)\s*(?:DE\s*)?(?:FACTURA|INVOICE)[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
                 re.compile(r'DOCUMENT\s*(?:NUMBER|NO\.?)[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
+                # Fallback DTE (El Salvador) - Número de control
+                re.compile(r'(?:N[uú]mero\s+de\s+Contr[oó]l:?)\s*(DTE-\d{2}-[\w]+-\d{15})', re.IGNORECASE),
             ],
             'fecha': [
                 # Fechas en formato dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
                 re.compile(r'(?:FECHA|DATE|EMISI[ÓO]N)[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', re.IGNORECASE),
                 re.compile(r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})'),
                 re.compile(r'(\d{4}[/-]\d{1,2}[/-]\d{1,2})'),
+                # Fallback DTE (El Salvador) - Fecha de emisión/documento
+                re.compile(r'(?:Fecha\sde\sEmisi[oó]n|Fecha\sde\sDocumento|Fecha\sy\shora\sde\semision):?\s*.*?(\d{2}[-/]\d{2}[-/]\d{4}|\d{4}[-/]\d{2}[-/]\d{2})', re.IGNORECASE | re.DOTALL),
             ],
             'monto': [
                 # Montos con símbolos de moneda, separadores de miles y decimales
                 re.compile(r'(?:TOTAL|AMOUNT|MONTO)[:\s]*(?:USD?|US\$|\$)?\s*([\d,]+\.?\d{0,2})', re.IGNORECASE),
                 re.compile(r'(?:USD?|US\$|\$)\s*([\d,]+\.?\d{0,2})', re.IGNORECASE),
                 re.compile(r'TOTAL[:\s]*([\d,]+\.?\d{0,2})', re.IGNORECASE),
+                # Fallback DTE (El Salvador) - Monto total
+                re.compile(r'(?:Monto\s+Total\s+de\s+la\s+Operaci[oó]n|TOTAL\s+A\s+PAGAR|Total\s+operaciones):?\s*(?:USD|\$)?\s*([\d,]+\.\d{2})', re.IGNORECASE),
             ],
             'nit': [
                 # Formatos de NIT (El Salvador y otros países)
@@ -143,6 +152,8 @@ class PDFExtractor:
                 re.compile(r'MBL[:\s#]*([A-Z]{4}\d{7,11})', re.IGNORECASE),
                 re.compile(r'M\.?\s*B\.?\s*L\.?[:\s#]*([A-Z]{4}\d{7,11})', re.IGNORECASE),
                 re.compile(r'MASTER\s*B/?L[:\s#]*([A-Z]{4}\d{7,11})', re.IGNORECASE),
+                # Fallback DTE (El Salvador) - Referencia BLs
+                re.compile(r'(?:BL|MBL|HBL)\s+([A-Z0-9]+)', re.IGNORECASE),
             ],
             'contenedor': [
                 # Número de contenedor (formato estándar ISO 6346)
@@ -157,11 +168,19 @@ class PDFExtractor:
             ],
         }
     
+    def _normalize_text(self, value: str) -> str:
+        """Remueve acentos y normaliza espacios para facilitar los patrones genéricos."""
+        if not value:
+            return ""
+        normalized = unicodedata.normalize('NFKD', value)
+        stripped = ''.join(ch for ch in normalized if not unicodedata.combining(ch))
+        return stripped
+    
     def _extract_numero_factura(self) -> str:
         """Extrae el número de factura"""
         try:
             for pattern in self.patterns['numero_factura']:
-                match = pattern.search(self.text)
+                match = pattern.search(self.text) or pattern.search(self.normalized_text)
                 if match:
                     return match.group(1).strip()
             
@@ -175,7 +194,7 @@ class PDFExtractor:
         """Extrae la fecha de emisión"""
         try:
             for pattern in self.patterns['fecha']:
-                match = pattern.search(self.text)
+                match = pattern.search(self.text) or pattern.search(self.normalized_text)
                 if match:
                     date_str = match.group(1)
                     parsed_date = self._parse_date(date_str)
@@ -210,7 +229,7 @@ class PDFExtractor:
         """Extrae el monto total"""
         try:
             for pattern in self.patterns['monto']:
-                match = pattern.search(self.text)
+                match = pattern.search(self.text) or pattern.search(self.normalized_text)
                 if match:
                     amount_str = match.group(1).replace(',', '')
                     return Decimal(amount_str)
@@ -225,7 +244,7 @@ class PDFExtractor:
         """Extrae el NIT del proveedor"""
         try:
             for pattern in self.patterns['nit']:
-                match = pattern.search(self.text)
+                match = pattern.search(self.text) or pattern.search(self.normalized_text)
                 if match:
                     return match.group(1).strip()
             
@@ -271,7 +290,7 @@ class PDFExtractor:
         try:
             # Buscar MBLs
             for pattern in self.patterns['mbl']:
-                matches = pattern.finditer(self.text)
+                matches = list(pattern.finditer(self.text)) or list(pattern.finditer(self.normalized_text))
                 for match in matches:
                     referencias.append({
                         'tipo': 'mbl',
@@ -280,7 +299,7 @@ class PDFExtractor:
             
             # Buscar contenedores
             for pattern in self.patterns['contenedor']:
-                matches = pattern.finditer(self.text)
+                matches = list(pattern.finditer(self.text)) or list(pattern.finditer(self.normalized_text))
                 for match in matches:
                     container = match.group(1).upper()
                     # Validar que sea un formato válido de contenedor

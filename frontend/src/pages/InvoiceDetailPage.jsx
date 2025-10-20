@@ -556,6 +556,11 @@ export function InvoiceDetailPage() {
                                 <div>
                                     {/* NUEVA SECCIÓN DE RESUMEN DE MONTOS */}
                                     {(() => {
+                                        const parseAmount = (value) => {
+                                            const parsed = Number(value);
+                                            return Number.isFinite(parsed) ? parsed : 0;
+                                        };
+
                                         const disputasResueltas = invoice.disputas?.filter(d => 
                                             d.estado === 'resuelta' && 
                                             (d.resultado === 'aprobada_total' || d.resultado === 'aprobada_parcial')
@@ -565,19 +570,25 @@ export function InvoiceDetailPage() {
 
                                         const totalAnuladoDisputas = disputasResueltas.reduce((sum, d) => {
                                             if (d.resultado === 'aprobada_total') {
-                                                return sum + parseFloat(d.monto_disputa);
+                                                return sum + parseAmount(d.monto_disputa);
                                             } else if (d.resultado === 'aprobada_parcial' && d.monto_recuperado) {
-                                                return sum + parseFloat(d.monto_recuperado);
+                                                return sum + parseAmount(d.monto_recuperado);
                                             }
                                             return sum;
                                         }, 0);
 
                                         const totalNotasCredito = notasCreditoAplicadas.reduce((sum, nc) => {
-                                            return sum + Math.abs(parseFloat(nc.monto));
+                                            return sum + Math.abs(parseAmount(nc.monto));
                                         }, 0);
 
-                                        const totalAjustes = totalAnuladoDisputas + totalNotasCredito;
-                                        const montoOriginal = parseFloat(invoice.monto_original || invoice.monto);
+                                        const montoOriginal = parseAmount(invoice.monto_original ?? invoice.monto);
+                                        const montoAplicableRaw = invoice.monto_aplicable != null
+                                            ? parseAmount(invoice.monto_aplicable)
+                                            : Math.max(0, montoOriginal - (totalAnuladoDisputas + totalNotasCredito));
+                                        const montoFinal = Math.max(0, montoAplicableRaw);
+                                        const totalAjustes = Math.max(0, montoOriginal - montoFinal);
+                                        const esAnulacionTotal = montoFinal < 0.01;
+                                        const shouldCombineAdjustments = totalAnuladoDisputas > 0 && totalNotasCredito > 0 && Math.abs(totalAnuladoDisputas - totalNotasCredito) < 0.01;
 
                                         // Si no hay ajustes, mostrar el monto simple
                                         if (totalAjustes === 0) {
@@ -592,9 +603,6 @@ export function InvoiceDetailPage() {
                                                 </div>
                                             );
                                         }
-
-                                        const montoFinal = montoOriginal - totalAjustes;
-                                        const esAnulacionTotal = montoFinal < 0.01;
 
                                         // Si hay ajustes, mostrar el desglose
                                         return (
@@ -612,14 +620,18 @@ export function InvoiceDetailPage() {
 
                                                     {totalAnuladoDisputas > 0 && (
                                                         <div className="flex justify-between items-center text-sm">
-                                                            <span className="text-gray-600">Ajuste por Disputas:</span>
+                                                            <span className="text-gray-600">
+                                                                {shouldCombineAdjustments
+                                                                    ? 'Ajuste por Disputas (Nota de Crédito Aplicada):'
+                                                                    : 'Ajuste por Disputas:'}
+                                                            </span>
                                                             <span className="font-medium text-red-600">
-                                                                -${totalAnuladoDisputas.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                                -${(shouldCombineAdjustments ? totalAjustes : totalAnuladoDisputas).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                                             </span>
                                                         </div>
                                                     )}
 
-                                                    {totalNotasCredito > 0 && (
+                                                    {totalNotasCredito > 0 && !shouldCombineAdjustments && (
                                                         <div className="flex justify-between items-center text-sm">
                                                             <span className="text-gray-600">Notas de Crédito:</span>
                                                             <span className="font-medium text-red-600">
