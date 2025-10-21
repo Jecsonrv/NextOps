@@ -11,6 +11,7 @@ from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.core.files.storage import storages
 from django.http import FileResponse, HttpResponse
+from django.conf import settings
 from decimal import Decimal
 from datetime import datetime, date
 import uuid
@@ -1150,32 +1151,54 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         # Si es solo una factura, descargarla directamente
         if len(invoice_ids) == 1:
             invoice = invoices.first()
-            
+
             if not invoice.uploaded_file:
                 return Response(
                     {'error': 'La factura no tiene archivo asociado'},
                     status=status.HTTP_404_NOT_FOUND
                 )
             
+            filename = self._generate_friendly_filename(invoice)
+            if not filename:
+                filename = invoice.uploaded_file.filename or 'factura.pdf'
+
+            content_type = invoice.uploaded_file.content_type or 'application/pdf'
+            use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
+
+            if use_cloudinary:
+                try:
+                    file_content = self._fetch_cloudinary_file(invoice)
+                except FileNotFoundError:
+                    return Response(
+                        {'error': 'Archivo no encontrado'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                except Exception as e:
+                    logger.error(f"Error descargando factura {invoice.id}: {e}")
+                    return Response(
+                        {'error': 'Error al descargar el archivo'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+                response = HttpResponse(file_content, content_type=content_type)
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Length'] = len(file_content)
+                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+                return response
+
             storage_path = invoice.uploaded_file.path
             if not get_storage().exists(storage_path):
                 return Response(
                     {'error': 'Archivo no encontrado'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-            
+
             try:
                 file_handle = get_storage().open(storage_path, 'rb')
-                filename = self._generate_friendly_filename(invoice)
-                if not filename:
-                    filename = invoice.uploaded_file.filename or 'factura.pdf'
-                
-                content_type = invoice.uploaded_file.content_type or 'application/pdf'
                 response = FileResponse(file_handle, content_type=content_type)
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
                 response['Content-Length'] = invoice.uploaded_file.size
                 response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-                
                 return response
             except Exception as e:
                 logger.error(f"Error descargando factura {invoice.id}: {e}")
@@ -1188,6 +1211,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         zip_buffer = BytesIO()
         processed_count = 0
 
+        use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
+
         try:
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for invoice in invoices:
@@ -1195,16 +1220,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         logger.warning(f"Factura {invoice.id} no tiene archivo asociado")
                         continue
 
-                    storage_path = invoice.uploaded_file.path
-
-                    if not get_storage().exists(storage_path):
-                        logger.warning(f"Archivo no encontrado: {storage_path}")
-                        continue
-
                     try:
-                        # Leer archivo del storage
-                        with get_storage().open(storage_path, 'rb') as file_handle:
-                            file_content = file_handle.read()
+                        storage_path = invoice.uploaded_file.path
+
+                        if use_cloudinary:
+                            file_content = self._fetch_cloudinary_file(invoice)
+                        else:
+                            if not get_storage().exists(storage_path):
+                                logger.warning(f"Archivo no encontrado: {storage_path}")
+                                continue
+                            with get_storage().open(storage_path, 'rb') as file_handle:
+                                file_content = file_handle.read()
 
                         # Generar nombre amigable
                         filename = self._generate_friendly_filename(invoice)
@@ -1385,6 +1411,66 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 {'error': f'Error al crear archivo ZIP: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def _fetch_cloudinary_file(self, invoice):
+        if not getattr(settings, 'USE_CLOUDINARY', False):
+            raise RuntimeError('Cloudinary disabled')
+
+        import cloudinary.utils
+        import requests
+
+        storage_path = invoice.uploaded_file.path
+        base_name, ext = os.path.splitext(storage_path)
+        ext_clean = ext.lstrip('.')
+
+        candidates = []
+        if ext:
+            candidates.append(base_name)
+        candidates.append(storage_path)
+
+        unique_candidates = []
+        for candidate in candidates:
+            if candidate and candidate not in unique_candidates:
+                unique_candidates.append(candidate)
+
+        last_status = None
+
+        for public_id in unique_candidates:
+            for cloudinary_type in ('authenticated', 'upload'):
+                try:
+                    options = {
+                        'resource_type': 'raw',
+                        'type': cloudinary_type,
+                        'secure': True,
+                        'sign_url': True,
+                    }
+                    if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
+                        options['format'] = ext_clean
+
+                    download_url, _ = cloudinary.utils.cloudinary_url(public_id, **options)
+                except Exception as error:
+                    logger.error(f"Error generando URL firmada ({cloudinary_type}) para factura {invoice.id}: {error}")
+                    continue
+
+                try:
+                    response = requests.get(download_url, timeout=30)
+                except requests.exceptions.Timeout:
+                    logger.error(f"Timeout descargando archivo Cloudinary para factura {invoice.id}")
+                    continue
+                except requests.exceptions.RequestException as req_exc:
+                    logger.error(f"Error de red descargando archivo Cloudinary para factura {invoice.id}: {req_exc}")
+                    continue
+
+                if response.status_code == 200:
+                    return response.content
+
+                last_status = response.status_code
+                logger.error(f"Error descargando archivo Cloudinary para factura {invoice.id}: {response.status_code}")
+
+        if last_status == 404:
+            raise FileNotFoundError(storage_path)
+
+        raise IOError(f"Cloudinary download failed with status {last_status}")
 
 class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
     """

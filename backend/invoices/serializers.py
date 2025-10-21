@@ -583,14 +583,43 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = [
             'ot_id',
+            'numero_factura',
+            'fecha_emision',
+            'fecha_vencimiento',
             'estado_provision',
             'fecha_provision',
             'estado_facturacion',
             'fecha_facturacion',
+            'monto',
+            'tipo_costo',
+            'tipo_proveedor',
+            'proveedor_id',
             'requiere_revision',
             'notas',
             'monto_aplicable',  # Permitir edición manual de monto_aplicable
         ]
+
+    def validate_numero_factura(self, value):
+        """Validar que el número de factura sea único para facturas activas."""
+        if value is None:
+            return value
+
+        queryset = Invoice.objects.filter(numero_factura=value, is_deleted=False)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise serializers.ValidationError(
+                f"Ya existe una factura activa con el número {value}"
+            )
+
+        return value
+
+    def validate_monto(self, value):
+        """Validar que el monto sea mayor a 0 cuando se proporciona."""
+        if value is not None and value <= Decimal('0.00'):
+            raise serializers.ValidationError("El monto debe ser mayor a 0")
+        return value
 
     def validate_monto_aplicable(self, value):
         """Validar que monto_aplicable sea válido"""
