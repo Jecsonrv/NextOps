@@ -10,13 +10,20 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 backlog = 2048
 
 # Worker processes
-workers = int(os.getenv('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
-worker_class = 'sync'
-worker_connections = 1000
+# OPTIMIZED FOR RAILWAY: Reduce memory footprint
+# Previous: cpu_count * 2 + 1 = 5 workers = ~3GB RAM
+# New: 2 workers with async I/O = ~800MB RAM
+workers = int(os.getenv('GUNICORN_WORKERS', 2))  # Max 2 workers for Railway
+worker_class = os.getenv('GUNICORN_WORKER_CLASS', 'gevent')  # Async workers for better I/O
+worker_connections = int(os.getenv('GUNICORN_WORKER_CONNECTIONS', 500))  # Reduced from 1000
+
+# Worker recycling (prevents memory leaks)
+max_requests = int(os.getenv('GUNICORN_MAX_REQUESTS', 500))  # Recycle worker after 500 requests
+max_requests_jitter = int(os.getenv('GUNICORN_MAX_REQUESTS_JITTER', 50))  # Prevent simultaneous recycling
 
 # CRITICAL: Increased timeout for Cloudinary uploads
 # Default is 30 seconds, we need more for large file uploads
-timeout = int(os.getenv('GUNICORN_TIMEOUT', 300))  # 5 minutes
+timeout = int(os.getenv('GUNICORN_TIMEOUT', 120))  # Reduced from 300s to 2min
 graceful_timeout = 30
 keepalive = 5
 

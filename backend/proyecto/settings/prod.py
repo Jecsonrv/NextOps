@@ -79,3 +79,70 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@nextops.com')
 
 # Disable admin for production (optional, comment out if you need it)
 # INSTALLED_APPS.remove('django.contrib.admin')
+
+# MEMORY OPTIMIZATION: Simplified logging for production (Railway captures stdout)
+# Remove file handlers to prevent memory buildup from log rotation
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '%(asctime)s %(name)s %(levelname)s %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': config('LOG_LEVEL', default='WARNING'),  # Reduce logs in production
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'nextops': {
+            'handlers': ['console'],
+            'level': config('LOG_LEVEL', default='WARNING'),
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
+
+# Database connection pooling optimization for Railway
+# Reduce connection lifetime to release DB connections faster
+DATABASES['default']['CONN_MAX_AGE'] = 60  # 1 minute instead of 10
+
+# MEMORY MONITORING: Add middleware to track memory usage
+# Only active in production (sampling 1% of requests)
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Memory monitoring (production only)
+    'common.middleware.memory_monitor.MemoryMonitorMiddleware',
+    'common.middleware.memory_monitor.RequestSizeMonitorMiddleware',
+]

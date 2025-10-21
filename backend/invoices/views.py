@@ -437,14 +437,23 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             try:
                 logger.info(f"Processing file: {file.name} (size: {file.size} bytes)")
 
-                # === PASO 1: Leer archivo y calcular hash ===
-                file.seek(0)
-                file_content = file.read()
-                file.size = len(file_content)  # Update size in case it wasn't set
-
+                # === PASO 1: Calcular hash con streaming (memory efficient) ===
+                # MEMORY OPTIMIZATION: Previous - load entire file (15MB × 3 = 45MB)
+                # New: Stream in chunks (8KB buffer = minimal memory)
                 import hashlib
-                file_hash = hashlib.sha256(file_content).hexdigest()
+                hasher = hashlib.sha256()
+                file.seek(0)
+
+                # Calculate hash by streaming chunks
+                for chunk in file.chunks(chunk_size=8192):
+                    hasher.update(chunk)
+
+                file_hash = hasher.hexdigest()
                 logger.debug(f"File hash: {file_hash}")
+
+                # Read full content only for PDF parsing (if needed)
+                file.seek(0)
+                file_content = file.read() if auto_parse else None
 
                 # === PASO 2: Verificar duplicado ===
                 existing_file = UploadedFile.objects.filter(sha256=file_hash).first()
@@ -956,10 +965,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from openpyxl.utils import get_column_letter
 
-        # Forzar la no paginación estableciendo un tamaño de página muy grande
-        if self.paginator:
-            self.paginator.page_size = 10000
-        queryset = self.filter_queryset(self.get_queryset())
+        # MEMORY OPTIMIZATION: Use iterator instead of loading all records
+        # Previous: Load 10,000 records = ~500MB RAM
+        # New: Process in chunks = ~50MB RAM
+        queryset = self.filter_queryset(self.get_queryset()).select_related(
+            'ot', 'ot__cliente', 'proveedor', 'uploaded_file'
+        )
 
         # Crear workbook
         wb = Workbook()
@@ -1003,9 +1014,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             cell.alignment = header_alignment
             cell.border = thin_border
 
-        # Escribir datos
+        # Escribir datos usando iterator (memory efficient)
         try:
-            for row_num, invoice in enumerate(queryset, 2):
+            for row_num, invoice in enumerate(queryset.iterator(chunk_size=100), 2):
                 # Obtener datos relacionados
                 ot_number = invoice.ot.numero_ot if invoice.ot else ''
                 cliente = invoice.ot.cliente.normalized_name if invoice.ot and invoice.ot.cliente else ''

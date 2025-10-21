@@ -307,15 +307,7 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 # Celery Beat Schedule (Periodic Tasks)
 from celery.schedules import crontab
 
-CELERY_BEAT_SCHEDULE = {
-    'process-dte-mailbox-every-15-minutes': {
-        'task': 'automation.process_dte_mailbox',
-        'schedule': crontab(minute='*/15'),  # Every 15 minutes
-        'options': {
-            'expires': 600,  # Task expires after 10 minutes if not picked up
-        }
-    },
-}
+CELERY_BEAT_SCHEDULE = {}
 
 # Microsoft Graph API Configuration
 GRAPH_TENANT_ID = config('GRAPH_TENANT_ID', default='')

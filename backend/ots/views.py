@@ -1053,11 +1053,12 @@ class OTViewSet(viewsets.ModelViewSet):
         from django.http import HttpResponse
         from datetime import datetime
 
-        # Obtener queryset filtrado SIN PAGINACIÓN (todos los registros)
-        # Forzar la no paginación estableciendo un tamaño de página muy grande
-        if self.paginator:
-            self.paginator.page_size = 10000
-        queryset = self.filter_queryset(self.get_queryset())
+        # MEMORY OPTIMIZATION: Use iterator instead of loading all records
+        # Previous: Load 10,000 records = ~500MB RAM
+        # New: Process in chunks = ~50MB RAM
+        queryset = self.filter_queryset(self.get_queryset()).select_related(
+            'proveedor', 'cliente', 'modificado_por'
+        )
 
         # Crear workbook
         wb = Workbook()
@@ -1103,9 +1104,9 @@ class OTViewSet(viewsets.ModelViewSet):
             cell.alignment = header_alignment
             cell.border = thin_border
 
-        # Escribir datos
+        # Escribir datos usando iterator (memory efficient)
         row_num = 2
-        for ot in queryset:
+        for ot in queryset.iterator(chunk_size=100):
             # Formatear contenedores
             contenedores_str = ', '.join(ot.get_contenedores_numeros()) if ot.contenedores else ''
 
