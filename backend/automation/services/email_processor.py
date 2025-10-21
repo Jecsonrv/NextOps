@@ -332,12 +332,27 @@ class EmailProcessor:
         if 'contentBytes' not in attachment:
             attachment = self.graph_client.download_attachment(message_id, attachment['id'])
         
-        # Decodificar content
+        # MEMORY OPTIMIZATION: Decode and save to tempfile to avoid loading in RAM
         content_bytes_base64 = attachment.get('contentBytes', '')
-        content_bytes = base64.b64decode(content_bytes_base64)
-        
-        # Crear UploadedFile
-        uploaded_file = self._create_uploaded_file(filename, content_bytes, content_type)
+
+        # Use tempfile to avoid keeping large files in memory
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+            # Decode in chunks if possible, or decode and write immediately
+            content_bytes = base64.b64decode(content_bytes_base64)
+            tmp.write(content_bytes)
+            tmp.flush()
+            tmp_path = tmp.name
+
+        try:
+            # Create UploadedFile from tempfile (without loading full content in memory)
+            uploaded_file = self._create_uploaded_file_from_path(filename, tmp_path, content_type)
+        finally:
+            # Clean up tempfile
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
         
         # Crear Invoice usando serializer con auto_parse
         invoice_data = {
@@ -357,6 +372,68 @@ class EmailProcessor:
             logger.error(f"Failed to create invoice from {filename}: {serializer.errors}")
             raise ValueError(f"Validation error: {serializer.errors}")
     
+    def _create_uploaded_file_from_path(
+        self,
+        filename: str,
+        file_path: str,
+        content_type: str
+    ) -> UploadedFile:
+        """
+        Crea registro de UploadedFile desde archivo temporal.
+
+        MEMORY OPTIMIZATION: Reads file in chunks to calculate hash
+        without loading entire file in memory.
+
+        Args:
+            filename: Nombre del archivo
+            file_path: Path al archivo temporal
+            content_type: MIME type
+
+        Returns:
+            UploadedFile instance
+        """
+        import hashlib
+        from django.core.files import File
+        from django.core.files.storage import default_storage
+
+        # Calculate hash in chunks (memory efficient)
+        hasher = hashlib.sha256()
+        file_size = 0
+
+        with open(file_path, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                hasher.update(chunk)
+                file_size += len(chunk)
+
+        sha256 = hasher.hexdigest()
+
+        # Check if already exists (deduplication)
+        existing = UploadedFile.objects.filter(sha256=sha256).first()
+        if existing:
+            logger.debug(f"File already exists with hash {sha256[:8]}, reusing")
+            return existing
+
+        # Create path with date organization
+        date_path = datetime.now().strftime('%Y/%m')
+        storage_path = f"invoices/email/{date_path}/{filename}"
+
+        # Save file to storage (Cloudinary or filesystem)
+        # BUG FIX: Actually save the file to storage
+        with open(file_path, 'rb') as f:
+            saved_path = default_storage.save(storage_path, File(f))
+
+        # Create UploadedFile record
+        uploaded_file = UploadedFile.objects.create(
+            filename=filename,
+            path=saved_path,
+            sha256=sha256,
+            size=file_size,
+            content_type=content_type
+        )
+
+        logger.debug(f"Created UploadedFile: {uploaded_file.id} at {saved_path}")
+        return uploaded_file
+
     def _create_uploaded_file(
         self,
         filename: str,
@@ -364,43 +441,22 @@ class EmailProcessor:
         content_type: str
     ) -> UploadedFile:
         """
-        Crea registro de UploadedFile.
-        
-        Args:
-            filename: Nombre del archivo
-            content: Contenido en bytes
-            content_type: MIME type
-        
-        Returns:
-            UploadedFile instance
+        DEPRECATED: Legacy method for backward compatibility.
+        Use _create_uploaded_file_from_path for memory efficiency.
         """
-        # Calcular hash
-        sha256 = UploadedFile.calculate_hash(content)
-        
-        # Check si ya existe (deduplicación)
-        existing = UploadedFile.objects.filter(sha256=sha256).first()
-        if existing:
-            logger.debug(f"File already exists with hash {sha256[:8]}, reusing")
-            return existing
-        
-        # Crear path relativo
-        date_path = datetime.now().strftime('%Y/%m')
-        relative_path = f"invoices/email/{date_path}/{filename}"
-        
-        # Crear UploadedFile
-        uploaded_file = UploadedFile.objects.create(
-            filename=filename,
-            path=relative_path,
-            sha256=sha256,
-            size=len(content),
-            content_type=content_type
-        )
-        
-        # TODO: Guardar archivo físicamente en storage
-        # Por ahora solo creamos el registro
-        
-        logger.debug(f"Created UploadedFile: {uploaded_file.id}")
-        return uploaded_file
+        # Create tempfile and delegate to new method
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+            tmp.write(content)
+            tmp.flush()
+            tmp_path = tmp.name
+
+        try:
+            return self._create_uploaded_file_from_path(filename, tmp_path, content_type)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
     
     def _log_processing(
         self,

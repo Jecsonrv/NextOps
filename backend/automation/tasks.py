@@ -1,5 +1,8 @@
 """
 Celery Tasks for Email Automation.
+
+DEPRECATED: Email automation disabled to save memory (~3GB).
+Tasks are kept for backward compatibility but should not be used.
 """
 
 import logging
@@ -16,69 +19,26 @@ logger = logging.getLogger(__name__)
     name='automation.process_dte_mailbox',
     bind=True,
     max_retries=3,
-    default_retry_delay=300  # 5 minutes
+    default_retry_delay=300,  # 5 minutes
+    time_limit=600,  # 10 minutes hard limit (MEMORY OPTIMIZATION)
+    soft_time_limit=540  # 9 minutes soft limit (MEMORY OPTIMIZATION)
 )
 def process_dte_mailbox(self):
     """
-    Celery task para procesar mailbox de DTEs.
-    
-    Esta tarea:
-    - Lee la configuración de EmailAutoProcessingConfig
-    - Procesa emails con attachments DTE
-    - Crea facturas automáticamente
-    - Loguea todo en EmailProcessingLog
-    - Actualiza last_run info
-    
+    DEPRECATED: Email auto-processing disabled.
+
+    This task is disabled to save memory in production.
+    Returns immediately without processing.
+
     Returns:
-        dict: Estadísticas del procesamiento
+        dict: Status indicating task is disabled
     """
-    logger.info("Starting DTE mailbox processing task")
-    
-    try:
-        # Verificar configuración activa
-        try:
-            config = EmailAutoProcessingConfig.objects.get(id=1)
-        except EmailAutoProcessingConfig.DoesNotExist:
-            logger.warning("EmailAutoProcessingConfig not found, creating default")
-            config = EmailAutoProcessingConfig.objects.create(
-                id=1,
-                is_active=True,
-                check_interval_minutes=15,
-                target_folders=['Inbox'],
-                subject_filters=['DTE', 'Factura', 'Invoice'],
-                auto_parse_enabled=True,
-                max_emails_per_run=50
-            )
-        
-        if not config.is_active:
-            logger.info("Email auto-processing is disabled, skipping task")
-            return {
-                'status': 'disabled',
-                'message': 'Email auto-processing is disabled'
-            }
-        
-        # Crear processor y ejecutar
-        processor = EmailProcessor()
-        result = processor.process_mailbox()
-        
-        logger.info(f"Mailbox processing completed: {result}")
-        
-        return result
-        
-    except Exception as exc:
-        logger.error(f"Mailbox processing task failed: {exc}", exc_info=True)
-        
-        # Actualizar config con error
-        try:
-            config = EmailAutoProcessingConfig.objects.get(id=1)
-            config.last_run_at = timezone.now()
-            config.last_run_status = f"Task Error: {str(exc)}"
-            config.save()
-        except Exception as e:
-            logger.error(f"Failed to update config after task error: {e}")
-        
-        # Retry en caso de error
-        raise self.retry(exc=exc)
+    logger.warning("Email auto-processing is DISABLED - task skipped")
+
+    return {
+        'status': 'disabled',
+        'message': 'Email auto-processing is permanently disabled to save memory'
+    }
 
 
 @shared_task(name='automation.test_graph_connection')
