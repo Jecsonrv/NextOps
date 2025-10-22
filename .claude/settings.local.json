@@ -11,7 +11,9 @@
       "Bash(docker logs nextops_backend)",
       "Bash(git commit -m \"Add: Logging detallado para debug de Cloudinary file download\n\n- Agregar logs en cada paso del proceso\n- Manejar errores específicos (404, timeout, network)\n- Fallback para IDs con/sin extensión\n- Mensajes de error descriptivos\n\nEsto ayudará a identificar exactamente dónde falla el download.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
       "Bash(chmod:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(powershell -Command:*)",
+      "Read(//c/Users/jecso/Desktop/UEES/Ciclo 02-2025/Programacion 2/Proyecto/**)"
     ],
     "deny": [],
     "ask": []
