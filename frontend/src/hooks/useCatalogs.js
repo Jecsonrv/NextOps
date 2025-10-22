@@ -447,6 +447,31 @@ export function useVerifyAlias() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+            queryClient.invalidateQueries({ queryKey: ["client-summary"] });
+        },
+    });
+}
+
+/**
+ * Hook para aprobar la fusión de dos aliases
+ */
+export function useApproveAliasMerge() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ source_alias_id, target_alias_id }) => {
+            const response = await apiClient.post(
+                `/clients/client-aliases/approve_merge/`,
+                {
+                    source_alias_id,
+                    target_alias_id
+                }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+            queryClient.invalidateQueries({ queryKey: ["client-summary"] });
         },
     });
 }
@@ -708,76 +733,28 @@ export function useRenameClient() {
 }
 
 /**
- * Hook para obtener clientes desde facturas con agrupación inteligente
- * Endpoint: GET /clients/client-aliases/from_invoices/
+ * Hook para obtener resumen de clientes con métricas y posibles duplicados
+ * Endpoint: GET /clients/client-aliases/client_summary/
  */
-export function useClientAliasesFromInvoices(params = {}, options = {}) {
+export function useClientSummary(params = {}, options = {}) {
     const queryParams = new URLSearchParams();
 
-    if (params.threshold) queryParams.append("threshold", params.threshold);
+    if (params.search) queryParams.append("search", params.search);
+    if (params.show_duplicates_only !== undefined) queryParams.append("show_duplicates_only", params.show_duplicates_only);
     if (params.limit) queryParams.append("limit", params.limit);
-    if (params.include_existing !== undefined) queryParams.append("include_existing", params.include_existing);
 
     const queryString = queryParams.toString();
 
     return useQuery({
-        queryKey: ["client-aliases-from-invoices", params],
+        queryKey: ["client-summary", params],
         queryFn: async () => {
             const response = await apiClient.get(
-                `/clients/client-aliases/from_invoices/${queryString ? `?${queryString}` : ""}`
+                `/clients/client-aliases/client_summary/${queryString ? `?${queryString}` : ""}`
             );
             return response.data;
         },
-        staleTime: 2 * 60 * 1000, // 2 minutos (datos más dinámicos)
+        staleTime: 2 * 60 * 1000, // 2 minutos
         ...options,
-    });
-}
-
-/**
- * Hook para crear alias masivamente desde grupos de facturas
- * Endpoint: POST /clients/client-aliases/bulk_create_from_invoices/
- */
-export function useBulkCreateFromInvoices() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ canonical_name, variants, short_name, notes }) => {
-            const response = await apiClient.post(
-                "/clients/client-aliases/bulk_create_from_invoices/",
-                { canonical_name, variants, short_name, notes }
-            );
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
-            queryClient.invalidateQueries({ queryKey: ["client-aliases-from-invoices"] });
-            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
-            queryClient.invalidateQueries({ queryKey: ["invoices"] });
-        },
-    });
-}
-
-/**
- * Hook para fusionar variantes de facturas con alias existente
- * Endpoint: POST /clients/client-aliases/bulk_merge_from_invoices/
- */
-export function useBulkMergeFromInvoices() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ target_alias_id, variants, notes }) => {
-            const response = await apiClient.post(
-                "/clients/client-aliases/bulk_merge_from_invoices/",
-                { target_alias_id, variants, notes }
-            );
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
-            queryClient.invalidateQueries({ queryKey: ["client-aliases-from-invoices"] });
-            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
-            queryClient.invalidateQueries({ queryKey: ["invoices"] });
-        },
     });
 }
 

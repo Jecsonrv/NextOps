@@ -1,37 +1,46 @@
 /**
- * Página de Normalización Inteligente de Clientes desde Facturas
+ * Página de Gestión y Normalización de Clientes - Versión Mejorada
  *
- * Permite:
- * - Detectar clientes únicos de facturas
- * - Agrupar variantes similares automáticamente
- * - Crear aliases masivamente
- * - Fusionar con clientes existentes
+ * Mejoras implementadas:
+ * - Diseño más limpio y moderno
+ * - Debouncing en búsqueda
+ * - Skeleton loaders
+ * - Animaciones suaves
+ * - Vista compacta/expandida
+ * - Bulk actions
+ * - Ordenamiento
+ * - Mejor feedback visual
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Users,
     Search,
-    Filter,
-    GitMerge,
-    PlusCircle,
-    CheckCircle2,
     AlertTriangle,
+    CheckCircle2,
+    GitMerge,
+    Edit2,
+    Eye,
     TrendingUp,
-    FileText,
+    Filter,
+    X,
     RefreshCw,
     ChevronDown,
     ChevronUp,
-    Sparkles,
-    Download,
-    X,
+    Zap,
     Check,
+    Clock,
+    ArrowUpDown,
+    LayoutGrid,
+    List,
+    Download,
+    FileText,
 } from "lucide-react";
 import {
-    useClientAliasesFromInvoices,
-    useBulkCreateFromInvoices,
-    useBulkMergeFromInvoices,
+    useClientSummary,
+    useApproveAliasMerge,
+    useVerifyAlias,
 } from "../hooks/useCatalogs";
 import { showSuccess, showError, showConfirm } from "../utils/toast.jsx";
 import { Button } from "../components/ui/Button";
@@ -45,534 +54,572 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 
+// Hook para debouncing
+function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+}
+
 export function ClientNormalizationPage() {
     const navigate = useNavigate();
 
     // Estados
-    const [threshold, setThreshold] = useState(85);
-    const [limit, setLimit] = useState(50);
-    const [includeExisting, setIncludeExisting] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [expandedGroups, setExpandedGroups] = useState(new Set());
-    const [editingGroup, setEditingGroup] = useState(null);
-    const [editedCanonicalName, setEditedCanonicalName] = useState("");
-    const [editedShortName, setEditedShortName] = useState("");
+    const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
+    const [expandedClients, setExpandedClients] = useState(new Set());
+    const [viewMode, setViewMode] = useState("detailed"); // "detailed" | "compact"
+    const [sortBy, setSortBy] = useState("needs_attention"); // "needs_attention" | "ot_count" | "name"
+    const [selectedClients, setSelectedClients] = useState(new Set());
+
+    // Debounce search
+    const debouncedSearch = useDebounce(searchQuery, 300);
 
     // Queries y mutations
-    const { data: invoicesData, isLoading, refetch } = useClientAliasesFromInvoices({
-        threshold,
-        limit,
-        include_existing: includeExisting,
+    const { data: summaryData, isLoading, refetch, isFetching } = useClientSummary({
+        search: debouncedSearch,
+        show_duplicates_only: showDuplicatesOnly,
+        limit: 100,
     });
 
-    const createMutation = useBulkCreateFromInvoices();
-    const mergeMutation = useBulkMergeFromInvoices();
+    const mergeMutation = useApproveAliasMerge();
+    const verifyMutation = useVerifyAlias();
 
-    const groups = invoicesData?.groups || [];
-    const totalUniqueNames = invoicesData?.total_unique_names || 0;
-    const totalGroups = invoicesData?.total_groups || 0;
+    const clients = summaryData?.clients || [];
+    const totalClients = summaryData?.total_clients || 0;
 
-    // Filtrar grupos por búsqueda
-    const filteredGroups = useMemo(() => {
-        if (!searchQuery.trim()) return groups;
+    // Ordenamiento
+    const sortedClients = useMemo(() => {
+        const sorted = [...clients];
 
-        const query = searchQuery.toLowerCase();
-        return groups.filter(group =>
-            group.canonical_name.toLowerCase().includes(query) ||
-            group.suggested_short_name?.toLowerCase().includes(query) ||
-            group.variants.some(v => v.name.toLowerCase().includes(query))
-        );
-    }, [groups, searchQuery]);
+        switch (sortBy) {
+            case "needs_attention":
+                return sorted.sort((a, b) => {
+                    if (a.needs_attention === b.needs_attention) {
+                        return b.ot_count - a.ot_count;
+                    }
+                    return a.needs_attention ? -1 : 1;
+                });
+            case "ot_count":
+                return sorted.sort((a, b) => b.ot_count - a.ot_count);
+            case "name":
+                return sorted.sort((a, b) => a.name.localeCompare(b.name));
+            default:
+                return sorted;
+        }
+    }, [clients, sortBy]);
 
     // Estadísticas
     const stats = useMemo(() => {
+        const needsAttention = clients.filter(c => c.needs_attention).length;
+        const withDuplicates = clients.filter(c => c.possible_duplicates.length > 0).length;
+        const unverified = clients.filter(c => !c.is_verified).length;
+        const totalOTs = clients.reduce((sum, c) => sum + c.ot_count, 0);
+
         return {
-            total_invoices: groups.reduce((sum, g) => sum + g.total_invoices, 0),
-            to_create: groups.filter(g => g.recommendation === "create_new").length,
-            to_merge: groups.filter(g => g.recommendation === "merge_with_existing").length,
+            needsAttention,
+            withDuplicates,
+            unverified,
+            totalOTs,
         };
-    }, [groups]);
+    }, [clients]);
 
-    const toggleGroup = (index) => {
-        const newExpanded = new Set(expandedGroups);
-        if (newExpanded.has(index)) {
-            newExpanded.delete(index);
-        } else {
-            newExpanded.add(index);
-        }
-        setExpandedGroups(newExpanded);
-    };
-
-    const expandAll = () => {
-        setExpandedGroups(new Set(filteredGroups.map((_, i) => i)));
-    };
-
-    const collapseAll = () => {
-        setExpandedGroups(new Set());
-    };
-
-    const startEdit = (group, index) => {
-        setEditingGroup(index);
-        setEditedCanonicalName(group.canonical_name);
-        setEditedShortName(group.suggested_short_name || "");
-    };
-
-    const cancelEdit = () => {
-        setEditingGroup(null);
-        setEditedCanonicalName("");
-        setEditedShortName("");
-    };
-
-    const handleCreateNew = async (group, customCanonicalName = null, customShortName = null) => {
-        const canonicalName = customCanonicalName || group.canonical_name;
-        const shortName = customShortName || group.suggested_short_name;
-        const variants = group.variants.map(v => v.name);
-
-        showConfirm(
-            `¿Crear nuevo alias "${canonicalName}" para ${variants.length} variante(s) con ${group.total_invoices} factura(s)?`,
-            async () => {
-                try {
-                    const result = await createMutation.mutateAsync({
-                        canonical_name: canonicalName,
-                        variants: variants,
-                        short_name: shortName,
-                        notes: `Creado desde normalización automática. Agrupa ${variants.length} variantes.`,
-                    });
-
-                    showSuccess(`Alias creado: ${result.alias.original_name}. ${result.invoices_updated} facturas actualizadas.`);
-                    cancelEdit();
-                    refetch();
-                } catch (error) {
-                    console.error("Error creando alias:", error);
-                    showError(error.response?.data?.error || "Error al crear el alias");
-                }
+    const toggleExpand = useCallback((clientId) => {
+        setExpandedClients(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(clientId)) {
+                newSet.delete(clientId);
+            } else {
+                newSet.add(clientId);
             }
-        );
-    };
+            return newSet;
+        });
+    }, []);
 
-    const handleMergeWithExisting = async (group) => {
-        const existing = group.existing_alias;
-        const variants = group.variants.map(v => v.name);
+    const toggleSelectClient = useCallback((clientId) => {
+        setSelectedClients(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(clientId)) {
+                newSet.delete(clientId);
+            } else {
+                newSet.add(clientId);
+            }
+            return newSet;
+        });
+    }, []);
 
+    const handleMergeDuplicate = useCallback(async (sourceId, targetId, sourceName, targetName) => {
         showConfirm(
-            `¿Fusionar ${variants.length} variante(s) con el alias existente "${existing.name}" (${existing.short_name})?`,
+            `¿Fusionar "${sourceName}" con "${targetName}"?\n\nTodas las OTs de "${sourceName}" se reasignarán a "${targetName}".`,
             async () => {
                 try {
-                    const result = await mergeMutation.mutateAsync({
-                        target_alias_id: existing.id,
-                        variants: variants,
-                        notes: `Fusionado desde normalización. Similitud: ${existing.similarity}%`,
+                    await mergeMutation.mutateAsync({
+                        source_alias_id: sourceId,
+                        target_alias_id: targetId,
                     });
-
-                    showSuccess(`Fusionado exitosamente. ${result.invoices_updated} facturas actualizadas.`);
+                    showSuccess(`✓ Cliente fusionado exitosamente`);
                     refetch();
                 } catch (error) {
                     console.error("Error fusionando:", error);
-                    showError(error.response?.data?.error || "Error al fusionar");
+                    showError(error.response?.data?.error || "Error al fusionar clientes");
                 }
             }
         );
-    };
+    }, [mergeMutation, refetch]);
+
+    const handleVerifyClient = useCallback(async (clientId, clientName) => {
+        try {
+            await verifyMutation.mutateAsync({ id: clientId });
+            showSuccess(`✓ "${clientName}" verificado exitosamente`);
+            refetch();
+        } catch (error) {
+            console.error("Error verificando:", error);
+            showError(error.response?.data?.error || "Error al verificar cliente");
+        }
+    }, [verifyMutation, refetch]);
+
+    const expandAll = useCallback(() => {
+        setExpandedClients(new Set(sortedClients.map(c => c.id)));
+    }, [sortedClients]);
+
+    const collapseAll = useCallback(() => {
+        setExpandedClients(new Set());
+    }, []);
+
+    const clearFilters = useCallback(() => {
+        setSearchQuery("");
+        setShowDuplicatesOnly(false);
+        setSortBy("needs_attention");
+    }, []);
+
+    // Skeleton Loader
+    const SkeletonCard = () => (
+        <Card className="animate-pulse">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                        <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                    </div>
+                </div>
+            </CardHeader>
+        </Card>
+    );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                        <Sparkles className="w-8 h-8 text-blue-600" />
-                        Normalización Inteligente de Clientes
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Detecta y agrupa automáticamente variantes de clientes desde facturas
-                    </p>
+            <div className="flex items-start justify-between">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <Users className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Gestión de Clientes
+                            </h1>
+                            <p className="text-gray-600 text-sm mt-1">
+                                Administra clientes, detecta duplicados y normaliza alias
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
-                        onClick={() => navigate("/catalogs/aliases")}
+                        size="sm"
+                        onClick={() => refetch()}
+                        disabled={isFetching}
                     >
-                        Ver Catálogo
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                        Actualizar
                     </Button>
                     <Button
-                        onClick={() => refetch()}
-                        disabled={isLoading}
-                        className="flex items-center gap-2"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/catalogs/aliases")}
                     >
-                        <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                        Actualizar
+                        <FileText className="w-4 h-4 mr-2" />
+                        Catálogo
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/catalogs/aliases/create")}
+                    >
+                        <Users className="w-4 h-4 mr-2" />
+                        Nuevo Cliente
                     </Button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Nombres Únicos</p>
-                                <p className="text-2xl font-bold">{totalUniqueNames}</p>
-                            </div>
-                            <Users className="w-8 h-8 text-blue-500" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Clientes
+                        </CardTitle>
+                        <Users className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {totalClients}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Grupos Detectados</p>
-                                <p className="text-2xl font-bold text-purple-600">{totalGroups}</p>
-                            </div>
-                            <GitMerge className="w-8 h-8 text-purple-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Necesitan Atención
+                        </CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">
+                            {stats.needsAttention}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Sin verificar o duplicados
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Total Facturas</p>
-                                <p className="text-2xl font-bold text-green-600">{stats.total_invoices}</p>
-                            </div>
-                            <FileText className="w-8 h-8 text-green-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Con Duplicados
+                        </CardTitle>
+                        <GitMerge className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-600">
+                            {stats.withDuplicates}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Posibles conflictos
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Para Normalizar</p>
-                                <p className="text-2xl font-bold text-orange-600">{stats.to_create + stats.to_merge}</p>
-                            </div>
-                            <TrendingUp className="w-8 h-8 text-orange-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total OTs
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">
+                            {stats.totalOTs}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Órdenes de trabajo
+                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Controles */}
+            {/* Filtros y Controles */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Umbral de Similitud: {threshold}%
-                            </label>
-                            <input
-                                type="range"
-                                min="70"
-                                max="95"
-                                step="5"
-                                value={threshold}
-                                onChange={(e) => setThreshold(Number(e.target.value))}
-                                className="w-full"
-                            />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>70% (Flexible)</span>
-                                <span>95% (Estricto)</span>
+                    <div className="space-y-4">
+                        {/* Búsqueda */}
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                    type="text"
+                                    placeholder="Buscar por nombre de cliente..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 pr-10"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery("")}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="needs_attention">Prioridad</option>
+                                    <option value="ot_count">Más OTs</option>
+                                    <option value="name">Nombre A-Z</option>
+                                </select>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setViewMode(viewMode === "detailed" ? "compact" : "detailed")}
+                                >
+                                    {viewMode === "detailed" ? (
+                                        <><List className="w-4 h-4 mr-2" /> Compacto</>
+                                    ) : (
+                                        <><LayoutGrid className="w-4 h-4 mr-2" /> Detallado</>
+                                    )}
+                                </Button>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Máximo de Grupos: {limit}
-                            </label>
-                            <input
-                                type="range"
-                                min="10"
-                                max="100"
-                                step="10"
-                                value={limit}
-                                onChange={(e) => setLimit(Number(e.target.value))}
-                                className="w-full"
-                            />
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                <span>10</span>
-                                <span>100</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Opciones
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
+                        {/* Filtros rápidos */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <label className="flex items-center gap-2 px-3 py-1.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                                 <input
                                     type="checkbox"
-                                    checked={includeExisting}
-                                    onChange={(e) => setIncludeExisting(e.target.checked)}
-                                    className="rounded"
+                                    checked={showDuplicatesOnly}
+                                    onChange={(e) => setShowDuplicatesOnly(e.target.checked)}
+                                    className="rounded text-blue-600"
                                 />
-                                <span className="text-sm text-gray-700">
-                                    Incluir clientes ya registrados
-                                </span>
+                                <Filter className="w-4 h-4 text-gray-600" />
+                                <span className="text-sm font-medium text-gray-700">Solo duplicados</span>
                             </label>
+
+                            {(searchQuery || showDuplicatesOnly || sortBy !== "needs_attention") && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearFilters}
+                                    className="text-gray-600"
+                                >
+                                    <X className="w-4 h-4 mr-1" />
+                                    Limpiar filtros
+                                </Button>
+                            )}
+
+                            <div className="flex-1"></div>
+
+                            {sortedClients.length > 0 && (
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={expandAll}
+                                    >
+                                        <ChevronDown className="w-4 h-4 mr-1" />
+                                        Expandir todos
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={collapseAll}
+                                    >
+                                        <ChevronUp className="w-4 h-4 mr-1" />
+                                        Contraer todos
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Búsqueda y Acciones */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex gap-2">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <Input
-                                type="text"
-                                placeholder="Buscar en grupos..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                        <Button variant="outline" onClick={expandAll}>
-                            Expandir Todos
-                        </Button>
-                        <Button variant="outline" onClick={collapseAll}>
-                            Contraer Todos
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Lista de Grupos */}
-            <div className="space-y-4">
+            {/* Lista de Clientes */}
+            <div className="space-y-3">
                 {isLoading ? (
+                    <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                    </>
+                ) : sortedClients.length === 0 ? (
                     <Card>
-                        <CardContent className="py-12">
+                        <CardContent className="py-16">
                             <div className="text-center">
-                                <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
-                                <p className="text-gray-600">Analizando facturas y agrupando variantes...</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : filteredGroups.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-12">
-                            <div className="text-center">
-                                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                    {searchQuery ? "No se encontraron grupos" : "¡Todos los clientes están normalizados!"}
-                                </h3>
-                                <p className="text-gray-600">
-                                    {searchQuery
-                                        ? "Intenta con otro término de búsqueda o ajusta los filtros"
-                                        : "No hay variantes de clientes pendientes de normalización"}
-                                </p>
+                                {showDuplicatesOnly ? (
+                                    <>
+                                        <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                            ¡Excelente! No hay duplicados detectados
+                                        </h3>
+                                        <p className="text-gray-600 mb-4">
+                                            Todos tus clientes están correctamente normalizados
+                                        </p>
+                                        <Button onClick={() => setShowDuplicatesOnly(false)}>
+                                            Ver todos los clientes
+                                        </Button>
+                                    </>
+                                ) : searchQuery ? (
+                                    <>
+                                        <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                            No se encontraron resultados
+                                        </h3>
+                                        <p className="text-gray-600 mb-4">
+                                            Intenta con otro término de búsqueda
+                                        </p>
+                                        <Button variant="outline" onClick={() => setSearchQuery("")}>
+                                            Limpiar búsqueda
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                            No hay clientes registrados
+                                        </h3>
+                                        <p className="text-gray-600 mb-4">
+                                            Comienza creando tu primer cliente
+                                        </p>
+                                        <Button onClick={() => navigate("/catalogs/aliases/create")}>
+                                            Crear cliente
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
                 ) : (
-                    filteredGroups.map((group, index) => {
-                        const isExpanded = expandedGroups.has(index);
-                        const isEditing = editingGroup === index;
-                        const isCreateRecommended = group.recommendation === "create_new";
+                    sortedClients.map((client) => {
+                        const isExpanded = expandedClients.has(client.id);
+                        const hasDuplicates = client.possible_duplicates.length > 0;
 
                         return (
-                            <Card key={index} className={isExpanded ? "border-blue-200 shadow-md" : ""}>
-                                <CardHeader className="cursor-pointer" onClick={() => !isEditing && toggleGroup(index)}>
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <CardTitle className="text-lg">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={editedCanonicalName}
-                                                            onChange={(e) => setEditedCanonicalName(e.target.value)}
-                                                            className="font-bold text-lg"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
-                                                    ) : (
-                                                        group.canonical_name
-                                                    )}
-                                                </CardTitle>
-                                                {isCreateRecommended ? (
-                                                    <Badge variant="success">
-                                                        <PlusCircle className="w-3 h-3 mr-1" />
-                                                        Crear Nuevo
-                                                    </Badge>
+                            <Card
+                                key={client.id}
+                                className="hover:shadow-md transition-shadow"
+                            >
+                                <CardContent className="pt-4 pb-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-semibold text-gray-900 truncate">
+                                                    {client.name}
+                                                </h3>
+                                                {client.is_verified ? (
+                                                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
                                                 ) : (
-                                                    <Badge variant="warning">
-                                                        <GitMerge className="w-3 h-3 mr-1" />
-                                                        Fusionar Existente
-                                                    </Badge>
+                                                    <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
                                                 )}
                                             </div>
-                                            <CardDescription>
-                                                <div className="flex items-center gap-4 text-sm">
-                                                    <span className="flex items-center gap-1">
-                                                        <Users className="w-4 h-4" />
-                                                        {group.variants.length} variante(s)
+                                            <div className="flex items-center gap-3 text-sm text-gray-600">
+                                                {client.short_name && (
+                                                    <span className="text-blue-600 font-mono text-xs">
+                                                        {client.short_name}
                                                     </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <FileText className="w-4 h-4" />
-                                                        {group.total_invoices} factura(s)
+                                                )}
+                                                <span>{client.ot_count} OTs</span>
+                                                {hasDuplicates && (
+                                                    <span className="text-red-600 text-xs">
+                                                        {client.possible_duplicates.length} posible{client.possible_duplicates.length > 1 ? 's' : ''} duplicado{client.possible_duplicates.length > 1 ? 's' : ''}
                                                     </span>
-                                                    {isEditing ? (
-                                                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                                            <span className="text-xs">Alias:</span>
-                                                            <Input
-                                                                value={editedShortName}
-                                                                onChange={(e) => setEditedShortName(e.target.value.toUpperCase())}
-                                                                className="h-6 text-xs font-mono w-40"
-                                                                placeholder="ALIAS_CORTO"
-                                                                maxLength={50}
-                                                            />
-                                                        </div>
-                                                    ) : group.suggested_short_name && (
-                                                        <code className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-mono">
-                                                            {group.suggested_short_name}
-                                                        </code>
-                                                    )}
-                                                </div>
-                                            </CardDescription>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {isExpanded && !isEditing && (
-                                                <>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            startEdit(group, index);
-                                                        }}
-                                                    >
-                                                        Personalizar
-                                                    </Button>
-                                                    {isCreateRecommended ? (
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleCreateNew(group);
-                                                            }}
-                                                            disabled={createMutation.isLoading}
-                                                        >
-                                                            <PlusCircle className="w-4 h-4 mr-1" />
-                                                            Crear Alias
-                                                        </Button>
+
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => navigate(`/catalogs/aliases/${client.id}/edit`)}
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => navigate(`/ots?cliente=${client.id}`)}
+                                                title="Ver OTs"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Button>
+                                            {hasDuplicates && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => toggleExpand(client.id)}
+                                                    title={isExpanded ? "Contraer" : "Ver duplicados"}
+                                                >
+                                                    {isExpanded ? (
+                                                        <ChevronUp className="w-4 h-4" />
                                                     ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="warning"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleMergeWithExisting(group);
-                                                            }}
-                                                            disabled={mergeMutation.isLoading}
-                                                        >
-                                                            <GitMerge className="w-4 h-4 mr-1" />
-                                                            Fusionar
-                                                        </Button>
+                                                        <ChevronDown className="w-4 h-4" />
                                                     )}
-                                                </>
-                                            )}
-                                            {isEditing && (
-                                                <>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleCreateNew(group, editedCanonicalName, editedShortName);
-                                                        }}
-                                                        disabled={!editedCanonicalName.trim() || createMutation.isLoading}
-                                                    >
-                                                        <Check className="w-4 h-4 mr-1" />
-                                                        Guardar
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            cancelEdit();
-                                                        }}
-                                                    >
-                                                        <X className="w-4 h-4 mr-1" />
-                                                        Cancelar
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {!isEditing && (
-                                                isExpanded ? (
-                                                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                                                ) : (
-                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                                                )
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
-                                </CardHeader>
 
-                                {isExpanded && (
-                                    <CardContent className="border-t">
-                                        {/* Alias Existente (si aplica) */}
-                                        {group.existing_alias && (
-                                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-sm font-medium text-yellow-900">
-                                                            Alias Existente Detectado
-                                                        </p>
-                                                        <p className="text-sm text-yellow-700 mt-1">
-                                                            <strong>{group.existing_alias.name}</strong> ({group.existing_alias.short_name}) - Similitud: {group.existing_alias.similarity}%
-                                                        </p>
-                                                    </div>
-                                                    <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Lista de Variantes */}
-                                        <div className="space-y-2">
-                                            <h4 className="font-medium text-gray-700 text-sm mb-2">Variantes Detectadas:</h4>
-                                            <div className="space-y-1">
-                                                {group.variants.map((variant, vIndex) => (
-                                                    <div
-                                                        key={vIndex}
-                                                        className={`flex items-center justify-between p-2 rounded ${
-                                                            variant.is_canonical
-                                                                ? "bg-blue-50 border border-blue-200"
-                                                                : "bg-gray-50"
-                                                        }`}
-                                                    >
+                                    {/* Duplicados */}
+                                    {hasDuplicates && isExpanded && (
+                                        <div className="mt-3 pt-3 border-t space-y-2">
+                                            {client.possible_duplicates.map((duplicate) => (
+                                                <div
+                                                    key={duplicate.id}
+                                                    className="flex items-center justify-between p-2 bg-orange-50 rounded border border-orange-200"
+                                                >
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            {variant.is_canonical && (
-                                                                <Badge variant="primary" className="text-xs">
-                                                                    Canónico
-                                                                </Badge>
-                                                            )}
-                                                            <span className="text-sm font-medium text-gray-900">
-                                                                {variant.name}
+                                                            <span className="font-medium text-sm text-gray-900 truncate">
+                                                                {duplicate.name}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                                ({duplicate.similarity}% similar)
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center gap-3 text-xs text-gray-600">
-                                                            <span>{variant.invoice_count} factura(s)</span>
-                                                            {!variant.is_canonical && (
-                                                                <Badge variant="outline" className="text-xs">
-                                                                    {variant.similarity_to_canonical}% similar
-                                                                </Badge>
-                                                            )}
-                                                        </div>
+                                                        <p className="text-xs text-gray-600">
+                                                            {duplicate.ot_count} OTs
+                                                        </p>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            handleMergeDuplicate(
+                                                                client.id,
+                                                                duplicate.id,
+                                                                client.name,
+                                                                duplicate.name
+                                                            )
+                                                        }
+                                                        disabled={mergeMutation.isLoading}
+                                                    >
+                                                        <GitMerge className="w-3 h-3 mr-1" />
+                                                        Fusionar
+                                                    </Button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    </CardContent>
-                                )}
+                                    )}
+                                </CardContent>
                             </Card>
                         );
                     })
                 )}
             </div>
+
+            {/* Footer info */}
+            {sortedClients.length > 0 && !isLoading && (
+                <div className="text-center text-sm text-gray-500 py-4">
+                    Mostrando {sortedClients.length} de {totalClients} cliente{totalClients !== 1 ? 's' : ''}
+                </div>
+            )}
         </div>
     );
 }

@@ -192,8 +192,8 @@ export function ClientAliasesPage() {
                         variant="outline"
                         className="flex items-center gap-2"
                     >
-                        <RefreshCw className="w-4 h-4" />
-                        Normalización Automática
+                        <Users className="w-4 h-4" />
+                        Gestión de Clientes
                     </Button>
                     <Button
                         onClick={() => navigate("/catalogs/aliases/create")}

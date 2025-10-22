@@ -846,128 +846,138 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def from_invoices(self, request):
+    def client_summary(self, request):
         """
-        Obtiene clientes únicos de facturas que NO están en el catálogo de aliases.
+        Resumen de todos los clientes del sistema con sus métricas.
 
-        Retorna los nombres de clientes detectados en facturas con:
-        - Agrupación inteligente de variantes similares
-        - Recomendaciones de normalización
-        - Sugerencias de alias automáticos
-        - Conteo de facturas por cliente
+        Muestra lista de clientes (aliases) con:
+        - Nombre completo y alias corto
+        - Cantidad de OTs que tienen
+        - Si está verificado o no
+        - Posibles duplicados (aliases similares)
 
         Query params:
-        - threshold: Umbral de similitud para agrupar (default: 85)
-        - limit: Máximo de grupos a retornar (default: 50)
-        - include_existing: Incluir clientes ya registrados (default: false)
+        - search: Filtrar por nombre
+        - show_duplicates_only: Solo mostrar clientes con posibles duplicados (default: false)
+        - limit: Máximo de resultados (default: 100)
 
         Response:
         {
-            "total_unique_names": 120,
-            "total_groups": 45,
-            "groups": [
+            "total_clients": 45,
+            "clients": [
                 {
-                    "canonical_name": "WALMART",
-                    "suggested_short_name": "WALMART",
-                    "variants": [
+                    "id": 1,
+                    "name": "CMA CGM",
+                    "short_name": "CMA CGM",
+                    "is_verified": true,
+                    "ot_count": 6,
+                    "sample_ots": ["OT-001", "OT-002", "OT-003"],
+                    "possible_duplicates": [
                         {
-                            "name": "WALMART DE CENTRO AMERICA",
-                            "invoice_count": 25,
-                            "similarity_to_canonical": 95.5
-                        },
-                        {
-                            "name": "WAL-MART",
-                            "invoice_count": 10,
-                            "similarity_to_canonical": 90.0
+                            "id": 5,
+                            "name": "CMA",
+                            "short_name": "CMA",
+                            "similarity": 85.5,
+                            "ot_count": 120
                         }
                     ],
-                    "total_invoices": 35,
-                    "existing_alias": null,
-                    "recommendation": "create_new"
+                    "needs_attention": true
                 }
             ]
         }
         """
-        from invoices.models import Invoice
-        from django.db.models import Count
+        from ots.models import OT
+        from django.db.models import Count, Q
         from .fuzzy_utils import calculate_smart_similarity
 
-        threshold = float(request.query_params.get('threshold', 85.0))
-        limit = int(request.query_params.get('limit', 50))
-        include_existing = request.query_params.get('include_existing', 'false').lower() == 'true'
+        search = request.query_params.get('search', '').strip()
+        show_duplicates_only = request.query_params.get('show_duplicates_only', 'false').lower() == 'true'
+        limit = int(request.query_params.get('limit', 100))
 
-        # Obtener nombres únicos de proveedores en facturas activas
-        invoice_names = Invoice.objects.filter(
-            is_deleted=False
-        ).values('proveedor_nombre').annotate(
-            invoice_count=Count('id')
-        ).order_by('-invoice_count')
+        # Obtener todos los clientes activos con conteo de OTs
+        clients_query = ClientAlias.objects.filter(
+            is_deleted=False,
+            merged_into__isnull=True
+        )
 
-        # Convertir a lista
-        unique_names = [
-            {
-                'name': item['proveedor_nombre'],
-                'invoice_count': item['invoice_count']
-            }
-            for item in invoice_names
-            if item['proveedor_nombre'] and item['proveedor_nombre'].strip()
-        ]
-
-        # Si no incluir existentes, filtrar los que ya tienen alias
-        if not include_existing:
-            existing_normalized = set(
-                ClientAlias.objects.filter(
-                    is_deleted=False
-                ).values_list('normalized_name', flat=True)
+        if search:
+            clients_query = clients_query.filter(
+                Q(original_name__icontains=search) |
+                Q(short_name__icontains=search) |
+                Q(normalized_name__icontains=search)
             )
 
-            unique_names = [
-                item for item in unique_names
-                if ClientAlias.normalize_name(item['name']) not in existing_normalized
-            ]
+        clients_data = []
 
-        # Agrupar variantes similares
-        groups = self._group_similar_names(unique_names, threshold)
+        for client in clients_query:
+            # Contar OTs
+            ot_count = OT.objects.filter(
+                deleted_at__isnull=True,
+                cliente=client
+            ).count()
 
-        # Limitar resultados
-        groups = groups[:limit]
+            # Obtener sample de OTs (primeros 5)
+            sample_ots = list(
+                OT.objects.filter(
+                    deleted_at__isnull=True,
+                    cliente=client
+                ).values_list('numero_ot', flat=True)[:5]
+            )
 
-        # Para cada grupo, buscar si ya existe un alias similar
-        for group in groups:
-            canonical_normalized = ClientAlias.normalize_name(group['canonical_name'])
+            # Buscar posibles duplicados (otros aliases similares)
+            possible_duplicates = []
 
-            # Buscar alias existente más similar
-            existing_alias = ClientAlias.objects.filter(
+            other_aliases = ClientAlias.objects.filter(
                 is_deleted=False,
                 merged_into__isnull=True
-            ).first()
+            ).exclude(id=client.id)
 
-            best_match = None
-            best_score = 0
+            for other in other_aliases:
+                result = calculate_smart_similarity(client.original_name, other.original_name)
+                if result['score'] >= 75:  # Umbral más bajo para detectar posibles duplicados
+                    other_ot_count = OT.objects.filter(
+                        deleted_at__isnull=True,
+                        cliente=other
+                    ).count()
 
-            for alias in ClientAlias.objects.filter(is_deleted=False, merged_into__isnull=True):
-                result = calculate_smart_similarity(group['canonical_name'], alias.original_name)
-                if result['score'] > best_score:
-                    best_score = result['score']
-                    best_match = alias
+                    possible_duplicates.append({
+                        'id': other.id,
+                        'name': other.original_name,
+                        'short_name': other.short_name,
+                        'similarity': round(result['score'], 2),
+                        'ot_count': other_ot_count,
+                        'is_verified': other.is_verified
+                    })
 
-            if best_match and best_score >= 85:
-                group['existing_alias'] = {
-                    'id': best_match.id,
-                    'name': best_match.original_name,
-                    'short_name': best_match.short_name,
-                    'similarity': round(best_score, 2)
-                }
-                group['recommendation'] = 'merge_with_existing'
-            else:
-                group['existing_alias'] = None
-                group['recommendation'] = 'create_new'
+            # Ordenar por similitud
+            possible_duplicates.sort(key=lambda x: x['similarity'], reverse=True)
+
+            client_info = {
+                'id': client.id,
+                'name': client.original_name,
+                'short_name': client.short_name,
+                'is_verified': client.is_verified,
+                'ot_count': ot_count,
+                'sample_ots': sample_ots,
+                'possible_duplicates': possible_duplicates[:3],  # Top 3
+                'needs_attention': len(possible_duplicates) > 0 or not client.is_verified or not client.short_name
+            }
+
+            # Si solo mostrar duplicados, filtrar
+            if show_duplicates_only and len(possible_duplicates) == 0:
+                continue
+
+            clients_data.append(client_info)
+
+        # Ordenar: primero los que necesitan atención, luego por OT count
+        clients_data.sort(key=lambda x: (not x['needs_attention'], -x['ot_count']))
+
+        # Limitar resultados
+        clients_data = clients_data[:limit]
 
         return Response({
-            'total_unique_names': len(unique_names),
-            'total_groups': len(groups),
-            'groups': groups,
-            'threshold_used': threshold
+            'total_clients': len(clients_data),
+            'clients': clients_data
         }, status=status.HTTP_200_OK)
 
     def _group_similar_names(self, names_with_counts, threshold):

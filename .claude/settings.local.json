@@ -13,7 +13,10 @@
       "Bash(chmod:*)",
       "Bash(git add:*)",
       "Bash(powershell -Command:*)",
-      "Read(//c/Users/jecso/Desktop/UEES/Ciclo 02-2025/Programacion 2/Proyecto/**)"
+      "Read(//c/Users/jecso/Desktop/UEES/Ciclo 02-2025/Programacion 2/Proyecto/**)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []
