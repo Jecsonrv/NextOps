@@ -186,13 +186,23 @@ export function ClientAliasesPage() {
                         Normaliza y gestiona variaciones de nombres de clientes
                     </p>
                 </div>
-                <Button
-                    onClick={() => navigate("/catalogs/aliases/create")}
-                    className="flex items-center gap-2"
-                >
-                    <Plus className="w-4 h-4" />
-                    Nuevo Alias
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => navigate("/catalogs/aliases/normalize")}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Normalización Automática
+                    </Button>
+                    <Button
+                        onClick={() => navigate("/catalogs/aliases/create")}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nuevo Alias
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}

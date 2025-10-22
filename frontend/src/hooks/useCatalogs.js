@@ -707,6 +707,80 @@ export function useRenameClient() {
     });
 }
 
+/**
+ * Hook para obtener clientes desde facturas con agrupación inteligente
+ * Endpoint: GET /clients/client-aliases/from_invoices/
+ */
+export function useClientAliasesFromInvoices(params = {}, options = {}) {
+    const queryParams = new URLSearchParams();
+
+    if (params.threshold) queryParams.append("threshold", params.threshold);
+    if (params.limit) queryParams.append("limit", params.limit);
+    if (params.include_existing !== undefined) queryParams.append("include_existing", params.include_existing);
+
+    const queryString = queryParams.toString();
+
+    return useQuery({
+        queryKey: ["client-aliases-from-invoices", params],
+        queryFn: async () => {
+            const response = await apiClient.get(
+                `/clients/client-aliases/from_invoices/${queryString ? `?${queryString}` : ""}`
+            );
+            return response.data;
+        },
+        staleTime: 2 * 60 * 1000, // 2 minutos (datos más dinámicos)
+        ...options,
+    });
+}
+
+/**
+ * Hook para crear alias masivamente desde grupos de facturas
+ * Endpoint: POST /clients/client-aliases/bulk_create_from_invoices/
+ */
+export function useBulkCreateFromInvoices() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ canonical_name, variants, short_name, notes }) => {
+            const response = await apiClient.post(
+                "/clients/client-aliases/bulk_create_from_invoices/",
+                { canonical_name, variants, short_name, notes }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+            queryClient.invalidateQueries({ queryKey: ["client-aliases-from-invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["invoices"] });
+        },
+    });
+}
+
+/**
+ * Hook para fusionar variantes de facturas con alias existente
+ * Endpoint: POST /clients/client-aliases/bulk_merge_from_invoices/
+ */
+export function useBulkMergeFromInvoices() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ target_alias_id, variants, notes }) => {
+            const response = await apiClient.post(
+                "/clients/client-aliases/bulk_merge_from_invoices/",
+                { target_alias_id, variants, notes }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
+            queryClient.invalidateQueries({ queryKey: ["client-aliases-from-invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["invoices"] });
+        },
+    });
+}
+
 // ============================================================================
 // COST CATEGORIES (Categorías de Tipos de Costo) - API Implementada
 // ============================================================================

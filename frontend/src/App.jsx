@@ -33,6 +33,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { ProviderFormPage } from "./pages/ProviderFormPage";
 import { ClientAliasesPage } from "./pages/ClientAliasesPage";
 import { ClientAliasFormPage } from "./pages/ClientAliasFormPage";
+import { ClientNormalizationPage } from "./pages/ClientNormalizationPage";
 import { CostTypesPage } from "./pages/CostTypesPage";
 import { CostTypeFormPage } from "./pages/CostTypeFormPage";
 import { CostCategoriesPage } from "./pages/CostCategoriesPage";
@@ -332,6 +333,16 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <ClientAliasFormPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/catalogs/aliases/normalize"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <ClientNormalizationPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }

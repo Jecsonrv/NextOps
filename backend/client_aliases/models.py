@@ -162,75 +162,116 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
     
     def generate_short_name(self):
         """
-        Genera un alias corto basado en el nombre original.
-        
-        Estrategia:
-        1. Toma las siglas de palabras significativas (excluye: S.A., DE, C.V., etc)
-        2. Si ya existe, agrega sufijo numérico
-        3. Máximo 50 caracteres
-        
+        Genera un alias corto basado en el nombre original con manejo inteligente.
+
+        Mejoras v2:
+        - Convierte guiones y guiones bajos a ESPACIOS para mejor legibilidad
+        - Maneja formatos: "WAL-MART", "SUPER_SELECTOS", "PRICE-SMART"
+        - Preserva palabras completas cuando es posible (más amigable que siglas)
+        - Filtra sufijos legales (S.A., LTDA, etc.)
+        - Máximo 50 caracteres
+
         Ejemplos:
-        - "ALMACENES SIMAN, S.A. DE C.V." -> "SIMAN"
-        - "CORPORACION WALMART DE MEXICO" -> "WALMART"
-        - "PRICESMART EL SALVADOR" -> "PRICESMART"
+        - "WAL-MART" -> "WAL MART"
+        - "SUPER-SELECTOS, S.A." -> "SUPER SELECTOS"
+        - "ALMACENES_SIMAN" -> "ALMACENES SIMAN"
+        - "CORPORACION WALMART DE MEXICO" -> "WALMART MEXICO"
+        - "PRICESMART EL SALVADOR" -> "PRICESMART SALVADOR"
         """
         import re
-        
+
         if not self.original_name:
             return None
-        
-        # Palabras a ignorar (artículos, conectores, sufijos legales comunes)
+
+        # Normalizar a uppercase
+        clean = self.original_name.upper().strip()
+
+        # PASO 1: Reemplazar guiones y guiones bajos por ESPACIOS
+        # Esto convierte "WAL-MART" a "WAL MART", más legible
+        clean = re.sub(r'[-_—–]', ' ', clean)
+
+        # PASO 2: Remover puntuación extra pero preservar espacios
+        clean = re.sub(r'[^\w\s]', ' ', clean)
+
+        # PASO 3: Normalizar espacios múltiples
+        clean = ' '.join(clean.split())
+
+        # PASO 4: Palabras a ignorar (sufijos legales y conectores)
         STOP_WORDS = {
-            'S.A', 'SA', 'S.A.', 'DE', 'C.V', 'C.V.', 'CV', 'LTDA', 'LTDA.', 
+            'S.A', 'SA', 'S.A.', 'DE', 'C.V', 'C.V.', 'CV', 'LTDA', 'LTDA.',
             'CIA', 'CIA.', 'COMPANIA', 'COMPANY', 'CO', 'CO.', 'INC', 'INC.',
             'INCORPORATED', 'CORP', 'CORP.', 'CORPORATION', 'LLC', 'LTD', 'LTD.',
             'THE', 'LA', 'EL', 'LOS', 'LAS', 'DEL', 'Y', 'AND', 'E', 'EN', 'POR',
             'PARA', 'CON', 'SIN'
         }
-        
-        # Limpiar y dividir en palabras
-        name = self.original_name.upper().strip()
-        # Remover puntuación excepto espacios
-        name = re.sub(r'[^\w\s]', ' ', name)
-        words = name.split()
-        
-        # Filtrar palabras significativas
+
+        # Tokenizar
+        words = clean.split()
+
+        # Filtrar stop words
         significant_words = [w for w in words if w not in STOP_WORDS and len(w) > 1]
-        
+
         if not significant_words:
-            # Si no quedan palabras, usar las primeras letras del nombre original
-            clean_name = re.sub(r'[^\w]', '', self.original_name.upper())
-            base_short_name = clean_name[:20] if clean_name else 'CLIENT'
+            # Si no quedan palabras, usar el nombre limpio completo
+            base_short_name = clean[:50] if len(clean) <= 50 else clean[:47] + '...'
+            return self._ensure_unique_short_name(base_short_name)
+
+        # PASO 5: Generar alias basado en palabras significativas
+        # PREFERIR PALABRAS COMPLETAS CON ESPACIOS en lugar de guiones bajos
+        if len(significant_words) == 1:
+            # Una sola palabra: usarla completa
+            base_short_name = significant_words[0][:50]
+        elif len(significant_words) == 2:
+            # Dos palabras: usar ambas CON ESPACIO
+            combined = ' '.join(significant_words[:2])
+            base_short_name = combined[:50]
         else:
-            # Si hay una sola palabra significativa, usarla directamente
-            if len(significant_words) == 1:
-                base_short_name = significant_words[0][:30]
-            # Si la primera palabra es suficientemente descriptiva (>5 chars), usarla
-            elif len(significant_words[0]) > 5:
-                base_short_name = significant_words[0][:30]
-            # Si hay varias palabras, usar las primeras dos
-            elif len(significant_words) >= 2:
-                base_short_name = '_'.join(significant_words[:2])[:30]
+            # Tres o más palabras: usar las primeras 2-3 según longitud
+            combined = ' '.join(significant_words[:2])
+            if len(combined) <= 30:
+                # Si las primeras dos caben bien, intentar agregar la tercera
+                combined_three = ' '.join(significant_words[:3])
+                if len(combined_three) <= 50:
+                    base_short_name = combined_three
+                else:
+                    base_short_name = combined
             else:
-                base_short_name = '_'.join(significant_words)[:30]
-        
-        # Asegurar que sea único
+                base_short_name = combined
+
+        # PASO 6: Asegurar que no exceda 50 caracteres
+        if len(base_short_name) > 50:
+            base_short_name = base_short_name[:47] + '...'
+
+        return self._ensure_unique_short_name(base_short_name)
+
+    def _ensure_unique_short_name(self, base_short_name):
+        """
+        Asegura que el short_name sea único agregando sufijo numérico si es necesario.
+
+        Args:
+            base_short_name: Nombre base a hacer único
+
+        Returns:
+            str: Nombre único con sufijo si fue necesario
+        """
         short_name = base_short_name
         counter = 1
+
         while ClientAlias.objects.filter(short_name=short_name).exclude(pk=self.pk).exists():
-            suffix = f"_{counter}"
+            # Agregar sufijo con espacio (más legible que guión bajo)
+            suffix = f" {counter}"
             max_len = 50 - len(suffix)
             short_name = f"{base_short_name[:max_len]}{suffix}"
             counter += 1
-            
+
             # Evitar loops infinitos
             if counter > 1000:
                 # Usar timestamp como último recurso
                 import time
                 timestamp = int(time.time() * 1000) % 100000
-                short_name = f"{base_short_name[:40]}_{timestamp}"
+                short_name = f"{base_short_name[:40]} {timestamp}"
                 break
-        
+
         return short_name
     
     def increment_usage(self):

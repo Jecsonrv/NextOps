@@ -1210,7 +1210,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         # Si son múltiples facturas, crear ZIP
         zip_buffer = BytesIO()
         processed_count = 0
-
         use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
 
         try:
@@ -1232,12 +1231,10 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                             with get_storage().open(storage_path, 'rb') as file_handle:
                                 file_content = file_handle.read()
 
-                        # Generar nombre amigable
                         filename = self._generate_friendly_filename(invoice)
                         if not filename:
                             filename = invoice.uploaded_file.filename or f'factura_{invoice.id}.pdf'
 
-                        # Agregar al ZIP
                         zip_file.writestr(filename, file_content)
                         processed_count += 1
 
@@ -1251,7 +1248,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Preparar respuesta ZIP
             zip_buffer.seek(0)
             zip_content = zip_buffer.read()
             
@@ -1303,7 +1299,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Crear ZIP en memoria
         zip_buffer = BytesIO()
         processed_count = 0
         skipped_no_ot = 0
@@ -1311,183 +1306,36 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         try:
             with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                    if not get_storage().exists(storage_path):
-                        logger.warning(f"Archivo no encontrado: {storage_path}")
+                for invoice in invoices:
+                    if not invoice.uploaded_file:
+                        logger.warning(f"Factura {invoice.id} no tiene archivo asociado")
                         continue
-                    with get_storage().open(storage_path, 'rb') as file_handle:
-                        file_content = file_handle.read()
 
-                # Generar nombre amigable
-                filename = self._generate_friendly_filename(invoice)
-                if not filename:
-                    filename = invoice.uploaded_file.filename or f'factura_{invoice.id}.pdf'
+                    if not invoice.ot:
+                        logger.warning(f"Factura {invoice.id} no tiene OT asignada, se omitirá")
+                        skipped_no_ot += 1
+                        continue
 
-                # Agregar al ZIP
-                zip_file.writestr(filename, file_content)
-                processed_count += 1
+                    try:
+                        storage_path = invoice.uploaded_file.path
 
-            except Exception as e:
-                logger.error(f"Error procesando factura {invoice.id}: {e}")
-                continue
+                        if use_cloudinary:
+                            file_content = self._fetch_cloudinary_file(invoice)
+                        else:
+                            if not get_storage().exists(storage_path):
+                                logger.warning(f"Archivo no encontrado: {storage_path}")
+                                continue
+                            with get_storage().open(storage_path, 'rb') as file_handle:
+                                file_content = file_handle.read()
 
-    if processed_count == 0:
-        return Response(
-            {'error': 'No se pudo procesar ninguna factura'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+                        if invoice.ot.cliente:
+                            cliente_name = invoice.ot.cliente.short_name or invoice.ot.cliente.normalized_name or ''
+                            cliente_folder = re.sub(r'[^\u0000-\u007F\w\s]', '', cliente_name).strip()[:50] or 'SIN CLIENTE'
+                        else:
+                            cliente_folder = 'SIN CLIENTE'
 
-    # Preparar respuesta ZIP
-    zip_buffer.seek(0)
-    zip_content = zip_buffer.read()
-    
-    response = HttpResponse(zip_content, content_type='application/zip')
-    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-    response['Content-Disposition'] = f'attachment; filename="Facturas_PDF_{timestamp}.zip"'
-    response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-    response['Content-Length'] = len(zip_content)
-
-    return response
-            
-except Exception as e:
-    logger.error(f"Error creando ZIP: {e}")
-    return Response(
-        {'error': f'Error al crear archivo ZIP: {str(e)}'},
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-    )
-
-@action(detail=False, methods=['post'], url_path='bulk-zip')
-def bulk_zip(self, request):
-    """
-    Exportar facturas seleccionadas en ZIP con estructura de carpetas:
-    CLIENTE/OT/FACTURA PROVEEDOR NUMERO_FACTURA ALIAS_CLIENTE OT.pdf
-    (con espacios, sin guiones)
-
-    Body:
-    {
-        "invoice_ids": [1, 2, 3, ...]
-    }
-    """
-    logger = logging.getLogger(__name__)
-
-    invoice_ids = request.data.get('invoice_ids', [])
-    if not invoice_ids:
-        return Response(
-            {'error': 'Debe proporcionar invoice_ids'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    invoices = Invoice.objects.filter(
-        id__in=invoice_ids,
-        is_deleted=False
-    ).select_related('ot', 'ot__cliente', 'proveedor', 'uploaded_file')
-
-    if not invoices.exists():
-        return Response(
-            {'error': 'No se encontraron facturas'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    zip_buffer = BytesIO()
-    processed_count = 0
-    skipped_no_ot = 0
-    use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
-
-    try:
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            for invoice in invoices:
-                if not invoice.uploaded_file:
-                    logger.warning(f"Factura {invoice.id} no tiene archivo asociado")
-                    continue
-
-                if not invoice.ot:
-                    logger.warning(f"Factura {invoice.id} no tiene OT asignada, se omitirá")
-                    skipped_no_ot += 1
-                    continue
-
-                try:
-                    storage_path = invoice.uploaded_file.path
-
-                    if use_cloudinary:
-                        file_content = self._fetch_cloudinary_file(invoice)
-                    else:
-                        if not get_storage().exists(storage_path):
-                            logger.warning(f"Archivo no encontrado: {storage_path}")
-                            continue
-                        with get_storage().open(storage_path, 'rb') as file_handle:
-                            file_content = file_handle.read()
-
-                    if invoice.ot.cliente:
-                        cliente_name = invoice.ot.cliente.short_name or invoice.ot.cliente.normalized_name or ''
-                        cliente_folder = re.sub(r'[^\u0000-\u007F\w\s]', '', cliente_name).strip()[:50] or 'SIN CLIENTE'
-                    else:
-                        cliente_folder = 'SIN CLIENTE'
-
-                    ot_number_raw = invoice.ot.numero_ot or ''
-                    ot_folder = re.sub(r'[^\u0000-\u007F\w]', '', ot_number_raw)[:50] or 'SIN_OT'
-
-                    proveedor_name_raw = invoice.proveedor.nombre if invoice.proveedor else invoice.proveedor_nombre or ''
-                    proveedor_name = re.sub(r'[^\u0000-\u007F\w\s]', '', proveedor_name_raw).strip()[:30] or f'PROVEEDOR_{invoice.id}'
-
-                    numero_factura_raw = invoice.numero_factura or ''
-                    numero_factura = re.sub(r'[^\u0000-\u007F\w]', '', numero_factura_raw)[:30] or f'FACTURA_{invoice.id}'
-
-                    cliente_short = ''
-                    if invoice.ot.cliente and invoice.ot.cliente.short_name:
-                        cliente_short_raw = invoice.ot.cliente.short_name or ''
-                        cliente_short = re.sub(r'[^\u0000-\u007F\w\s]', '', cliente_short_raw).strip()[:20]
-
-                    ot_number = re.sub(r'[^\u0000-\u007F\w]', '', ot_number_raw)[:20]
-
-                    original_filename = invoice.uploaded_file.filename or 'invoice.pdf'
-                    _, ext = os.path.splitext(original_filename)
-                    if not ext:
-                        ext = '.pdf'
-
-                    parts = ['FACTURA', proveedor_name, numero_factura]
-                    if cliente_short:
-                        parts.append(cliente_short)
-                    if ot_number:
-                        parts.append(ot_number)
-
-                    filename = ' '.join(filter(None, parts)) + ext
-                    if len(filename) > 150:
-                        filename = f"{numero_factura} {ot_number}{ext}" if ot_number else f"{numero_factura}{ext}"
-
-                    zip_path = f"{cliente_folder}/{ot_folder}/{filename}"
-                    zip_file.writestr(zip_path, file_content)
-                    processed_count += 1
-
-                except Exception as e:
-                    logger.error(f"Error procesando factura {invoice.id}: {e}")
-                    continue
-
-        if processed_count == 0:
-            error_msg = 'No se pudo procesar ninguna factura'
-            if skipped_no_ot > 0:
-                error_msg += f'. {skipped_no_ot} factura(s) sin OT asignada'
-            return Response(
-                {'error': error_msg},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        zip_buffer.seek(0)
-        zip_content = zip_buffer.read()
-
-        response = HttpResponse(zip_content, content_type='application/zip')
-        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-        response['Content-Disposition'] = f'attachment; filename="Facturas_Estructuradas_{timestamp}.zip"'
-        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-        response['Content-Length'] = len(zip_content)
-
-        return response
-
-    except Exception as e:
-        logger.error(f"Error creando ZIP estructurado: {e}")
-        return Response(
-            {'error': f'Error al crear archivo ZIP: {str(e)}'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
+                        ot_number_raw = invoice.ot.numero_ot or ''
+                        ot_folder = re.sub(r'[^\u0000-\u007F\w]', '', ot_number_raw)[:50] or 'SIN_OT'
         import cloudinary.utils
         import requests
 

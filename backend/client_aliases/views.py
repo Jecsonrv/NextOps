@@ -845,6 +845,470 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             'alias': ClientAliasSerializer(alias).data
         }, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def from_invoices(self, request):
+        """
+        Obtiene clientes únicos de facturas que NO están en el catálogo de aliases.
+
+        Retorna los nombres de clientes detectados en facturas con:
+        - Agrupación inteligente de variantes similares
+        - Recomendaciones de normalización
+        - Sugerencias de alias automáticos
+        - Conteo de facturas por cliente
+
+        Query params:
+        - threshold: Umbral de similitud para agrupar (default: 85)
+        - limit: Máximo de grupos a retornar (default: 50)
+        - include_existing: Incluir clientes ya registrados (default: false)
+
+        Response:
+        {
+            "total_unique_names": 120,
+            "total_groups": 45,
+            "groups": [
+                {
+                    "canonical_name": "WALMART",
+                    "suggested_short_name": "WALMART",
+                    "variants": [
+                        {
+                            "name": "WALMART DE CENTRO AMERICA",
+                            "invoice_count": 25,
+                            "similarity_to_canonical": 95.5
+                        },
+                        {
+                            "name": "WAL-MART",
+                            "invoice_count": 10,
+                            "similarity_to_canonical": 90.0
+                        }
+                    ],
+                    "total_invoices": 35,
+                    "existing_alias": null,
+                    "recommendation": "create_new"
+                }
+            ]
+        }
+        """
+        from invoices.models import Invoice
+        from django.db.models import Count
+        from .fuzzy_utils import calculate_smart_similarity
+
+        threshold = float(request.query_params.get('threshold', 85.0))
+        limit = int(request.query_params.get('limit', 50))
+        include_existing = request.query_params.get('include_existing', 'false').lower() == 'true'
+
+        # Obtener nombres únicos de proveedores en facturas activas
+        invoice_names = Invoice.objects.filter(
+            is_deleted=False
+        ).values('proveedor_nombre').annotate(
+            invoice_count=Count('id')
+        ).order_by('-invoice_count')
+
+        # Convertir a lista
+        unique_names = [
+            {
+                'name': item['proveedor_nombre'],
+                'invoice_count': item['invoice_count']
+            }
+            for item in invoice_names
+            if item['proveedor_nombre'] and item['proveedor_nombre'].strip()
+        ]
+
+        # Si no incluir existentes, filtrar los que ya tienen alias
+        if not include_existing:
+            existing_normalized = set(
+                ClientAlias.objects.filter(
+                    is_deleted=False
+                ).values_list('normalized_name', flat=True)
+            )
+
+            unique_names = [
+                item for item in unique_names
+                if ClientAlias.normalize_name(item['name']) not in existing_normalized
+            ]
+
+        # Agrupar variantes similares
+        groups = self._group_similar_names(unique_names, threshold)
+
+        # Limitar resultados
+        groups = groups[:limit]
+
+        # Para cada grupo, buscar si ya existe un alias similar
+        for group in groups:
+            canonical_normalized = ClientAlias.normalize_name(group['canonical_name'])
+
+            # Buscar alias existente más similar
+            existing_alias = ClientAlias.objects.filter(
+                is_deleted=False,
+                merged_into__isnull=True
+            ).first()
+
+            best_match = None
+            best_score = 0
+
+            for alias in ClientAlias.objects.filter(is_deleted=False, merged_into__isnull=True):
+                result = calculate_smart_similarity(group['canonical_name'], alias.original_name)
+                if result['score'] > best_score:
+                    best_score = result['score']
+                    best_match = alias
+
+            if best_match and best_score >= 85:
+                group['existing_alias'] = {
+                    'id': best_match.id,
+                    'name': best_match.original_name,
+                    'short_name': best_match.short_name,
+                    'similarity': round(best_score, 2)
+                }
+                group['recommendation'] = 'merge_with_existing'
+            else:
+                group['existing_alias'] = None
+                group['recommendation'] = 'create_new'
+
+        return Response({
+            'total_unique_names': len(unique_names),
+            'total_groups': len(groups),
+            'groups': groups,
+            'threshold_used': threshold
+        }, status=status.HTTP_200_OK)
+
+    def _group_similar_names(self, names_with_counts, threshold):
+        """
+        Agrupa nombres similares en clusters.
+
+        Args:
+            names_with_counts: Lista de dicts con 'name' y 'invoice_count'
+            threshold: Umbral de similitud (0-100)
+
+        Returns:
+            Lista de grupos ordenados por total_invoices
+        """
+        from .fuzzy_utils import calculate_smart_similarity
+
+        if not names_with_counts:
+            return []
+
+        # Inicializar grupos
+        groups = []
+        processed = set()
+
+        # Ordenar por invoice_count descendente para que el más común sea el canónico
+        sorted_names = sorted(names_with_counts, key=lambda x: x['invoice_count'], reverse=True)
+
+        for item in sorted_names:
+            name = item['name']
+
+            if name in processed:
+                continue
+
+            # Crear nuevo grupo con este nombre como canónico
+            group = {
+                'canonical_name': name,
+                'suggested_short_name': self._generate_smart_short_name(name),
+                'variants': [{
+                    'name': name,
+                    'invoice_count': item['invoice_count'],
+                    'similarity_to_canonical': 100.0,
+                    'is_canonical': True
+                }],
+                'total_invoices': item['invoice_count']
+            }
+
+            processed.add(name)
+
+            # Buscar variantes similares en los nombres restantes
+            for other_item in sorted_names:
+                other_name = other_item['name']
+
+                if other_name in processed:
+                    continue
+
+                # Calcular similitud
+                result = calculate_smart_similarity(name, other_name)
+
+                if result['score'] >= threshold:
+                    # Agregar como variante
+                    group['variants'].append({
+                        'name': other_name,
+                        'invoice_count': other_item['invoice_count'],
+                        'similarity_to_canonical': round(result['score'], 2),
+                        'similarity_details': result['details'],
+                        'is_canonical': False
+                    })
+                    group['total_invoices'] += other_item['invoice_count']
+                    processed.add(other_name)
+
+            groups.append(group)
+
+        # Ordenar grupos por total de facturas
+        groups.sort(key=lambda x: x['total_invoices'], reverse=True)
+
+        return groups
+
+    def _generate_smart_short_name(self, name):
+        """
+        Genera un alias corto inteligente con manejo de guiones y espacios.
+
+        Mejoras:
+        - Convierte guiones a espacios para mejor legibilidad
+        - Maneja múltiples formatos (GUION-BAJO, snake_case, kebab-case)
+        - Preserva palabras completas cuando es posible
+        - Genera aliases más legibles y amigables
+
+        Ejemplos:
+        - "WAL-MART" -> "WAL MART"
+        - "SUPER-SELECTOS" -> "SUPER SELECTOS"
+        - "price_smart" -> "PRICE SMART"
+        - "SIMAN_GUATEMALA" -> "SIMAN GUATEMALA"
+        """
+        import re
+
+        if not name:
+            return None
+
+        # Normalizar a uppercase
+        clean = name.upper().strip()
+
+        # PASO 1: Reemplazar guiones y guiones bajos por espacios
+        # Esto incluye: - (guión), _ (guión bajo), — (em dash), – (en dash)
+        clean = re.sub(r'[-_—–]', ' ', clean)
+
+        # PASO 2: Remover puntuación extra pero preservar espacios
+        clean = re.sub(r'[^\w\s]', ' ', clean)
+
+        # PASO 3: Normalizar espacios múltiples
+        clean = ' '.join(clean.split())
+
+        # PASO 4: Palabras a ignorar (sufijos legales y conectores)
+        STOP_WORDS = {
+            'S.A', 'SA', 'S.A.', 'DE', 'C.V', 'C.V.', 'CV', 'LTDA', 'LTDA.',
+            'CIA', 'CIA.', 'COMPANIA', 'COMPANY', 'CO', 'CO.', 'INC', 'INC.',
+            'INCORPORATED', 'CORP', 'CORP.', 'CORPORATION', 'LLC', 'LTD', 'LTD.',
+            'THE', 'LA', 'EL', 'LOS', 'LAS', 'DEL', 'Y', 'AND', 'E', 'EN', 'POR',
+            'PARA', 'CON', 'SIN'
+        }
+
+        # Tokenizar
+        words = clean.split()
+
+        # Filtrar stop words
+        significant_words = [w for w in words if w not in STOP_WORDS and len(w) > 1]
+
+        if not significant_words:
+            # Si no quedan palabras, usar el nombre limpio completo
+            return clean[:50] if len(clean) <= 50 else clean[:47] + '...'
+
+        # PASO 5: Generar alias basado en palabras significativas
+        if len(significant_words) == 1:
+            # Una sola palabra: usarla completa
+            short_name = significant_words[0][:50]
+        elif len(significant_words) == 2:
+            # Dos palabras: usar ambas
+            short_name = ' '.join(significant_words[:2])[:50]
+        else:
+            # Tres o más palabras: usar las primeras 2-3 según longitud
+            combined = ' '.join(significant_words[:2])
+            if len(combined) <= 30:
+                # Si las primeras dos caben bien, intentar agregar la tercera
+                combined_three = ' '.join(significant_words[:3])
+                if len(combined_three) <= 50:
+                    short_name = combined_three
+                else:
+                    short_name = combined
+            else:
+                short_name = combined
+
+        # PASO 6: Asegurar que no exceda 50 caracteres
+        if len(short_name) > 50:
+            short_name = short_name[:47] + '...'
+
+        return short_name
+
+    @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    def bulk_create_from_invoices(self, request):
+        """
+        Crea aliases masivamente desde un grupo de variantes de facturas.
+
+        Este endpoint recibe un grupo de variantes (del endpoint from_invoices)
+        y crea un ClientAlias unificado para todas ellas.
+
+        Body:
+        {
+            "canonical_name": "WALMART",  // Nombre final del alias
+            "variants": [
+                "WALMART DE CENTRO AMERICA",
+                "WAL-MART",
+                "WALMART S.A."
+            ],
+            "short_name": "WALMART",  // Opcional: si no se provee, se autogenera
+            "notes": "Cliente creado desde facturas"
+        }
+
+        Response:
+        {
+            "message": "...",
+            "alias": {...},
+            "invoices_updated": 35
+        }
+        """
+        from invoices.models import Invoice
+
+        # Validar campos requeridos
+        canonical_name = request.data.get('canonical_name', '').strip()
+        variants = request.data.get('variants', [])
+        short_name = request.data.get('short_name', '').strip() or None
+        notes = request.data.get('notes', '').strip()
+
+        if not canonical_name:
+            return Response({
+                'error': 'El nombre canónico es requerido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not variants or not isinstance(variants, list):
+            return Response({
+                'error': 'Las variantes son requeridas y deben ser una lista'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verificar si ya existe un alias con ese nombre
+        normalized = ClientAlias.normalize_name(canonical_name)
+        existing = ClientAlias.objects.filter(
+            normalized_name=normalized,
+            is_deleted=False
+        ).first()
+
+        if existing:
+            return Response({
+                'error': f'Ya existe un cliente con el nombre "{existing.original_name}"',
+                'existing_alias_id': existing.id
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Crear el nuevo alias
+        alias = ClientAlias.objects.create(
+            original_name=canonical_name,
+            normalized_name=normalized,
+            short_name=short_name,  # Si es None, se autogenera en save()
+            notes=notes,
+            is_verified=True,
+            verified_by=request.user,
+            verified_at=timezone.now()
+        )
+
+        # Actualizar facturas que usan cualquiera de las variantes
+        invoices_updated = 0
+
+        for variant_name in variants:
+            variant_name = variant_name.strip()
+            if not variant_name:
+                continue
+
+            # Actualizar facturas que tienen este nombre de proveedor
+            updated = Invoice.objects.filter(
+                proveedor_nombre=variant_name,
+                is_deleted=False
+            ).update(proveedor=None)  # Limpiar referencia a proveedor viejo
+
+            invoices_updated += updated
+
+        # Incrementar usage_count
+        alias.usage_count = invoices_updated
+        alias.save(update_fields=['usage_count'])
+
+        return Response({
+            'message': f'Alias creado exitosamente. {invoices_updated} facturas asociadas.',
+            'alias': ClientAliasSerializer(alias).data,
+            'invoices_updated': invoices_updated,
+            'variants_processed': len([v for v in variants if v.strip()])
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    def bulk_merge_from_invoices(self, request):
+        """
+        Fusiona un grupo de variantes de facturas con un alias existente.
+
+        Body:
+        {
+            "target_alias_id": 123,  // Alias existente al que fusionar
+            "variants": [
+                "WALMART DE CENTRO AMERICA",
+                "WAL-MART"
+            ],
+            "notes": "Fusionando variantes desde facturas"
+        }
+
+        Response:
+        {
+            "message": "...",
+            "alias": {...},
+            "invoices_updated": 25
+        }
+        """
+        from invoices.models import Invoice
+
+        # Validar campos
+        target_alias_id = request.data.get('target_alias_id')
+        variants = request.data.get('variants', [])
+        notes = request.data.get('notes', '').strip()
+
+        if not target_alias_id:
+            return Response({
+                'error': 'El ID del alias destino es requerido'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not variants or not isinstance(variants, list):
+            return Response({
+                'error': 'Las variantes son requeridas'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Obtener alias destino
+        try:
+            target_alias = ClientAlias.objects.get(
+                id=target_alias_id,
+                is_deleted=False
+            )
+        except ClientAlias.DoesNotExist:
+            return Response({
+                'error': 'El alias destino no existe'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if target_alias.merged_into:
+            return Response({
+                'error': 'El alias destino está fusionado con otro. Fusione con el alias principal.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Actualizar facturas
+        invoices_updated = 0
+
+        for variant_name in variants:
+            variant_name = variant_name.strip()
+            if not variant_name:
+                continue
+
+            # Actualizar facturas
+            updated = Invoice.objects.filter(
+                proveedor_nombre=variant_name,
+                is_deleted=False
+            ).update(proveedor=None)  # Limpiar proveedor viejo si existe
+
+            invoices_updated += updated
+
+        # Incrementar usage_count
+        target_alias.usage_count += invoices_updated
+        target_alias.save(update_fields=['usage_count'])
+
+        # Actualizar notas si se proporcionaron
+        if notes:
+            current_notes = target_alias.notes or ''
+            if current_notes:
+                target_alias.notes = f"{current_notes}\n\n[{timezone.now().strftime('%Y-%m-%d')}] {notes}"
+            else:
+                target_alias.notes = f"[{timezone.now().strftime('%Y-%m-%d')}] {notes}"
+            target_alias.save(update_fields=['notes'])
+
+        return Response({
+            'message': f'Variantes fusionadas exitosamente. {invoices_updated} facturas actualizadas.',
+            'alias': ClientAliasSerializer(target_alias).data,
+            'invoices_updated': invoices_updated,
+            'variants_processed': len([v for v in variants if v.strip()])
+        }, status=status.HTTP_200_OK)
+
 
 class SimilarityMatchViewSet(viewsets.ReadOnlyModelViewSet):
     """
