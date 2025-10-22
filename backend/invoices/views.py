@@ -1336,8 +1336,38 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
                         ot_number_raw = invoice.ot.numero_ot or ''
                         ot_folder = re.sub(r'[^\u0000-\u007F\w]', '', ot_number_raw)[:50] or 'SIN_OT'
+
+                        # Crear estructura: Cliente/OT/archivo.pdf
+                        file_path_in_zip = f"{cliente_folder}/{ot_folder}/{os.path.basename(storage_path)}"
+                        zip_file.writestr(file_path_in_zip, file_content)
+                        processed_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error procesando factura {invoice.id}: {str(e)}")
+                        continue
+
+            zip_buffer.seek(0)
+            response = HttpResponse(zip_buffer.read(), content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename="facturas_{len(invoice_ids)}.zip"'
+
+            logger.info(f"ZIP creado: {processed_count} facturas procesadas, {skipped_no_ot} sin OT")
+            return response
+
+        except Exception as e:
+            logger.error(f"Error creando ZIP: {e}")
+            return Response(
+                {'error': f'Error al crear archivo ZIP: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _fetch_cloudinary_file(self, invoice):
+        """
+        Descarga un archivo desde Cloudinary con manejo robusto de errores.
+        """
         import cloudinary.utils
         import requests
+
+        logger = logging.getLogger(__name__)
 
         storage_path = invoice.uploaded_file.path
         base_name, ext = os.path.splitext(storage_path)
@@ -1391,6 +1421,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             raise FileNotFoundError(storage_path)
 
         raise IOError(f"Cloudinary download failed with status {last_status}")
+
 
 class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
     """
