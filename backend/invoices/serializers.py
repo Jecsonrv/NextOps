@@ -3,6 +3,8 @@ Serializers para el módulo de Invoices.
 Maneja la serialización de facturas y archivos subidos.
 """
 
+import mimetypes
+
 from rest_framework import serializers
 from decimal import Decimal
 from .models import Invoice, UploadedFile, Dispute, CreditNote, DisputeEvent
@@ -501,13 +503,26 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
                 file_content = file.read()
                 
                 # Seleccionar parser según tipo de archivo
-                if uploaded_file.content_type == 'application/json':
+                content_type = uploaded_file.content_type
+                if not content_type:
+                    guessed_type, _ = mimetypes.guess_type(uploaded_file.filename)
+                    content_type = guessed_type or ''
+                    uploaded_file.content_type = content_type or ''
+                    uploaded_file.save(update_fields=['content_type'])
+
+                if content_type == 'application/json':
                     parser = DTEJsonParser()
                     parsed_data = parser.parse(file_content)
-                elif uploaded_file.content_type == 'application/pdf':
-                    parser = PDFExtractor()
-                    parsed_data = parser.extract(file_content)
-                
+                else:
+                    # Fallback a PDF si el tipo es desconocido pero la extensión es .pdf
+                    is_pdf = (
+                        content_type == 'application/pdf' or
+                        (content_type in ['', None] and uploaded_file.filename.lower().endswith('.pdf'))
+                    )
+                    if is_pdf:
+                        parser = PDFExtractor()
+                        parsed_data = parser.extract(file_content)
+
                 # Si el parsing fue exitoso, usar datos extraídos
                 if parsed_data.get('confidence', 0) > 0:
                     # Actualizar validated_data con datos parseados si no se proporcionaron

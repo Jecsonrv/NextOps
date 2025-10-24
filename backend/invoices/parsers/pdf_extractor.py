@@ -119,11 +119,13 @@ class PDFExtractor:
         return {
             'numero_factura': [
                 # Formatos comunes de número de factura
-                re.compile(r'(?:FACTURA|INVOICE|FACT\.?)\s*(?:N[OÚ]\.?|#|NO\.?)\s*[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
+                re.compile(r'(?:FACTURA|INVOICE|FACT\.?)\s*(?:N[OÚ]\.??|#|NO\.?)\s*[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
                 re.compile(r'(?:N[OÚ]MERO|NUMBER|NO\.?)\s*(?:DE\s*)?(?:FACTURA|INVOICE)[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
                 re.compile(r'DOCUMENT\s*(?:NUMBER|NO\.?)[:\s]*([A-Z0-9\-]+)', re.IGNORECASE),
                 # Fallback DTE (El Salvador) - Número de control
-                re.compile(r'(?:N[uú]mero\s+de\s+Contr[oó]l:?)\s*(DTE-\d{2}-[\w]+-\d{15})', re.IGNORECASE),
+                re.compile(r'(?:N[úu]mero\s+de\s+Control\s*:?)\s*(DTE-\d{2}-[A-Z0-9]+-[\d\s]{8,})', re.IGNORECASE),
+                # DTE genérico aun sin etiqueta previa
+                re.compile(r'(DTE-\d{2}-[A-Z0-9]+-[\d\s]{8,})', re.IGNORECASE),
             ],
             'fecha': [
                 # Fechas en formato dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
@@ -182,8 +184,12 @@ class PDFExtractor:
             for pattern in self.patterns['numero_factura']:
                 match = pattern.search(self.text) or pattern.search(self.normalized_text)
                 if match:
-                    return match.group(1).strip()
-            
+                    value = match.group(1).strip()
+                    # Algunos DTE incluyen espacios internos por saltos de línea
+                    if value.upper().startswith('DTE-'):
+                        value = re.sub(r'\s+', '', value)
+                    return value
+
             return ""
             
         except Exception as e:
