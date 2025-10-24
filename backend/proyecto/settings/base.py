@@ -35,9 +35,6 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',
 
-    # Cloudinary (solo la librería base, no django-cloudinary-storage)
-    'cloudinary',
-
     # Local apps
     'common',
     'accounts',
@@ -138,16 +135,17 @@ BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
 
 # Configure cloudinary library directly
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+if USE_CLOUDINARY:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
 
-cloudinary.config(
-    cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
-    api_key=config('CLOUDINARY_API_KEY', default=''),
-    api_secret=config('CLOUDINARY_API_SECRET', default=''),
-    secure=True
-)
+    cloudinary.config(
+        cloud_name=config('CLOUDINARY_CLOUD_NAME', default=''),
+        api_key=config('CLOUDINARY_API_KEY', default=''),
+        api_secret=config('CLOUDINARY_API_SECRET', default=''),
+        secure=True
+    )
 
 # Cloudinary settings dict
 CLOUDINARY_STORAGE = {

@@ -561,6 +561,19 @@ export function InvoiceDetailPage() {
                                             return Number.isFinite(parsed) ? parsed : 0;
                                         };
 
+                                        if (!invoice.ot_data) {
+                                            return (
+                                                <div>
+                                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                                        Monto Total
+                                                    </label>
+                                                    <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1 break-all">
+                                                        ${parseAmount(invoice.monto).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+
                                         const disputasResueltas = invoice.disputas?.filter(d => 
                                             d.estado === 'resuelta' && 
                                             (d.resultado === 'aprobada_total' || d.resultado === 'aprobada_parcial')

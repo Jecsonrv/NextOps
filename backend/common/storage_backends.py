@@ -4,11 +4,16 @@ Provides seamless integration with Cloudinary for production and local filesyste
 """
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+from django.core.exceptions import ImproperlyConfigured
 import os
 import logging
+
+try:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+except ImportError:
+    cloudinary = None
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             logger.debug(f"Saving to local filesystem: {name}")
             return super()._save(name, content)
+
+        if cloudinary is None:
+            raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
         # Upload to Cloudinary
         try:
@@ -112,6 +120,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super()._open(name, mode)
 
+        if cloudinary is None:
+            raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
+
         # Cloudinary files should be accessed via URL, not direct file access
         raise NotImplementedError(
             "Cannot open Cloudinary files directly. "
@@ -160,6 +171,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().url(name)
 
+        if cloudinary is None:
+            raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
+
         # For Cloudinary, we return a placeholder URL
         # The actual file access is handled in views.py via private_download_url
         # This is because raw files (PDFs) cannot be accessed with simple public URLs
@@ -180,6 +194,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().delete(name)
 
+        if cloudinary is None:
+            raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
+
         try:
             logger.info(f"Deleting from Cloudinary: {name}")
             cloudinary.uploader.destroy(name, resource_type='raw')
@@ -193,6 +210,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         """
         if not self.use_cloudinary:
             return super().size(name)
+
+        if cloudinary is None:
+            raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
         try:
             resource = cloudinary.api.resource(name, resource_type='raw')

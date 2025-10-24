@@ -413,6 +413,8 @@ class ProviderPattern(TimeStampedModel, SoftDeleteModel):
                 'error': str or None
             }
         """
+        print(f'Testing pattern: {self.name}')
+        print(f'Pattern: {self.pattern}')
         try:
             flags = 0 if self.case_sensitive else re.IGNORECASE
             compiled = re.compile(self.pattern, flags)
@@ -422,7 +424,7 @@ class ProviderPattern(TimeStampedModel, SoftDeleteModel):
             for idx, match in enumerate(compiled.finditer(text)):
                 # Priorizar grupo de captura sobre match completo
                 # Si hay grupos de captura, usar el primero; sino, usar el match completo
-                captured_text = match.group(1) if match.groups() else match.group(0)
+                captured_text = match.group(2) if len(match.groups()) > 1 else match.group(1) if match.groups() else match.group(0)
                 
                 match_info = {
                     'text': captured_text,  # Texto capturado (grupo 1 o match completo)
@@ -446,6 +448,7 @@ class ProviderPattern(TimeStampedModel, SoftDeleteModel):
                 
                 all_matches.append(match_info)
             
+            print(f'Matches: {all_matches}')
             return {
                 'success': True,
                 'matches': all_matches,
@@ -453,6 +456,7 @@ class ProviderPattern(TimeStampedModel, SoftDeleteModel):
                 'error': None
             }
         except re.error as e:
+            print(f'Regex Error: {e}')
             return {
                 'success': False,
                 'matches': [],
@@ -460,6 +464,7 @@ class ProviderPattern(TimeStampedModel, SoftDeleteModel):
                 'error': f'Error de sintaxis en regex: {str(e)}'
             }
         except Exception as e:
+            print(f'Error: {e}')
             return {
                 'success': False,
                 'matches': [],

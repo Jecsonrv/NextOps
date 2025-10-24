@@ -1484,6 +1484,9 @@ export function OTsPage() {
                                                     Barco
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                    F. ETA
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
                                                     F. Provisión
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
@@ -1547,6 +1550,9 @@ export function OTsPage() {
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                                                         {ot.barco || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                        {formatDate(ot.fecha_eta)}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                                                         {formatDate(ot.fecha_provision)}
