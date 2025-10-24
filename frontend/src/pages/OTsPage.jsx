@@ -23,21 +23,10 @@ import {
     SelectValue,
 } from "../components/ui/Select";
 import { MultiSelect } from "../components/ui/multi-select";
-import {
-    Truck,
-    Search,
-    Filter,
-    Download,
-    Upload,
-    Eye,
-    Edit,
-    Trash2,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Layers,
-    X,
+import { X,
 } from "lucide-react";
+
+const SINGLE_SELECT_CLEAR_VALUE = "__all__";
 
 const createInitialFilters = () => ({
     estados: [],

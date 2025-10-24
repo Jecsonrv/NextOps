@@ -98,11 +98,30 @@ export default function ProviderPatternsPage() {
 
     const loadProviders = async () => {
         try {
-            const response = await apiClient.get(
-                `${PROVIDERS_URL}`,
-                getAuthHeaders()
-            );
-            setProviders(response.data.results || []);
+            let allProviders = [];
+            let page = 1;
+            let hasNext = true;
+
+            while (hasNext) {
+                const response = await apiClient.get(`${PROVIDERS_URL}`, {
+                    ...getAuthHeaders(),
+                    params: {
+                        page,
+                        page_size: 200,
+                    },
+                });
+
+                const { results = [], next } = response.data;
+                allProviders = [...allProviders, ...results];
+
+                if (!next) {
+                    hasNext = false;
+                } else {
+                    page += 1;
+                }
+            }
+
+            setProviders(allProviders);
         } catch (error) {
             console.error("Error loading providers:", error);
         }
