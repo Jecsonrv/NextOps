@@ -39,11 +39,34 @@ function ProviderPatternForm({ open, onClose, pattern }) {
 
     const loadProviders = async () => {
         try {
-            const response = await apiClient.get(
-                `${PROVIDERS_URL}?is_active=true`,
-                getAuthHeaders()
-            );
-            setProviders(response.data.results || []);
+            // Obtener todos los proveedores activos. Algunos endpoints devuelven
+            // solo 25 por página por defecto, así que iteramos páginas
+            // pidiendo page_size grande (200) y concatenamos resultados.
+            let allProviders = [];
+            let page = 1;
+            let hasNext = true;
+
+            while (hasNext) {
+                const response = await apiClient.get(`${PROVIDERS_URL}`, {
+                    ...getAuthHeaders(),
+                    params: {
+                        is_active: true,
+                        page,
+                        page_size: 200,
+                    },
+                });
+
+                const { results = [], next } = response.data;
+                allProviders = [...allProviders, ...results];
+
+                if (!next) {
+                    hasNext = false;
+                } else {
+                    page += 1;
+                }
+            }
+
+            setProviders(allProviders);
         } catch (error) {
             // Si hay error de autenticación, redirigir al login
             if (error.response?.status === 401) {
