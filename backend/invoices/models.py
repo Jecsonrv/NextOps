@@ -83,6 +83,9 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         ('internacional', 'Internacional'),
     ]
     
+    # NOTA: TIPO_COSTO_CHOICES se mantiene solo para referencia legacy y migraciones antiguas.
+    # El sistema ahora usa tipos de costo DINÁMICOS desde el modelo CostType.
+    # Este campo NO debe usarse para validación en nuevos desarrollos.
     TIPO_COSTO_CHOICES = [
         ('FLETE', 'Flete'),
         ('CARGOS_NAVIERA', 'Cargos de Naviera'),
@@ -245,11 +248,13 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         help_text="Monto real a pagar después de ajustes por disputa. Si null, se usa el monto original."
     )
     
+    # Tipo de costo - ahora acepta valores dinámicos desde CostType
+    # Se eliminó choices para permitir tipos personalizados
     tipo_costo = models.CharField(
-        max_length=32,
-        choices=TIPO_COSTO_CHOICES,
+        max_length=50,  # Aumentado para soportar códigos más largos
         default='OTRO',
-        help_text="Tipo de costo"
+        db_index=True,
+        help_text="Tipo de costo (código desde catálogo CostType)"
     )
     
     # === Detección Automática y Matching ===
@@ -368,15 +373,62 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     
     def __str__(self):
         return f"Factura {self.numero_factura} - {self.proveedor_nombre}"
-    
+
+    def get_tipo_costo_display(self):
+        """
+        Retorna el nombre legible del tipo de costo.
+        Consulta CostType para tipos dinámicos, usa legacy para tipos hardcoded.
+        """
+        # Primero intentar desde CostType (dinámico)
+        from catalogs.models import CostType
+        try:
+            cost_type = CostType.objects.filter(
+                code=self.tipo_costo,
+                is_active=True,
+                is_deleted=False
+            ).first()
+            if cost_type:
+                return cost_type.name
+        except Exception:
+            pass
+
+        # Fallback a choices legacy
+        for code, name in self.TIPO_COSTO_CHOICES:
+            if code == self.tipo_costo:
+                return name
+
+        # Si no se encuentra, retornar el código mismo
+        return self.tipo_costo
+
     def save(self, *args, **kwargs):
         # Obtener el estado anterior ANTES de cualquier cambio
         old_estado_provision = None
+        old_tipo_costo = None
+
         if self.pk:
             try:
-                old_estado_provision = Invoice.objects.get(pk=self.pk).estado_provision
+                old_instance = Invoice.objects.get(pk=self.pk)
+                old_estado_provision = old_instance.estado_provision
+                old_tipo_costo = old_instance.tipo_costo
             except Invoice.DoesNotExist:
                 pass  # Es una instancia nueva, no hay estado anterior
+
+        # REGLA CRÍTICA: Si se cambia de un tipo vinculado a OT a uno NO vinculado,
+        # limpiar las fechas que fueron heredadas de la OT
+        if old_tipo_costo and old_tipo_costo != self.tipo_costo:
+            # Verificar si el tipo anterior estaba vinculado y el nuevo no lo está
+            old_vinculado = self._es_tipo_vinculado(old_tipo_costo)
+            new_vinculado = self.es_costo_vinculado_ot()
+
+            if old_vinculado and not new_vinculado:
+                # Cambió de vinculado a NO vinculado -> limpiar fechas heredadas
+                self.fecha_provision = None
+                self.fecha_facturacion = None
+                # Mantener el estado si es manual, sino volver a pendiente
+                if self.estado_provision not in ['disputada', 'revision', 'rechazada']:
+                    self.estado_provision = 'pendiente'
+                if self.estado_facturacion not in ['disputada', 'en_revision']:
+                    self.estado_facturacion = 'pendiente'
 
         # Sincronizar ot_number con el objeto OT
         if self.ot:
@@ -634,27 +686,31 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         monto_aplicable = self.monto_aplicable if self.monto_aplicable is not None else self.monto
         return monto_total - monto_aplicable
 
-    def es_costo_vinculado_ot(self):
+    def _es_tipo_vinculado(self, tipo_costo_code):
         """
-        Determina si este costo está vinculado a la OT (Flete o Cargos de Naviera).
-        Estos costos deben sincronizarse con la OT y seguir su flujo.
+        Método auxiliar para verificar si un código de tipo está vinculado a OT.
+        Usado para comparar estados anteriores durante actualizaciones.
 
-        NOTA: Verifica tanto tipos hardcodeados (legacy) como tipos dinámicos desde CostType.
+        Args:
+            tipo_costo_code: Código del tipo de costo a verificar
+
+        Returns:
+            bool: True si el tipo está vinculado a OT
         """
         # Verificación legacy para tipos hardcodeados/prefijos comunes
-        if self.tipo_costo in ['FLETE', 'CARGOS_NAVIERA']:
+        if tipo_costo_code in ['FLETE', 'CARGOS_NAVIERA']:
             return True
 
         # Soportar variantes basadas en prefijos (ej. FLETE_MARITIMO)
         prefijos_vinculados = ('FLETE', 'CARGOS_NAVIERA')
-        if any(self.tipo_costo.startswith(prefijo) for prefijo in prefijos_vinculados):
+        if any(tipo_costo_code.startswith(prefijo) for prefijo in prefijos_vinculados):
             return True
 
         # Verificación dinámica: consultar el modelo CostType
         from catalogs.models import CostType
         try:
             cost_type = CostType.objects.filter(
-                code=self.tipo_costo,
+                code=tipo_costo_code,
                 is_active=True,
                 is_deleted=False
             ).first()
@@ -666,6 +722,15 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
             pass
 
         return False
+
+    def es_costo_vinculado_ot(self):
+        """
+        Determina si este costo está vinculado a la OT (Flete o Cargos de Naviera).
+        Estos costos deben sincronizarse con la OT y seguir su flujo.
+
+        NOTA: Verifica tanto tipos hardcodeados (legacy) como tipos dinámicos desde CostType.
+        """
+        return self._es_tipo_vinculado(self.tipo_costo)
     
     def es_costo_auxiliar(self):
         """

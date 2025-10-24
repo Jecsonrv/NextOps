@@ -389,13 +389,43 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
                 f"Ya existe una factura con el número {value}"
             )
         return value
-    
+
+    def validate_tipo_costo(self, value):
+        """
+        Validar que el tipo_costo exista en el catálogo CostType.
+        Acepta tanto tipos dinámicos como legacy hardcoded.
+        """
+        if not value:
+            return value
+
+        from catalogs.models import CostType
+
+        # Verificar si es un tipo legacy hardcoded (siempre válido)
+        legacy_codes = [code for code, _ in Invoice.TIPO_COSTO_CHOICES]
+        if value in legacy_codes:
+            return value
+
+        # Verificar si existe en CostType (dinámico)
+        cost_type_exists = CostType.objects.filter(
+            code=value,
+            is_active=True,
+            is_deleted=False
+        ).exists()
+
+        if not cost_type_exists:
+            raise serializers.ValidationError(
+                f'El tipo de costo "{value}" no existe en el catálogo o está inactivo. '
+                f'Por favor selecciona un tipo de costo válido.'
+            )
+
+        return value
+
     def validate_monto(self, value):
         """Validar monto positivo"""
         if value <= 0:
             raise serializers.ValidationError("El monto debe ser mayor a 0")
         return value
-    
+
     def validate_file(self, value):
         """Validar archivo"""
         # Verificar tamaño (max 10MB)
@@ -598,6 +628,36 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
             'notas',
             'monto_aplicable',  # Permitir edición manual de monto_aplicable
         ]
+
+    def validate_tipo_costo(self, value):
+        """
+        Validar que el tipo_costo exista en el catálogo CostType.
+        Acepta tanto tipos dinámicos como legacy hardcoded.
+        """
+        if not value:
+            return value
+
+        from catalogs.models import CostType
+
+        # Verificar si es un tipo legacy hardcoded (siempre válido)
+        legacy_codes = [code for code, _ in Invoice.TIPO_COSTO_CHOICES]
+        if value in legacy_codes:
+            return value
+
+        # Verificar si existe en CostType (dinámico)
+        cost_type_exists = CostType.objects.filter(
+            code=value,
+            is_active=True,
+            is_deleted=False
+        ).exists()
+
+        if not cost_type_exists:
+            raise serializers.ValidationError(
+                f'El tipo de costo "{value}" no existe en el catálogo o está inactivo. '
+                f'Por favor selecciona un tipo de costo válido.'
+            )
+
+        return value
 
     def validate_numero_factura(self, value):
         """Validar que el número de factura sea único para facturas activas."""

@@ -54,7 +54,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         """Define permisos según la acción"""
         if self.action in ['destroy']:
             return [IsAdmin()]
-        elif self.action in ['create', 'update', 'partial_update', 'approve_merge', 'reject_merge', 'verify', 'suggest_all_matches']:
+        elif self.action in ['create', 'update', 'partial_update', 'reject_merge', 'verify', 'suggest_all_matches']:
             # Admin o Jefe de Operaciones (IsJefeOperaciones ya incluye admin)
             return [IsJefeOperaciones()]
         return super().get_permissions()
@@ -76,7 +76,28 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_verified=True)
         elif verified == 'false':
             queryset = queryset.filter(is_verified=False)
-        
+
+        # Filtrar por clientes que tienen OTs ACTIVAS (no eliminadas)
+        has_ots = self.request.query_params.get('has_ots')
+        if has_ots == 'true':
+            from ots.models import OT
+            # Obtener IDs de clientes que tienen OTs activas (no eliminadas)
+            client_ids_with_ots = OT.objects.filter(
+                is_deleted=False,
+                cliente__isnull=False
+            ).values_list('cliente_id', flat=True).distinct()
+
+            queryset = queryset.filter(id__in=client_ids_with_ots)
+        elif has_ots == 'false':
+            # Clientes SIN OTs activas
+            from ots.models import OT
+            client_ids_with_ots = OT.objects.filter(
+                is_deleted=False,
+                cliente__isnull=False
+            ).values_list('cliente_id', flat=True).distinct()
+
+            queryset = queryset.exclude(id__in=client_ids_with_ots)
+
         return queryset
     
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
@@ -147,71 +168,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             return 'medium'
         else:
             return 'low'
-    
-    @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
-    def approve_merge(self, request):
-        """
-        Aprueba la fusión de dos aliases.
-        
-        El source_alias se fusiona hacia el target_alias.
-        Esto significa que source_alias apuntará a target_alias y dejará de usarse.
-        
-        Body:
-        {
-            "source_alias_id": 123,  // Este desaparecerá
-            "target_alias_id": 456,  // Este será el principal
-            "notes": "Son el mismo cliente de Guatemala"
-        }
-        """
-        serializer = MergeApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        source = serializer.validated_data['source_alias']
-        target = serializer.validated_data['target_alias']
-        notes = serializer.validated_data.get('notes', '')
-        
-        # Buscar si existe una sugerencia pendiente y marcarla ANTES de fusionar
-        suggestion_updated = False
-        try:
-            suggestion = SimilarityMatch.objects.get(
-                Q(alias_1_id=source.id, alias_2_id=target.id) | Q(alias_1_id=target.id, alias_2_id=source.id),
-                status='pending'
-            )
-            suggestion.status = 'approved'
-            suggestion.reviewed_by = request.user
-            suggestion.reviewed_at = timezone.now()
-            suggestion.review_notes = notes
-            suggestion.save()
-            suggestion_updated = True
-        except SimilarityMatch.DoesNotExist:
-            pass
-        
-        # Realizar la fusión DESPUÉS de actualizar la sugerencia
-        source.merged_into = target
-        source.save()
-        
-        # Transferir el contador de uso
-        target.usage_count += source.usage_count
-        target.save()
-        
-        # Si no había sugerencia previa, crear una registrando la decisión manual
-        # (se crea sin pasar por validación usando update_fields vacíos)
-        if not suggestion_updated:
-            # Guardar usando raw SQL para evitar validaciones
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO similarity_matches 
-                    (alias_1_id, alias_2_id, similarity_score, detection_method, status, reviewed_by_id, reviewed_at, review_notes, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                """, [source.id, target.id, 100.0, 'manual', 'approved', request.user.id, timezone.now(), notes])
-        
-        return Response({
-            'message': 'Fusión aprobada exitosamente',
-            'merged_from': ClientAliasListSerializer(source).data,
-            'merged_into': ClientAliasListSerializer(target).data,
-            'new_usage_count': target.usage_count
-        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
     def reject_merge(self, request):
@@ -803,10 +759,11 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
 
         if existing_with_name:
             return Response({
-                'error': f'Ya existe un cliente con el nombre "{existing_with_name.original_name}". '
-                        f'Si deseas fusionarlos, usa la función de normalización en su lugar.',
-                'existing_alias_id': existing_with_name.id
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'status': 'conflict',
+                'message': f'Ya existe un cliente con el nombre "{existing_with_name.original_name}".',
+                'existing_alias_id': existing_with_name.id,
+                'existing_alias_name': existing_with_name.original_name
+            }, status=status.HTTP_200_OK)
 
         # Guardar nombre anterior para auditoría
         old_name = alias.original_name
@@ -817,6 +774,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         # Actualizar el alias
         alias.original_name = new_name
         alias.normalized_name = normalized_new
+        alias.short_name = None  # Forzar regeneración
         alias.save()
 
         # Registrar en historial (crear un registro manual en SimilarityMatch para auditoría)
@@ -843,141 +801,6 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             'new_name': new_name,
             'ots_count': ots_count,
             'alias': ClientAliasSerializer(alias).data
-        }, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def client_summary(self, request):
-        """
-        Resumen de todos los clientes del sistema con sus métricas.
-
-        Muestra lista de clientes (aliases) con:
-        - Nombre completo y alias corto
-        - Cantidad de OTs que tienen
-        - Si está verificado o no
-        - Posibles duplicados (aliases similares)
-
-        Query params:
-        - search: Filtrar por nombre
-        - show_duplicates_only: Solo mostrar clientes con posibles duplicados (default: false)
-        - limit: Máximo de resultados (default: 100)
-
-        Response:
-        {
-            "total_clients": 45,
-            "clients": [
-                {
-                    "id": 1,
-                    "name": "CMA CGM",
-                    "short_name": "CMA CGM",
-                    "is_verified": true,
-                    "ot_count": 6,
-                    "sample_ots": ["OT-001", "OT-002", "OT-003"],
-                    "possible_duplicates": [
-                        {
-                            "id": 5,
-                            "name": "CMA",
-                            "short_name": "CMA",
-                            "similarity": 85.5,
-                            "ot_count": 120
-                        }
-                    ],
-                    "needs_attention": true
-                }
-            ]
-        }
-        """
-        from ots.models import OT
-        from django.db.models import Count, Q
-        from .fuzzy_utils import calculate_smart_similarity
-
-        search = request.query_params.get('search', '').strip()
-        show_duplicates_only = request.query_params.get('show_duplicates_only', 'false').lower() == 'true'
-        limit = int(request.query_params.get('limit', 100))
-
-        # Obtener todos los clientes activos con conteo de OTs
-        clients_query = ClientAlias.objects.filter(
-            is_deleted=False,
-            merged_into__isnull=True
-        )
-
-        if search:
-            clients_query = clients_query.filter(
-                Q(original_name__icontains=search) |
-                Q(short_name__icontains=search) |
-                Q(normalized_name__icontains=search)
-            )
-
-        clients_data = []
-
-        for client in clients_query:
-            # Contar OTs
-            ot_count = OT.objects.filter(
-                deleted_at__isnull=True,
-                cliente=client
-            ).count()
-
-            # Obtener sample de OTs (primeros 5)
-            sample_ots = list(
-                OT.objects.filter(
-                    deleted_at__isnull=True,
-                    cliente=client
-                ).values_list('numero_ot', flat=True)[:5]
-            )
-
-            # Buscar posibles duplicados (otros aliases similares)
-            possible_duplicates = []
-
-            other_aliases = ClientAlias.objects.filter(
-                is_deleted=False,
-                merged_into__isnull=True
-            ).exclude(id=client.id)
-
-            for other in other_aliases:
-                result = calculate_smart_similarity(client.original_name, other.original_name)
-                if result['score'] >= 75:  # Umbral más bajo para detectar posibles duplicados
-                    other_ot_count = OT.objects.filter(
-                        deleted_at__isnull=True,
-                        cliente=other
-                    ).count()
-
-                    possible_duplicates.append({
-                        'id': other.id,
-                        'name': other.original_name,
-                        'short_name': other.short_name,
-                        'similarity': round(result['score'], 2),
-                        'ot_count': other_ot_count,
-                        'is_verified': other.is_verified
-                    })
-
-            # Ordenar por similitud
-            possible_duplicates.sort(key=lambda x: x['similarity'], reverse=True)
-
-            client_info = {
-                'id': client.id,
-                'name': client.original_name,
-                'short_name': client.short_name,
-                'is_verified': client.is_verified,
-                'ot_count': ot_count,
-                'sample_ots': sample_ots,
-                'possible_duplicates': possible_duplicates[:3],  # Top 3
-                'needs_attention': len(possible_duplicates) > 0 or not client.is_verified or not client.short_name
-            }
-
-            # Si solo mostrar duplicados, filtrar
-            if show_duplicates_only and len(possible_duplicates) == 0:
-                continue
-
-            clients_data.append(client_info)
-
-        # Ordenar: primero los que necesitan atención, luego por OT count
-        clients_data.sort(key=lambda x: (not x['needs_attention'], -x['ot_count']))
-
-        # Limitar resultados
-        clients_data = clients_data[:limit]
-
-        return Response({
-            'total_clients': len(clients_data),
-            'clients': clients_data
         }, status=status.HTTP_200_OK)
 
     def _group_similar_names(self, names_with_counts, threshold):

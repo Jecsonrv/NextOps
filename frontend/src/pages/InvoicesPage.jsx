@@ -3,9 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
-import { useProviders } from "../hooks/useInvoices";
-import { useCostTypes } from "../hooks/useCostTypes";
-import { useBulkDeleteInvoices } from "../hooks/useInvoices";
+import { useInvoiceFilterValues, useBulkDeleteInvoices } from "../hooks/useInvoices";
 import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
@@ -66,8 +64,8 @@ export function InvoicesPage() {
         fecha_hasta: "",
     });
 
-    const { data: providers } = useProviders();
-    const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
+    // Obtener valores de filtros dinámicos (solo proveedores y tipos de costo con facturas)
+    const { data: filterValues, isLoading: filterValuesLoading } = useInvoiceFilterValues();
     const queryClient = useQueryClient();
 
     const bulkDeleteMutation = useBulkDeleteInvoices();
@@ -124,11 +122,30 @@ export function InvoicesPage() {
         },
     });
 
-    // Fetch stats
+    // Fetch stats con los mismos filtros que la lista
     const { data: stats } = useQuery({
-        queryKey: ["invoices-stats"],
+        queryKey: ["invoices-stats", search, filters],
         queryFn: async () => {
-            const response = await apiClient.get("/invoices/stats/");
+            // Construir parámetros con los mismos filtros que la lista
+            const params = new URLSearchParams({
+                ...(search && { search }),
+                ...(filters.estado_provision && {
+                    estado_provision: filters.estado_provision,
+                }),
+                ...(filters.estado_facturacion && {
+                    estado_facturacion: filters.estado_facturacion,
+                }),
+                ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
+                ...(filters.proveedor && { proveedor: filters.proveedor }),
+                ...(filters.fecha_desde && {
+                    fecha_emision_desde: filters.fecha_desde,
+                }),
+                ...(filters.fecha_hasta && {
+                    fecha_emision_hasta: filters.fecha_hasta,
+                }),
+            });
+
+            const response = await apiClient.get(`/invoices/stats/?${params}`);
             return response.data;
         },
     });
@@ -412,16 +429,16 @@ export function InvoicesPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Disputas
+                                Sin OT
                             </CardTitle>
-                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0" />
                         </CardHeader>
                         <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-red-600">
-                                {stats.pendientes_revision || 0}
+                            <div className="text-2xl sm:text-3xl font-bold text-orange-600">
+                                {stats.sin_ot || 0}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                                Requieren revisión
+                                Sin asignar
                             </p>
                         </CardContent>
                     </Card>
@@ -616,18 +633,23 @@ export function InvoicesPage() {
                                             })
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        disabled={costTypesLoading}
+                                        disabled={filterValuesLoading}
                                     >
                                         <option value="">Todos</option>
-                                        {costTypes?.results?.map((costType) => (
+                                        {filterValues?.tipos_costo?.map((tipo) => (
                                             <option
-                                                key={costType.code}
-                                                value={costType.code}
+                                                key={tipo.code}
+                                                value={tipo.code}
                                             >
-                                                {costType.name}
+                                                {tipo.name}
                                             </option>
                                         ))}
                                     </select>
+                                    {!filterValuesLoading && (!filterValues?.tipos_costo || filterValues.tipos_costo.length === 0) && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            No hay tipos de costo con facturas
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -643,19 +665,23 @@ export function InvoicesPage() {
                                             })
                                         }
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        disabled={filterValuesLoading}
                                     >
                                         <option value="">Todos</option>
-                                        {providers?.results?.map(
-                                            (proveedor) => (
-                                                <option
-                                                    key={proveedor.id}
-                                                    value={proveedor.id}
-                                                >
-                                                    {proveedor.nombre}
-                                                </option>
-                                            )
-                                        )}
+                                        {filterValues?.proveedores?.map((proveedor) => (
+                                            <option
+                                                key={proveedor.id}
+                                                value={proveedor.id}
+                                            >
+                                                {proveedor.nombre}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {!filterValuesLoading && (!filterValues?.proveedores || filterValues.proveedores.length === 0) && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            No hay proveedores con facturas
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>

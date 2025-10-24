@@ -329,6 +329,7 @@ export function useClientAliases(filters = {}, options = {}) {
     if (filters.merged !== undefined) params.append("merged", filters.merged);
     if (filters.provider) params.append("provider", filters.provider);
     if (filters.search) params.append("search", filters.search);
+    if (filters.has_ots) params.append("has_ots", filters.has_ots);
     if (filters.page) params.append("page", filters.page);
     if (filters.page_size) params.append("page_size", filters.page_size);
 
@@ -447,31 +448,6 @@ export function useVerifyAlias() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
-            queryClient.invalidateQueries({ queryKey: ["client-summary"] });
-        },
-    });
-}
-
-/**
- * Hook para aprobar la fusión de dos aliases
- */
-export function useApproveAliasMerge() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: async ({ source_alias_id, target_alias_id }) => {
-            const response = await apiClient.post(
-                `/clients/client-aliases/approve_merge/`,
-                {
-                    source_alias_id,
-                    target_alias_id
-                }
-            );
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["client-aliases"] });
-            queryClient.invalidateQueries({ queryKey: ["client-summary"] });
         },
     });
 }
@@ -729,32 +705,6 @@ export function useRenameClient() {
             queryClient.invalidateQueries({ queryKey: ["ots"] });
             queryClient.invalidateQueries({ queryKey: ["client-alias-stats"] });
         },
-    });
-}
-
-/**
- * Hook para obtener resumen de clientes con métricas y posibles duplicados
- * Endpoint: GET /clients/client-aliases/client_summary/
- */
-export function useClientSummary(params = {}, options = {}) {
-    const queryParams = new URLSearchParams();
-
-    if (params.search) queryParams.append("search", params.search);
-    if (params.show_duplicates_only !== undefined) queryParams.append("show_duplicates_only", params.show_duplicates_only);
-    if (params.limit) queryParams.append("limit", params.limit);
-
-    const queryString = queryParams.toString();
-
-    return useQuery({
-        queryKey: ["client-summary", params],
-        queryFn: async () => {
-            const response = await apiClient.get(
-                `/clients/client-aliases/client_summary/${queryString ? `?${queryString}` : ""}`
-            );
-            return response.data;
-        },
-        staleTime: 2 * 60 * 1000, // 2 minutos
-        ...options,
     });
 }
 

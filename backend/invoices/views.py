@@ -93,47 +93,63 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         - estado_facturacion: pendiente, facturada
         - requiere_revision: true, false
         - ot_number: número de OT
-        - proveedor_nombre: búsqueda parcial
-        - fecha_desde: YYYY-MM-DD
-        - fecha_hasta: YYYY-MM-DD
+        - proveedor_nombre: búsqueda parcial por nombre
+        - proveedor: ID del proveedor (exacto)
+        - tipo_costo: código del tipo de costo
+        - fecha_emision_desde: YYYY-MM-DD (fecha de emisión desde)
+        - fecha_emision_hasta: YYYY-MM-DD (fecha de emisión hasta)
+        - fecha_desde: YYYY-MM-DD (alias de fecha_emision_desde)
+        - fecha_hasta: YYYY-MM-DD (alias de fecha_emision_hasta)
         - search: búsqueda general
         """
         queryset = super().get_queryset()
-        
+
         # Filtros
         estado_provision = self.request.query_params.get('estado_provision')
         if estado_provision:
             queryset = queryset.filter(estado_provision=estado_provision)
-        
+
         estado_facturacion = self.request.query_params.get('estado_facturacion')
         if estado_facturacion:
             queryset = queryset.filter(estado_facturacion=estado_facturacion)
-        
+
         requiere_revision = self.request.query_params.get('requiere_revision')
         if requiere_revision:
             value = requiere_revision.lower() == 'true'
             queryset = queryset.filter(requiere_revision=value)
-        
+
+        # Tipo de costo (exacto por código)
+        tipo_costo = self.request.query_params.get('tipo_costo')
+        if tipo_costo:
+            queryset = queryset.filter(tipo_costo=tipo_costo)
+
+        # Proveedor (ID exacto)
+        proveedor_id = self.request.query_params.get('proveedor')
+        if proveedor_id:
+            queryset = queryset.filter(proveedor_id=proveedor_id)
+
+        # Proveedor por nombre (búsqueda parcial)
+        proveedor_nombre = self.request.query_params.get('proveedor_nombre')
+        if proveedor_nombre:
+            queryset = queryset.filter(proveedor_nombre__icontains=proveedor_nombre)
+
         ot_number = self.request.query_params.get('ot_number')
         if ot_number:
             queryset = queryset.filter(ot_number__icontains=ot_number)
-        
-        proveedor = self.request.query_params.get('proveedor_nombre')
-        if proveedor:
-            queryset = queryset.filter(proveedor_nombre__icontains=proveedor)
-        
+
         ot_id = self.request.query_params.get('ot') or self.request.query_params.get('ot_id')
         if ot_id:
             queryset = queryset.filter(ot_id=ot_id)
 
-        fecha_desde = self.request.query_params.get('fecha_desde')
+        # Fechas de emisión (soportar ambos formatos)
+        fecha_desde = self.request.query_params.get('fecha_emision_desde') or self.request.query_params.get('fecha_desde')
         if fecha_desde:
             queryset = queryset.filter(fecha_emision__gte=fecha_desde)
-        
-        fecha_hasta = self.request.query_params.get('fecha_hasta')
+
+        fecha_hasta = self.request.query_params.get('fecha_emision_hasta') or self.request.query_params.get('fecha_hasta')
         if fecha_hasta:
             queryset = queryset.filter(fecha_emision__lte=fecha_hasta)
-        
+
         # Búsqueda general
         search = self.request.query_params.get('search')
         if search:
@@ -143,7 +159,32 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 Q(ot_number__icontains=search) |
                 Q(notas__icontains=search)
             )
-        
+
+        # ORDENAMIENTO LÓGICO INTELIGENTE
+        # Prioridad: pendientes primero, luego por fecha de emisión más reciente
+        # Orden: estado_provision (pendientes primero) -> fecha_emision (más reciente primero)
+        from django.db.models import Case, When, IntegerField
+
+        queryset = queryset.annotate(
+            estado_prioridad=Case(
+                # Pendientes tienen máxima prioridad
+                When(estado_provision='pendiente', then=1),
+                # En revisión
+                When(estado_provision='revision', then=2),
+                # Disputadas
+                When(estado_provision='disputada', then=3),
+                # Provisionadas
+                When(estado_provision='provisionada', then=4),
+                # Rechazadas/Anuladas al final
+                When(estado_provision='rechazada', then=5),
+                When(estado_provision='anulada', then=6),
+                When(estado_provision='anulada_parcialmente', then=7),
+                # Default
+                default=8,
+                output_field=IntegerField()
+            )
+        ).order_by('estado_prioridad', '-fecha_emision', '-created_at')
+
         return queryset.distinct()
     
     @action(detail=True, methods=['get'], url_path='file')
@@ -747,27 +788,22 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """
-        Estadísticas de facturas.
-        
+        Estadísticas de facturas con soporte de filtros.
+
         Query params opcionales:
-        - fecha_desde: YYYY-MM-DD
-        - fecha_hasta: YYYY-MM-DD
+        - Todos los filtros de get_queryset() (estado_provision, estado_facturacion,
+          tipo_costo, proveedor, fecha_desde, fecha_hasta, search, etc.)
         - incluir_excluidas: true/false (por defecto false)
-        
+
         NOTA: Por defecto se excluyen facturas anuladas, rechazadas y disputadas
         de las estadísticas de cuentas por pagar.
+
+        Las estadísticas reflejarán SOLO los datos filtrados, permitiendo análisis
+        específicos por estado, proveedor, tipo de costo, rango de fechas, etc.
         """
+        # Usar get_queryset() que ya aplica todos los filtros del request
         queryset = self.get_queryset()
-        
-        # Filtrar por rango de fechas si se proporciona
-        fecha_desde = request.query_params.get('fecha_desde')
-        fecha_hasta = request.query_params.get('fecha_hasta')
-        
-        if fecha_desde:
-            queryset = queryset.filter(fecha_emision__gte=fecha_desde)
-        if fecha_hasta:
-            queryset = queryset.filter(fecha_emision__lte=fecha_hasta)
-        
+
         # EXCLUIR facturas que no deben contabilizarse (anuladas, rechazadas, disputadas)
         incluir_excluidas = request.query_params.get('incluir_excluidas', 'false').lower() == 'true'
         if not incluir_excluidas:
@@ -843,6 +879,61 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         serializer = InvoiceStatsSerializer(data)
         return Response(serializer.data)
     
+    @action(detail=False, methods=['get'])
+    def filter_values(self, request):
+        """
+        Obtener valores únicos de filtros basados en facturas existentes.
+
+        Retorna solo proveedores y tipos de costo que tienen facturas activas.
+        Útil para poblar dropdowns de filtros dinámicamente.
+        """
+        # Usar queryset base sin filtros para obtener TODOS los valores posibles
+        base_queryset = Invoice.objects.filter(is_deleted=False)
+
+        # Proveedores que tienen facturas (con nombre y ID)
+        proveedores_ids = base_queryset.exclude(
+            proveedor__isnull=True
+        ).values_list('proveedor_id', flat=True).distinct()
+
+        from catalogs.models import Provider
+        proveedores = Provider.objects.filter(
+            id__in=proveedores_ids,
+            is_active=True,
+            is_deleted=False
+        ).values('id', 'nombre').order_by('nombre')
+
+        # Tipos de costo que tienen facturas
+        tipos_costo_codes = base_queryset.exclude(
+            tipo_costo__isnull=True
+        ).values_list('tipo_costo', flat=True).distinct()
+
+        from catalogs.models import CostType
+        tipos_costo = CostType.objects.filter(
+            code__in=tipos_costo_codes,
+            is_active=True,
+            is_deleted=False
+        ).values('code', 'name').order_by('name')
+
+        # Estados únicos (desde los choices del modelo)
+        estados_provision = [
+            {'value': code, 'label': label}
+            for code, label in Invoice.ESTADO_PROVISION_CHOICES
+        ]
+
+        estados_facturacion = [
+            {'value': code, 'label': label}
+            for code, label in Invoice.ESTADO_FACTURACION_CHOICES
+        ]
+
+        data = {
+            'proveedores': list(proveedores),
+            'tipos_costo': list(tipos_costo),
+            'estados_provision': estados_provision,
+            'estados_facturacion': estados_facturacion,
+        }
+
+        return Response(data)
+
     @action(detail=True, methods=['post'])
     def assign_ot(self, request, pk=None):
         """

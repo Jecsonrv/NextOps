@@ -25,6 +25,7 @@ import {
     Globe,
     Package,
     XCircle,
+    Edit,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import {
@@ -36,6 +37,7 @@ import {
 import { Badge } from "../components/ui/Badge";
 import { NormalizationModal } from "../components/NormalizationModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { showConfirm } from "../utils/toast";
 import { InputDialog } from "../components/ui/InputDialog";
 import {
     useClientAliases,
@@ -44,8 +46,11 @@ import {
     useSimilarityMatches,
     useClientAliasStats,
     useRejectMerge,
+    useRenameClient,
 } from "../hooks/useCatalogs";
 
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "../lib/api";
 export default function ClientsPage() {
     // Estados
     const [activeTab, setActiveTab] = useState("overview");
@@ -56,6 +61,7 @@ export default function ClientsPage() {
         merged: "false", // Solo activos por defecto
         page: 1,
         page_size: 20,
+        has_ots: "",
     });
     const [normalizationModal, setNormalizationModal] = useState({
         isOpen: false,
@@ -69,15 +75,40 @@ export default function ClientsPage() {
     const [detectDialog, setDetectDialog] = useState({ isOpen: false });
     const [rejectDialog, setRejectDialog] = useState({ isOpen: false, match: null });
     const [resultDialog, setResultDialog] = useState({ isOpen: false, title: '', message: '' });
+    const [renameDialog, setRenameDialog] = useState({ isOpen: false, alias: null });
 
     // Queries - datos reales de la BD
-    const {
-        data: aliasesData,
-        isLoading: loadingAliases,
-        refetch: refetchAliases,
-    } = useClientAliases({
-        search: searchTerm,
-        ...filters,
+    const { data: aliasesData, isLoading: loadingAliases, refetch: refetchAliases } = useQuery({
+        queryKey: ["clients-from-ots", filters, searchTerm],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            params.append("page_size", "10000"); // Fetch all OTs to get all clients
+            if (searchTerm) {
+                params.append("search", searchTerm);
+            }
+            if (filters.merged) {
+                params.append("merged", filters.merged);
+            }
+            if (filters.has_ots) {
+                params.append("has_ots", filters.has_ots);
+            }
+
+            const response = await apiClient.get(`/ots/?${params}`);
+            const clients = [
+                ...new Set(
+                    response.data.results
+                        .map((ot) => ot.cliente_nombre)
+                        .filter(Boolean)
+                ),
+            ].map((clientName) => ({
+                id: clientName, // Using clientName as id, since we don't have a client id from this endpoint
+                original_name: clientName,
+                usage_count: response.data.results.filter(
+                    (ot) => ot.cliente_nombre === clientName
+                ).length,
+            }));
+            return { results: clients, count: clients.length };
+        },
     });
 
     const {
@@ -95,6 +126,7 @@ export default function ClientsPage() {
     const suggestMatches = useSuggestAllMatches();
     const applyNormalization = useApplyNormalization();
     const rejectMerge = useRejectMerge();
+    const renameClient = useRenameClient();
 
     // Datos procesados
     const aliases = aliasesData?.results || [];
@@ -235,6 +267,54 @@ export default function ClientsPage() {
             });
         }
     };
+
+    const handleRename = (alias) => {
+        setRenameDialog({ isOpen: true, alias });
+    };
+
+    const confirmRename = async (newName) => {
+        const alias = renameDialog.alias;
+        setRenameDialog({ isOpen: false, alias: null });
+
+        try {
+            const result = await renameClient.mutateAsync({
+                aliasId: alias.id,
+                new_name: newName,
+                notes: `Renombrado desde la página de Clientes.`,
+            });
+
+            if (result.status === 'conflict') {
+                // Conflicto de duplicado
+                showConfirm(
+                    `Ya existe un cliente con el nombre "${newName}". ¿Deseas fusionar "${alias.original_name}" con "${newName}"?`,
+                    () => {
+                        handleConfirmNormalization({
+                            sourceAliasId: alias.id,
+                            targetAliasId: result.existing_alias_id,
+                            notes: `Fusión automática al intentar renombrar a un cliente existente.`,
+                            finalDisplayName: newName,
+                        });
+                    }
+                );
+            } else {
+                setResultDialog({
+                    isOpen: true,
+                    title: '✅ Cliente Renombrado',
+                    message: result.message,
+                });
+
+                refetchAliases();
+                refetchStats();
+            }
+        } catch (error) {
+            setResultDialog({
+                isOpen: true,
+                title: '❌ Error al Renombrar',
+                message: error.response?.data?.error || error.message,
+            });
+        }
+    };
+
 
     // Tabs
     const tabs = [
@@ -457,6 +537,7 @@ export default function ClientsPage() {
                     isLoading={loadingAliases}
                     matches={matches}
                     aliasesData={aliasesData}
+                    onRename={handleRename}
                 />
             )}
 
@@ -520,6 +601,20 @@ Solo genera sugerencias, no fusiona automáticamente."
                 cancelText=""
                 variant="default"
             />
+
+            {/* Dialog: Renombrar Cliente */}
+            {renameDialog.alias && (
+                <InputDialog
+                    isOpen={renameDialog.isOpen}
+                    onClose={() => setRenameDialog({ isOpen: false, alias: null })}
+                    onConfirm={confirmRename}
+                    title={`Renombrar a "${renameDialog.alias.original_name}"`}
+                    message="Ingresa el nuevo nombre para el cliente. Esto actualizará todas las OTs asociadas."
+                    placeholder="Nuevo nombre del cliente"
+                    confirmText="Renombrar"
+                    isConfirming={renameClient.isPending}
+                />
+            )}
         </div>
     );
 }
@@ -1291,6 +1386,7 @@ function AllAliasesTab({
     isLoading,
     matches,
     aliasesData,
+    onRename,
 }) {
     const totalPages = aliasesData?.count
         ? Math.ceil(aliasesData.count / filters.page_size)
@@ -1345,6 +1441,23 @@ function AllAliasesTab({
                             <option value="">Todos</option>
                         </select>
                     </div>
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="has_ots"
+                            checked={filters.has_ots === "true"}
+                            onChange={(e) =>
+                                setFilters({
+                                    ...filters,
+                                    has_ots: e.target.checked ? "true" : "",
+                                })
+                            }
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label htmlFor="has_ots" className="ml-2 block text-sm text-gray-900">
+                            Mostrar solo clientes con OTs
+                        </label>
+                    </div>
                 </div>
 
                 {/* Tabla */}
@@ -1382,6 +1495,9 @@ function AllAliasesTab({
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                             Estado
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Acciones
                                         </th>
                                     </tr>
                                 </thead>
@@ -1451,6 +1567,16 @@ function AllAliasesTab({
                                                                 </span>
                                                             )}
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => onRename(alias)}
+                                                        disabled={alias.merged_into}
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         );

@@ -16,7 +16,10 @@
       "Read(//c/Users/jecso/Desktop/UEES/Ciclo 02-2025/Programacion 2/Proyecto/**)",
       "Bash(cat:*)",
       "Bash(python3:*)",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(python manage.py makemigrations:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker logs nextops_backend --tail 50)"
     ],
     "deny": [],
     "ask": []

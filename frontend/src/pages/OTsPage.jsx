@@ -69,7 +69,46 @@ const arraysAreEqual = (a = [], b = []) => {
 const normalizeSingleValue = (value) =>
     typeof value === "string" ? value.trim() : "";
 
-const SINGLE_SELECT_CLEAR_VALUE = "__all__";
+const logicalSortOTs = (ots) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    return ots.sort((a, b) => {
+        const etaA = a.fecha_eta ? new Date(a.fecha_eta) : null;
+        const etaB = b.fecha_eta ? new Date(b.fecha_eta) : null;
+
+        if (etaA && etaB) {
+            const diffA = Math.abs(etaA - now);
+            const diffB = Math.abs(etaB - now);
+
+            // Prioritize OTs with ETA in the future
+            if (etaA >= now && etaB < now) return -1;
+            if (etaA < now && etaB >= now) return 1;
+
+            // If both are in the future, sort by proximity to now
+            if (etaA >= now && etaB >= now) {
+                return diffA - diffB;
+            }
+
+            // If both are in the past, sort by proximity to now, but penalize if older than 4 days
+            if (etaA < now && etaB < now) {
+                const isOldA = (now - etaA) / (1000 * 60 * 60 * 24) > 4;
+                const isOldB = (now - etaB) / (1000 * 60 * 60 * 24) > 4;
+
+                if (isOldA && !isOldB) return 1;
+                if (!isOldA && isOldB) return -1;
+
+                return diffA - diffB;
+            }
+        } else if (etaA) {
+            return -1;
+        } else if (etaB) {
+            return 1;
+        }
+
+        return 0;
+    });
+};
 
 const estadoColors = {
     almacenadora: "secondary",
@@ -1456,7 +1495,7 @@ export function OTsPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200 bg-white">
-                                            {data?.results?.map((ot) => (
+                                            {logicalSortOTs(data?.results)?.map((ot) => (
                                                 <tr
                                                     key={ot.id}
                                                     className="hover:bg-gray-50 transition-colors"

@@ -188,14 +188,6 @@ export function ClientAliasesPage() {
                 </div>
                 <div className="flex gap-2">
                     <Button
-                        onClick={() => navigate("/catalogs/aliases/normalize")}
-                        variant="outline"
-                        className="flex items-center gap-2"
-                    >
-                        <Users className="w-4 h-4" />
-                        Gestión de Clientes
-                    </Button>
-                    <Button
                         onClick={() => navigate("/catalogs/aliases/create")}
                         className="flex items-center gap-2"
                     >

@@ -230,7 +230,22 @@ export function useBulkDeleteInvoices() {
 }
 
 /**
- * Hook para obtener lista de proveedores del catálogo
+ * Hook para obtener valores únicos de filtros (dinámicos)
+ * Retorna solo proveedores y tipos de costo que tienen facturas
+ */
+export function useInvoiceFilterValues() {
+    return useQuery({
+        queryKey: ["invoice-filter-values"],
+        queryFn: async () => {
+            const response = await apiClient.get("/invoices/filter_values/");
+            return response.data;
+        },
+        staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+    });
+}
+
+/**
+ * Hook para obtener lista de proveedores del catálogo (TODOS)
  * @param {Object} options - Opciones de búsqueda y filtrado
  */
 export function useProviders(options = {}) {
