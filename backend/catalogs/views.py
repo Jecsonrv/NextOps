@@ -14,7 +14,7 @@ from .serializers import (
     CostCategoryListSerializer
 )
 from common.permissions import IsAdmin, IsJefeOperaciones, ReadOnly
-from common.pagination import StandardResultsSetPagination
+from common.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 
 
 class CostCategoryViewSet(viewsets.ModelViewSet):
@@ -31,7 +31,12 @@ class CostCategoryViewSet(viewsets.ModelViewSet):
     """
     queryset = CostCategory.objects.all()
     serializer_class = CostCategorySerializer
-    pagination_class = StandardResultsSetPagination
+    # Para listados de proveedores (usados en selects y listados en UI)
+    # queremos una página más grande por defecto para evitar que solo
+    # se muestren 25 proveedores en interfaces como el selector de
+    # Patrones de Proveedor. Usar LargeResultsSetPagination (100 items)
+    # permite mostrar >50 proveedores sin necesidad de paginar en el UI.
+    pagination_class = LargeResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['code', 'name', 'description']
