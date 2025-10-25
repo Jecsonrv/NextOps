@@ -775,9 +775,10 @@ class InvoiceStatsSerializer(serializers.Serializer):
     """Serializer para estadísticas de facturas"""
 
     total = serializers.IntegerField()
-    pendientes_revision = serializers.IntegerField()
     provisionadas = serializers.IntegerField()
     pendientes_provision = serializers.IntegerField()
+    disputadas = serializers.IntegerField()
+    anuladas = serializers.IntegerField()
     sin_fecha_provision = serializers.IntegerField()
     facturadas = serializers.IntegerField()
     sin_ot = serializers.IntegerField()

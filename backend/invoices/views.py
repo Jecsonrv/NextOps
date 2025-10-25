@@ -802,17 +802,24 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         específicos por estado, proveedor, tipo de costo, rango de fechas, etc.
         """
         # Usar get_queryset() que ya aplica todos los filtros del request
-        queryset = self.get_queryset()
+        queryset_original = self.get_queryset()
+
+        # CONTAR anuladas y disputadas ANTES de excluirlas
+        total_disputadas = queryset_original.filter(estado_provision='disputada').count()
+        total_anuladas = queryset_original.filter(estado_provision='anulada').count()
+        total_anuladas_parcial = queryset_original.filter(estado_provision='anulada_parcialmente').count()
 
         # EXCLUIR facturas que no deben contabilizarse (anuladas, rechazadas, disputadas)
         incluir_excluidas = request.query_params.get('incluir_excluidas', 'false').lower() == 'true'
         if not incluir_excluidas:
-            queryset = queryset.exclude(estado_provision__in=['anulada', 'rechazada', 'disputada'])
-        
+            queryset = queryset_original.exclude(estado_provision__in=['anulada', 'rechazada', 'disputada'])
+        else:
+            queryset = queryset_original
+
         # Calcular estadísticas
         total = queryset.count()
         provisionadas = queryset.filter(estado_provision='provisionada').count()
-        disputadas = queryset.filter(estado_provision='disputada').count()
+        disputadas = total_disputadas  # Usar el contador calculado antes de la exclusión
         pendientes_queryset = queryset.filter(
             estado_provision='pendiente',
             fecha_provision__isnull=True
@@ -821,11 +828,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         facturas_sin_fecha_provision = pendientes_provision
         facturadas = queryset.filter(estado_facturacion='facturada').count()
         sin_ot = queryset.filter(ot__isnull=True).count()
-
-        # Estadísticas adicionales de disputas y anulaciones
-        total_disputadas = disputadas
-        total_anuladas = queryset.filter(estado_provision='anulada').count()
-        total_anuladas_parcial = queryset.filter(estado_provision='anulada_parcialmente').count()
         
         # Monto total (usar monto_aplicable si existe, sino monto)
         # Usar Coalesce para obtener monto_aplicable si existe, sino monto
@@ -859,11 +861,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             .order_by('-total_monto')[:10]
         )
         
+        # Contadores adicionales para pestañas
+        pendientes_sin_provision = queryset.filter(
+            estado_provision='pendiente'
+        ).count()
+
         data = {
             'total': total,
-            'pendientes_revision': disputadas,
             'provisionadas': provisionadas,
-            'pendientes_provision': pendientes_provision,
+            'pendientes_provision': pendientes_sin_provision,
+            'disputadas': disputadas,
+            'anuladas': total_anuladas + total_anuladas_parcial,  # Total de anuladas para pestañas
             'sin_fecha_provision': facturas_sin_fecha_provision,
             'facturadas': facturadas,
             'sin_ot': sin_ot,
@@ -875,7 +883,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             'total_anuladas': total_anuladas,
             'total_anuladas_parcial': total_anuladas_parcial,
         }
-        
+
         serializer = InvoiceStatsSerializer(data)
         return Response(serializer.data)
     
