@@ -312,7 +312,6 @@ class InvoicePatternCatalog(TimeStampedModel, SoftDeleteModel):
     
     nombre = models.CharField(
         max_length=100,
-        unique=True,
         help_text="Nombre descriptivo del patrón (ej: DTE El Salvador, CCF, etc)"
     )
     
@@ -546,6 +545,13 @@ class InvoicePatternCatalog(TimeStampedModel, SoftDeleteModel):
             models.Index(fields=['es_grupo_principal', 'activo']),
             models.Index(fields=['proveedor', 'activo']),
             models.Index(fields=['campo_objetivo']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['nombre'],
+                condition=models.Q(is_deleted=False),
+                name='unique_active_pattern_name'
+            )
         ]
     
     def __str__(self):
