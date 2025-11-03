@@ -515,18 +515,22 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     # Verificar si hay facturas ACTIVAS asociadas a este archivo
                     active_invoices = Invoice.objects.filter(
                         uploaded_file=existing_file,
-                        is_deleted=False
-                    ).exists()
-
-                    if active_invoices:
+                        is_deleted=False,
+                        deleted_at__isnull=True  # CRÍTICO: Verificar también que deleted_at sea NULL
+                    )
+                    
+                    # Si hay facturas activas, verificar que el constraint no falle
+                    if active_invoices.exists():
+                        active_invoice = active_invoices.first()
                         logger.warning(f"Duplicate file detected: {file.name} (hash: {file_hash[:8]})")
+                        logger.warning(f"Active invoice found: ID={active_invoice.id}, Factura={active_invoice.numero_factura}")
                         results['duplicates'].append({
                             'filename': file.name,
-                            'reason': f'Archivo duplicado con factura activa (SHA256: {file_hash[:8]}...)'
+                            'reason': f'Archivo duplicado con factura activa: {active_invoice.numero_factura} (SHA256: {file_hash[:8]}...)'
                         })
                         continue
 
-                    logger.info(f"Reusing existing file: {existing_file.path}")
+                    logger.info(f"Reusing existing file: {existing_file.path} (no active invoices)")
                     uploaded_file = existing_file
                 else:
                     # === PASO 3: Guardar archivo nuevo ===
