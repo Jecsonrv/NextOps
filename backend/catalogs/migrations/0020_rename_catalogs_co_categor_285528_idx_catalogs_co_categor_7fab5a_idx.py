@@ -3,6 +3,45 @@
 from django.db import migrations
 
 
+def rename_index_if_exists(apps, schema_editor):
+    """
+    Safely rename index only if the old index exists.
+    This prevents errors in production where the index might not exist.
+    """
+    with schema_editor.connection.cursor() as cursor:
+        # Check if old index exists
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM pg_indexes
+            WHERE indexname = 'catalogs_co_categor_285528_idx'
+        """)
+        old_exists = cursor.fetchone()[0] > 0
+        
+        # Check if new index already exists
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM pg_indexes
+            WHERE indexname = 'catalogs_co_categor_7fab5a_idx'
+        """)
+        new_exists = cursor.fetchone()[0] > 0
+        
+        # Only rename if old exists and new doesn't exist
+        if old_exists and not new_exists:
+            cursor.execute("""
+                ALTER INDEX catalogs_co_categor_285528_idx 
+                RENAME TO catalogs_co_categor_7fab5a_idx
+            """)
+        elif new_exists:
+            # New index already exists, nothing to do
+            pass
+        else:
+            # Old index doesn't exist, create the new one directly
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS catalogs_co_categor_7fab5a_idx 
+                ON catalogs_costtype (category, tipo)
+            """)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,9 +49,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='costtype',
-            new_name='catalogs_co_categor_7fab5a_idx',
-            old_name='catalogs_co_categor_285528_idx',
-        ),
+        migrations.RunPython(rename_index_if_exists, migrations.RunPython.noop),
     ]

@@ -1093,12 +1093,13 @@ class OTViewSet(viewsets.ModelViewSet):
         ws = wb.active
         ws.title = "OTs"
 
-        # Definir headers
+        # Definir headers en orden lógico
         headers = [
-            'Número OT', 'Estado', 'Cliente', 'Operativo', 'MBL', 'Contenedores',
-            'Naviera', 'Barco', 'Fecha Provisión', 'Fecha Facturación',
-            'Tipo Embarque', 'Puerto Origen', 'Puerto Destino', 'ETD', 'ETA',
-            'ETA Confirmada', 'House BLs', 'Estado Provisión', 'Estado Facturado',
+            'Operativo', 'Número OT', 'Cliente', 'HBL', 'MBL', 'Contenedores',
+            'Cantidad Contenedores', 'Naviera', 'Barco', 'Estado', 
+            'Tipo Embarque', 'Puerto Origen', 'Puerto Destino', 
+            'ETD', 'ETA', 'ETA Confirmada', 
+            'Fecha Provisión', 'Fecha Facturación', 'Estado Provisión', 'Estado Facturado',
             'Express Release', 'Contra Entrega', 'Solicitud Facturación',
             'Envío Cierre OT', 'Fecha Creación', 'Última Actualización', 'Comentarios'
         ]
@@ -1136,38 +1137,47 @@ class OTViewSet(viewsets.ModelViewSet):
         row_num = 2
         for ot in queryset.iterator(chunk_size=100):
             # Formatear contenedores
-            contenedores_str = ', '.join(ot.get_contenedores_numeros()) if ot.contenedores else ''
+            contenedores_list = ot.get_contenedores_numeros() if ot.contenedores else []
+            contenedores_str = ', '.join(contenedores_list)
+            cantidad_contenedores = len(contenedores_list)
 
-            # Formatear House BLs
-            house_bls_str = ', '.join(ot.house_bls) if ot.house_bls else ''
+            # Formatear House BLs (HBL)
+            house_bls_list = []
+            if ot.house_bls:
+                if isinstance(ot.house_bls, list):
+                    house_bls_list = [str(hbl).strip() for hbl in ot.house_bls if hbl]
+                elif isinstance(ot.house_bls, str):
+                    house_bls_list = [ot.house_bls.strip()] if ot.house_bls.strip() else []
+            house_bls_str = ', '.join(house_bls_list)
 
             row_data = [
-                ot.numero_ot or '',
-                ot.get_estado_display() or '',
-                ot.cliente.original_name if ot.cliente else '',
-                ot.operativo or '',
-                ot.master_bl or '',
-                contenedores_str,
-                ot.proveedor.nombre if ot.proveedor else '',
-                ot.barco or '',
-                ot.fecha_provision,
-                ot.fecha_recepcion_factura,
-                ot.tipo_embarque or '',
-                ot.puerto_origen or '',
-                ot.puerto_destino or '',
-                ot.etd,
-                ot.fecha_eta,
-                ot.fecha_llegada,
-                house_bls_str,
-                ot.get_estado_provision_display() or '',
-                ot.get_estado_facturado_display() or '',
-                ot.express_release_fecha,
-                ot.contra_entrega_fecha,
-                ot.fecha_solicitud_facturacion,
-                ot.envio_cierre_ot,
-                ot.created_at.date() if ot.created_at else None,
-                ot.updated_at.date() if ot.updated_at else None,
-                ot.comentarios or ''
+                ot.operativo or '',                                  # Operativo
+                ot.numero_ot or '',                                  # Número OT
+                ot.cliente.original_name if ot.cliente else '',     # Cliente
+                house_bls_str,                                       # HBL
+                ot.master_bl or '',                                  # MBL
+                contenedores_str,                                    # Contenedores
+                cantidad_contenedores,                               # Cantidad Contenedores
+                ot.proveedor.nombre if ot.proveedor else '',        # Naviera
+                ot.barco or '',                                      # Barco
+                ot.get_estado_display() or '',                       # Estado
+                ot.tipo_embarque or '',                              # Tipo Embarque
+                ot.puerto_origen or '',                              # Puerto Origen
+                ot.puerto_destino or '',                             # Puerto Destino
+                ot.etd,                                              # ETD
+                ot.fecha_eta,                                        # ETA
+                ot.fecha_llegada,                                    # ETA Confirmada
+                ot.fecha_provision,                                  # Fecha Provisión
+                ot.fecha_recepcion_factura,                         # Fecha Facturación
+                ot.get_estado_provision_display() or '',            # Estado Provisión
+                ot.get_estado_facturado_display() or '',            # Estado Facturado
+                ot.express_release_fecha,                            # Express Release
+                ot.contra_entrega_fecha,                             # Contra Entrega
+                ot.fecha_solicitud_facturacion,                     # Solicitud Facturación
+                ot.envio_cierre_ot,                                 # Envío Cierre OT
+                ot.created_at.date() if ot.created_at else None,   # Fecha Creación
+                ot.updated_at.date() if ot.updated_at else None,   # Última Actualización
+                ot.comentarios or ''                                 # Comentarios
             ]
 
             for col_num, value in enumerate(row_data, 1):
@@ -1182,41 +1192,50 @@ class OTViewSet(viewsets.ModelViewSet):
                     cell.fill = alt_fill
 
                 # Aplicar formato de fecha para columnas de fecha (DD/MM/YYYY)
-                if col_num in [9, 10, 14, 15, 16, 20, 21, 22, 23, 24, 25]:  # Columnas de fecha
+                # Columnas: ETD(14), ETA(15), ETA Conf(16), Fecha Prov(17), Fecha Fact(18), 
+                # Express(21), Contra(22), Solicitud(23), Cierre(24), Creación(25), Actualización(26)
+                if col_num in [14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26]:
                     if value:
                         cell.number_format = 'DD/MM/YYYY'
                         cell.alignment = Alignment(horizontal="center", vertical="center")
+                
+                # Formato numérico para Cantidad de Contenedores (columna 7)
+                if col_num == 7:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    if value:
+                        cell.number_format = '0'
 
             row_num += 1
 
-        # Ajustar anchos de columna
+        # Ajustar anchos de columna (en orden lógico)
         column_widths = {
-            1: 15,   # Número OT
-            2: 18,   # Estado
+            1: 20,   # Operativo
+            2: 15,   # Número OT
             3: 30,   # Cliente
-            4: 20,   # Operativo
+            4: 35,   # HBL (House BLs - puede ser múltiple)
             5: 20,   # MBL
-            6: 40,   # Contenedores
-            7: 25,   # Naviera
-            8: 25,   # Barco
-            9: 15,   # Fecha Provisión
-            10: 15,  # Fecha Facturación
+            6: 40,   # Contenedores (múltiples números)
+            7: 12,   # Cantidad Contenedores
+            8: 25,   # Naviera
+            9: 25,   # Barco
+            10: 18,  # Estado
             11: 15,  # Tipo Embarque
             12: 25,  # Puerto Origen
             13: 25,  # Puerto Destino
             14: 12,  # ETD
             15: 12,  # ETA
             16: 15,  # ETA Confirmada
-            17: 35,  # House BLs
-            18: 18,  # Estado Provisión
-            19: 18,  # Estado Facturado
-            20: 15,  # Express Release
-            21: 15,  # Contra Entrega
-            22: 18,  # Solicitud Facturación
-            23: 15,  # Envío Cierre OT
-            24: 15,  # Fecha Creación
-            25: 18,  # Última Actualización
-            26: 40   # Comentarios
+            17: 15,  # Fecha Provisión
+            18: 15,  # Fecha Facturación
+            19: 18,  # Estado Provisión
+            20: 18,  # Estado Facturado
+            21: 15,  # Express Release
+            22: 15,  # Contra Entrega
+            23: 18,  # Solicitud Facturación
+            24: 15,  # Envío Cierre OT
+            25: 15,  # Fecha Creación
+            26: 18,  # Última Actualización
+            27: 40   # Comentarios
         }
 
         for col_num, width in column_widths.items():
