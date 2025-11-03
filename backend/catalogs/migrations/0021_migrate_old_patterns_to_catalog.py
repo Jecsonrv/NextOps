@@ -36,7 +36,7 @@ def migrate_old_patterns(apps, schema_editor):
     }
     
     # Obtener patrones viejos activos
-    old_patterns = ProviderPattern.objects.filter(is_active=True).select_related('provider_type', 'target_field')
+    old_patterns = ProviderPattern.objects.filter(is_active=True).select_related('provider', 'target_field')
     
     migrated = 0
     skipped = 0
@@ -46,7 +46,7 @@ def migrate_old_patterns(apps, schema_editor):
     for old_pattern in old_patterns:
         try:
             # Mapear nombre de proveedor
-            proveedor_nombre = old_pattern.provider_type.name if old_pattern.provider_type else 'GENERICO'
+            proveedor_nombre = old_pattern.provider.name if old_pattern.provider else 'GENERICO'
             
             # Mapear tipo de patrón
             target_field_name = old_pattern.target_field.field_name if old_pattern.target_field else 'numero_factura'
