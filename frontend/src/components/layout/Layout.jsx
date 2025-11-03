@@ -82,6 +82,11 @@ const navigation = [
                 icon: Regex,
             },
             {
+                name: "Diagnóstico de Patrones",
+                href: "/catalogs/pattern-diagnostics",
+                icon: AlertCircle,
+            },
+            {
                 name: "Campos Objetivo",
                 href: "/catalogs/target-fields",
                 icon: Target,
