@@ -46,11 +46,11 @@ def migrate_old_patterns(apps, schema_editor):
     for old_pattern in old_patterns:
         try:
             # Mapear nombre de proveedor
-            proveedor_nombre = old_pattern.provider.name if old_pattern.provider else 'GENERICO'
+            proveedor_nombre = old_pattern.provider.nombre if old_pattern.provider else 'GENERICO'
             
             # Mapear tipo de patrón
-            target_field_name = old_pattern.target_field.field_name if old_pattern.target_field else 'numero_factura'
-            tipo_patron = tipo_patron_map.get(target_field_name, 'numero_factura')
+            target_field_code = old_pattern.target_field.code if old_pattern.target_field else 'numero_factura'
+            tipo_patron = tipo_patron_map.get(target_field_code, 'numero_factura')
             
             # Verificar si ya existe
             existing = InvoicePatternCatalog.objects.filter(
@@ -73,7 +73,7 @@ def migrate_old_patterns(apps, schema_editor):
                 es_regex=True,
                 prioridad=old_pattern.priority,
                 descripcion=old_pattern.description or f'Migrado desde patrón ID {old_pattern.id}',
-                ejemplo_texto=old_pattern.example_text or '',
+                ejemplo_texto='',  # No existe example_text en el modelo viejo
                 activo=old_pattern.is_active,
             )
             
