@@ -9,13 +9,19 @@ El sistema maneja:
 """
 
 import re
+from decimal import Decimal
+
+import logging
 
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
 from common.models import TimeStampedModel, SoftDeleteModel
 from catalogs.models import Provider
 from client_aliases.models import ClientAlias
+
+
+logger = logging.getLogger(__name__)
 
 
 CONTAINER_NUMBER_PATTERN = re.compile(r"^[A-Z]{4}\d{7}$")
@@ -359,7 +365,55 @@ class OT(TimeStampedModel, SoftDeleteModel):
         related_name='ots_modificadas',
         help_text="Último usuario que modificó esta OT"
     )
-    
+
+    # ==================== CAMPOS CRM - FACTURACIÓN Y FINANZAS ====================
+
+    # Estados de facturación de venta
+    ESTADO_FACTURACION_VENTA_CHOICES = [
+        ('sin_facturar', 'Sin Facturar'),
+        ('facturado_parcial', 'Facturado Parcialmente'),
+        ('facturado_total', 'Facturado Totalmente'),
+    ]
+
+    estado_facturacion_venta = models.CharField(
+        max_length=20,
+        choices=ESTADO_FACTURACION_VENTA_CHOICES,
+        default='sin_facturar',
+        db_index=True,
+        help_text="Estado de facturación de venta (calculado automáticamente)"
+    )
+
+    # Métricas financieras (calculadas automáticamente)
+    monto_total_vendido = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        help_text="Suma de todas las facturas de venta asociadas (auto-calculado)"
+    )
+
+    monto_total_costos = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        help_text="Suma de todas las facturas de costo asociadas (auto-calculado)"
+    )
+
+    margen_bruto = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Monto vendido - suma de costos (auto-calculado)"
+    )
+
+    porcentaje_margen = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Porcentaje de margen sobre ventas (auto-calculado)"
+    )
+
     class Meta:
         db_table = 'ots'
         verbose_name = 'Orden de Trabajo'
@@ -407,19 +461,11 @@ class OT(TimeStampedModel, SoftDeleteModel):
     def save(self, *args, **kwargs):
         # Tracking de cliente para incrementar usage_count
         is_new = self.pk is None
-        old_cliente_id = None
-
-        if not is_new:
-            try:
-                old_ot = OT.objects.get(pk=self.pk)
-                old_cliente_id = old_ot.cliente_id if old_ot.cliente else None
-            except OT.DoesNotExist:
-                pass
 
         # Debug: Ver qué valor llega ANTES de cualquier procesamiento
-        print(f"🔵 [SAVE] Valores ANTES del procesamiento:")
-        print(f"  - estado_provision: {self.estado_provision}")
-        print(f"  - fecha_provision: {self.fecha_provision}")
+        logger.debug(f"🔵 [SAVE] Valores ANTES del procesamiento:")
+        logger.debug(f"  - estado_provision: {self.estado_provision}")
+        logger.debug(f"  - fecha_provision: {self.fecha_provision}")
 
         # Normalizar número de OT a mayúsculas
         if self.numero_ot:
@@ -444,9 +490,9 @@ class OT(TimeStampedModel, SoftDeleteModel):
             # Si quitan la fecha pero el estado es facturado, volver a pendiente
             self.estado_facturado = 'pendiente'
         
-        print(f"🟡 [SAVE] ANTES de lógica de provisión:")
-        print(f"  - estado_provision: {self.estado_provision}")
-        print(f"  - fecha_provision: {self.fecha_provision}")
+        logger.debug(f"🟡 [SAVE] ANTES de lógica de provisión:")
+        logger.debug(f"  - estado_provision: {self.estado_provision}")
+        logger.debug(f"  - fecha_provision: {self.fecha_provision}")
         
         # LÓGICA ROBUSTA de auto-marcado de estado de provisión:
         # 1. Si hay fecha_provision -> estado debe ser 'provisionada'
@@ -456,16 +502,16 @@ class OT(TimeStampedModel, SoftDeleteModel):
             if self.fecha_provision:
                 if self.estado_provision != 'provisionada':
                     self.estado_provision = 'provisionada'
-                    print(f"  ✅ Cambiado a 'provisionada' (hay fecha)")
+                    logger.debug(f"  ✅ Cambiado a 'provisionada' (hay fecha)")
             else:
                 if self.estado_provision != 'pendiente':
                     self.estado_provision = 'pendiente'
-                    print(f"  ✅ Cambiado a 'pendiente' (sin fecha)")
+                    logger.debug(f"  ✅ Cambiado a 'pendiente' (sin fecha)")
         else:
-            print(f"  ⚪ Estado manual '{self.estado_provision}' mantenido")
+            logger.debug(f"  ⚪ Estado manual '{self.estado_provision}' mantenido")
         
-        print(f"🟢 [SAVE] DESPUÉS de lógica de provisión:")
-        print(f"  - estado_provision: {self.estado_provision}")
+        logger.debug(f"🟢 [SAVE] DESPUÉS de lógica de provisión:")
+        logger.debug(f"  - estado_provision: {self.estado_provision}")
         
         # Convertir campos vacíos a '-' (excepto los que pueden ser null)
         if not self.operativo or not self.operativo.strip():
@@ -482,48 +528,7 @@ class OT(TimeStampedModel, SoftDeleteModel):
         self.full_clean()
         super().save(*args, **kwargs)
 
-        # Actualizar usage_count del cliente después de guardar
-        current_cliente_id = self.cliente_id if self.cliente else None
 
-        # Si cambió el cliente, actualizar ambos
-        if old_cliente_id != current_cliente_id:
-            # Decrementar el cliente anterior (si existía)
-            if old_cliente_id:
-                try:
-                    old_cliente = ClientAlias.objects.get(pk=old_cliente_id)
-                    # Recalcular el count del cliente anterior
-                    old_count = OT.objects.filter(
-                        cliente=old_cliente,
-                        deleted_at__isnull=True
-                    ).count()
-                    old_cliente.usage_count = old_count
-                    old_cliente.save(update_fields=['usage_count', 'updated_at'])
-                except ClientAlias.DoesNotExist:
-                    pass
-
-            # Incrementar el cliente nuevo (si existe)
-            if current_cliente_id:
-                try:
-                    # Recalcular el count del cliente actual
-                    new_count = OT.objects.filter(
-                        cliente=self.cliente,
-                        deleted_at__isnull=True
-                    ).count()
-                    self.cliente.usage_count = new_count
-                    self.cliente.save(update_fields=['usage_count', 'updated_at'])
-                except ClientAlias.DoesNotExist:
-                    pass
-        elif is_new and current_cliente_id:
-            # Si es nueva OT con cliente, incrementar
-            try:
-                new_count = OT.objects.filter(
-                    cliente=self.cliente,
-                    deleted_at__isnull=True
-                ).count()
-                self.cliente.usage_count = new_count
-                self.cliente.save(update_fields=['usage_count', 'updated_at'])
-            except ClientAlias.DoesNotExist:
-                pass
     
     def _normalize_contenedores(self):
         """Normaliza y valida la lista de contenedores."""
@@ -738,8 +743,54 @@ class OT(TimeStampedModel, SoftDeleteModel):
         reason = '' if can_update else f'Prioridad insuficiente: {new_source} < {self.provision_source}'
         if self.provision_locked and new_source != 'manual':
             reason = 'Provisión bloqueada por cambio manual'
-        
+
         return can_update, reason
+
+    def calcular_metricas_venta(self):
+        """
+        Calcula y actualiza las métricas financieras de la OT.
+        Este método se llama automáticamente cuando cambian las facturas de venta.
+        """
+        from django.db.models import Sum
+
+        # Suma de facturas de venta
+        total_venta = self.sales_invoices.aggregate(
+            total=Sum('monto_total')
+        )['total'] or Decimal('0.00')
+
+        # Suma de costos (usando monto_aplicable que ya considera disputas)
+        # CORREGIDO: 'invoices' → 'facturas' (related_name correcto)
+        total_costo = self.facturas.aggregate(
+            total=Sum('monto_aplicable')
+        )['total'] or Decimal('0.00')
+
+        # Calcular margen
+        self.monto_total_vendido = total_venta
+        self.monto_total_costos = total_costo
+        self.margen_bruto = total_venta - total_costo
+
+        if total_venta > 0:
+            self.porcentaje_margen = (self.margen_bruto / total_venta * 100).quantize(Decimal('0.01'))
+        else:
+            self.porcentaje_margen = Decimal('0.00')
+
+        # Actualizar estado de facturación de venta
+        if total_venta == 0:
+            self.estado_facturacion_venta = 'sin_facturar'
+        elif total_venta >= total_costo:
+            self.estado_facturacion_venta = 'facturado_total'
+        else:
+            self.estado_facturacion_venta = 'facturado_parcial'
+
+        # Guardar sin triggear recursión (update_fields evita signals)
+        self.save(update_fields=[
+            'monto_total_vendido',
+            'monto_total_costos',
+            'margen_bruto',
+            'porcentaje_margen',
+            'estado_facturacion_venta',
+            'updated_at'
+        ])
 
 
 class ProcessedFile(TimeStampedModel):

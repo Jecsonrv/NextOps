@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './Dialog';
 
@@ -97,3 +98,18 @@ export function InputDialog({
     </Dialog>
   );
 }
+
+InputDialog.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onConfirm: PropTypes.func.isRequired,
+    title: PropTypes.string.isRequired,
+    message: PropTypes.string,
+    placeholder: PropTypes.string,
+    defaultValue: PropTypes.string,
+    confirmText: PropTypes.string,
+    cancelText: PropTypes.string,
+    isConfirming: PropTypes.bool,
+    required: PropTypes.bool,
+    multiline: PropTypes.bool,
+};

@@ -190,6 +190,8 @@ urlpatterns = [
     path('api/clients/', include('client_aliases.urls')),
     path('api/ots/', include('ots.urls')),
     path('api/invoices/', include('invoices.urls')),
+    path('api/sales/', include('sales.urls')),  # CRM - Ventas y Facturación
+    path('api/supplier-payments/', include('supplier_payments.urls')),  # CRM - Pagos a Proveedores (CxP)
     path('api/automation/', include('automation.urls')),
 ]
 

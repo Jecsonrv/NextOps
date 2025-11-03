@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import { Button } from './Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './Dialog';
 
@@ -34,7 +34,7 @@ export function ConfirmDialog({
             </Button>
           )}
           <Button
-            variant={variant}
+            variant={variant === 'destructive' ? 'danger' : variant}
             onClick={onConfirm}
             disabled={isConfirming}
             className="w-full sm:w-auto order-1 sm:order-2"
@@ -46,3 +46,15 @@ export function ConfirmDialog({
     </Dialog>
   );
 }
+
+ConfirmDialog.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onConfirm: PropTypes.func.isRequired,
+    title: PropTypes.string.isRequired,
+    message: PropTypes.oneOfType([PropTypes.string, PropTypes.node]).isRequired,
+    confirmText: PropTypes.string,
+    cancelText: PropTypes.string,
+    isConfirming: PropTypes.bool,
+    variant: PropTypes.oneOf(['destructive', 'default', 'success']),
+};

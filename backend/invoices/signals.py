@@ -16,7 +16,8 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
 
     REGLAS DE NEGOCIO:
     - Cuando se actualiza una OT, sus cambios deben propagarse a las facturas VINCULADAS.
-    - Una factura VINCULADA es aquella cuyo tipo_costo es FLETE o CARGOS_NAVIERA.
+    - Una factura VINCULADA es aquella cuyo tipo_costo está configurado con is_linked_to_ot=True
+    - Incluye tipos hardcodeados (FLETE, CARGOS_NAVIERA) y tipos dinámicos del catálogo
     - ¡IMPORTANTE! Las facturas en estado ANULADA o ANULADA_PARCIALMENTE se consideran
       desvinculadas funcionalmente y NUNCA deben ser modificadas por cambios en la OT.
     """
@@ -27,20 +28,37 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
         return
     
     from invoices.models import Invoice
+    from catalogs.models import CostType
     from django.db.models import Q
     
-    # Obtener facturas vinculadas (FLETE o CARGOS_NAVIERA) asociadas a esta OT.
-    # EXCLUIR INMEDIATAMENTE las facturas anuladas para que no sean afectadas por ningún cambio.
+    # Obtener todos los códigos de tipos vinculados desde el catálogo
+    tipos_vinculados_dinamicos = list(CostType.objects.filter(
+        is_linked_to_ot=True,
+        is_active=True,
+        is_deleted=False
+    ).values_list('code', flat=True))
+    
+    # Tipos hardcodeados legacy (siempre vinculados)
+    tipos_hardcoded = ['FLETE', 'CARGOS_NAVIERA']
+    
+    # Combinar ambas listas
+    todos_tipos_vinculados = set(tipos_hardcoded + tipos_vinculados_dinamicos)
+    
+    # Obtener facturas vinculadas asociadas a esta OT
+    # EXCLUIR INMEDIATAMENTE las facturas anuladas para que no sean afectadas por ningún cambio
     invoices_to_update = Invoice.objects.filter(
         ot=instance,
-        is_deleted=False
-    ).filter(
-        Q(tipo_costo__startswith='FLETE') | Q(tipo_costo='CARGOS_NAVIERA')
+        is_deleted=False,
+        tipo_costo__in=list(todos_tipos_vinculados)
     ).exclude(
         estado_provision__in=['anulada', 'anulada_parcialmente']
     )
     
     if not invoices_to_update.exists():
+        # Logging para debug: No hay facturas vinculadas
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: No hay facturas vinculadas activas para sincronizar")
         return
     
     update_data = {}
@@ -74,9 +92,15 @@ def sync_ot_to_invoices(sender, instance, created, **kwargs):
 
     count = invoices_to_update.update(**update_data)
     
+    # Logging mejorado
+    import logging
+    logger = logging.getLogger(__name__)
     if count > 0:
-        print(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: Sincronizadas {count} facturas no anuladas.")
-        print(f"  - Datos aplicados: {update_data}")
+        logger.info(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: Sincronizadas {count} facturas vinculadas.")
+        logger.debug(f"  - Tipos vinculados considerados: {list(todos_tipos_vinculados)}")
+        logger.debug(f"  - Datos aplicados: {update_data}")
+    else:
+        logger.warning(f"[SIGNAL OT->INVOICE] OT {instance.numero_ot}: No se actualizó ninguna factura (posible error de filtro)")
 
 
 @receiver(post_save, sender=Invoice)
@@ -85,33 +109,44 @@ def sync_invoice_to_ot_on_assignment(sender, instance, created, **kwargs):
     Sincronización Invoice -> OT cuando se asigna o actualiza una factura.
 
     REGLAS DE NEGOCIO:
-    - Cuando se crea o actualiza una factura vinculada (FLETE/CARGOS_NAVIERA),
-      debe actualizar el estado de su OT según las reglas de consolidación.
-    - Ignora facturas anuladas o sin OT asignada.
-    - Usa el método _sincronizar_estado_con_ot() del modelo Invoice.
+    - Cuando se crea o actualiza una factura vinculada, debe actualizar el estado
+      de su OT según las reglas de consolidación
+    - Vinculación se determina por is_linked_to_ot del tipo de costo (hardcoded + dinámico)
+    - Ignora facturas anuladas o sin OT asignada
+    - Usa el método _sincronizar_estado_con_ot() del modelo Invoice
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Evitar loops infinitos de sincronización
     if getattr(instance, '_skip_signal_sync', False):
         return
 
     # Solo procesar facturas vinculadas a OT
     if not instance.ot:
+        logger.debug(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura}: Sin OT asignada, skip")
         return
 
-    # Solo procesar facturas de tipo vinculado (FLETE, CARGOS_NAVIERA, o dinámicos)
-    if not instance.es_costo_vinculado_ot():
+    # Solo procesar facturas de tipo vinculado (usa verificación dinámica)
+    es_vinculado = instance.es_costo_vinculado_ot()
+    if not es_vinculado:
+        logger.debug(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura}: Tipo '{instance.tipo_costo}' NO vinculado a OT, skip")
         return
 
     # No sincronizar facturas anuladas
     if instance.estado_provision in ['anulada', 'anulada_parcialmente', 'rechazada']:
+        logger.debug(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura}: Estado anulado/rechazado, skip")
         return
 
     # Ejecutar sincronización Invoice -> OT
-    print(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura}: Sincronizando con OT {instance.ot.numero_ot}")
+    logger.info(f"[SIGNAL INVOICE->OT] Factura {instance.numero_factura} (tipo: {instance.tipo_costo}): Sincronizando con OT {instance.ot.numero_ot}")
 
     # Marcar para evitar loop
     instance._skip_signal_sync = True
     try:
         instance._sincronizar_estado_con_ot()
+        logger.info(f"[SIGNAL INVOICE->OT] ✓ Sincronización completada para factura {instance.numero_factura}")
+    except Exception as e:
+        logger.error(f"[SIGNAL INVOICE->OT] ✗ Error al sincronizar factura {instance.numero_factura}: {e}")
     finally:
         instance._skip_signal_sync = False

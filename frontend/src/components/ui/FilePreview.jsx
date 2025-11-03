@@ -23,6 +23,8 @@ export function FilePreview({
     invoiceId,
     fileUrl,
     fileName,
+    clientName,
+    providerName,
     contentType,
     cachedFile,
     onFileLoaded,
@@ -40,7 +42,10 @@ export function FilePreview({
     const downloadUrlRef = useRef(null);
 
     const baseUrl = import.meta.env.VITE_BASE_URL;
-    const fallbackUrl = fileUrl ? `${baseUrl}${fileUrl}` : null;
+    let fallbackUrl = fileUrl;
+    if (fileUrl && !fileUrl.startsWith('http')) {
+        fallbackUrl = `${baseUrl}${fileUrl}`;
+    }
 
     const fileLabel = fileName || "Archivo de factura";
 
@@ -232,7 +237,12 @@ export function FilePreview({
 
         const link = document.createElement("a");
         link.href = downloadUrl;
-        const normalizedName = fileName || `archivo-factura-${invoiceId || ""}`;
+        let normalizedName = fileName || `archivo-factura-${invoiceId || ""}`;
+        if (providerName) {
+            normalizedName = `${providerName} - ${fileName}.pdf`;
+        } else if (clientName) {
+            normalizedName = `${clientName} - ${fileName}.pdf`;
+        }
         link.setAttribute("download", normalizedName);
         document.body.appendChild(link);
         link.click();
@@ -408,6 +418,8 @@ FilePreview.propTypes = {
     invoiceId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     fileUrl: PropTypes.string,
     fileName: PropTypes.string,
+    clientName: PropTypes.string,
+    providerName: PropTypes.string,
     contentType: PropTypes.string,
     cachedFile: PropTypes.shape({
         blob: PropTypes.any,

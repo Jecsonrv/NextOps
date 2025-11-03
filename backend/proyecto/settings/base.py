@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'client_aliases',  # Gestión de aliases de clientes con fuzzy matching
     'ots',
     'invoices',
+    'sales',  # Gestión de Ventas y Facturación CRM
+    'supplier_payments',  # Gestión de Pagos a Proveedores (CxP)
     'automation',
 ]
 
@@ -218,33 +220,7 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-_default_cors_origins = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://localhost:3000,https://nextops-plg.vercel.app,https://nextops-production.up.railway.app',
-    cast=Csv()
-)
-
-LOCAL_DEV_CORS_ORIGINS = [
-    'http://localhost',
-    'http://127.0.0.1',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:4173',
-    'http://127.0.0.1:4173',
-]
-
-# Production origins (always included)
-PRODUCTION_CORS_ORIGINS = [
-    'https://nextops-plg.vercel.app',
-    'https://nextops-production.up.railway.app',
-]
-
-CORS_ALLOWED_ORIGINS = list({*LOCAL_DEV_CORS_ORIGINS, *_default_cors_origins, *PRODUCTION_CORS_ORIGINS})
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r'^http://localhost(:\\d+)?$',
-    r'^http://127\\.0\\.0\\.1(:\\d+)?$',
-]
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # CRITICAL: Expose these headers to the frontend
 CORS_EXPOSE_HEADERS = [
@@ -279,7 +255,7 @@ CORS_ALLOW_HEADERS = [
 # CSRF configuration (needed when running from different origins)
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost:8000,http://127.0.0.1:8000,https://nextops-plg.vercel.app,https://nextops-production.up.railway.app',
+    default='http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000,https://nextops-plg.vercel.app,https://nextops-production.up.railway.app',
     cast=Csv()
 )
 

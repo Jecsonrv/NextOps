@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -208,3 +209,10 @@ export function PersonalProfileView({ user }) {
         </div>
     );
 }
+
+PersonalProfileView.propTypes = {
+    user: PropTypes.shape({
+        full_name: PropTypes.string,
+        email: PropTypes.string,
+    }),
+};

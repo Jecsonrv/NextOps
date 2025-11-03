@@ -184,8 +184,11 @@ export function DashboardPage() {
                                                 }
                                                 className="mt-1 text-xs"
                                             >
-                                                {invoice.estado_provision_display ||
-                                                    invoice.estado_provision}
+                                                {(invoice.estado_provision_display || invoice.estado_provision)
+                                                    .toLowerCase()
+                                                    .split(' ')
+                                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                                    .join(' ')}
                                             </Badge>
                                         </div>
                                     </Link>

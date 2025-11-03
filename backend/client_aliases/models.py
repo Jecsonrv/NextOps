@@ -11,6 +11,7 @@ Casos contemplados:
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 from common.models import TimeStampedModel, SoftDeleteModel
 from catalogs.models import Provider
 
@@ -98,7 +99,89 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
         default=0,
         help_text="Cuántas veces apareció este cliente en documentos"
     )
-    
+
+    # === CAMPOS TRIBUTARIOS - EL SALVADOR ===
+
+    TIPO_CONTRIBUYENTE_CHOICES = [
+        ('gran_contribuyente', 'Gran Contribuyente'),
+        ('contribuyente_normal', 'Contribuyente Normal'),
+        ('pequeño_contribuyente', 'Pequeño Contribuyente'),
+        ('regimen_simple', 'Régimen Simplificado'),
+        ('no_contribuyente', 'No Contribuyente / Extranjero'),
+    ]
+
+    tipo_contribuyente = models.CharField(
+        max_length=30,
+        choices=TIPO_CONTRIBUYENTE_CHOICES,
+        default='contribuyente_normal',
+        db_index=True,
+        help_text="Tipo de contribuyente según DGII El Salvador"
+    )
+
+    # NIT (Número de Identificación Tributaria - El Salvador)
+    nit = models.CharField(
+        max_length=20,
+        blank=True,
+        db_index=True,
+        help_text="NIT del cliente (El Salvador)"
+    )
+
+    # NRC (Número de Registro de Contribuyente - El Salvador)
+    nrc = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="NRC del cliente (El Salvador)"
+    )
+
+    # RETENCIONES que este cliente NOS APLICA (si es gran contribuyente)
+    aplica_retencion_iva = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="¿Este cliente retiene IVA 1%? (Gran Contribuyente)"
+    )
+
+    aplica_retencion_renta = models.BooleanField(
+        default=False,
+        help_text="¿Este cliente retiene Renta?"
+    )
+
+    porcentaje_retencion_renta = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Porcentaje de retención de renta (5%, 10%, etc.)"
+    )
+
+    # Régimen de facturación
+    acepta_credito_fiscal = models.BooleanField(
+        default=True,
+        help_text="¿Puede recibir CCF (Comprobante Crédito Fiscal)?"
+    )
+
+    # Información de contacto tributaria
+    direccion_fiscal = models.TextField(
+        blank=True,
+        help_text="Dirección fiscal del cliente"
+    )
+
+    telefono = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Teléfono de contacto"
+    )
+
+    email_facturacion = models.EmailField(
+        blank=True,
+        help_text="Email para envío de facturas electrónicas"
+    )
+
+    # Actividad económica
+    actividad_economica = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Actividad económica principal del cliente"
+    )
+
     class Meta:
         db_table = 'client_aliases'
         verbose_name = 'Alias de Cliente'

@@ -4,14 +4,15 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 
-from .models import Provider, CostType, CostCategory
+from .models import Provider, CostType, CostCategory, InvoicePatternCatalog
 from .serializers import (
     ProviderSerializer, 
     ProviderListSerializer,
     CostTypeSerializer,
     CostTypeListSerializer,
     CostCategorySerializer,
-    CostCategoryListSerializer
+    CostCategoryListSerializer,
+    InvoicePatternCatalogSerializer
 )
 from common.permissions import IsAdmin, IsJefeOperaciones, ReadOnly
 from common.pagination import StandardResultsSetPagination, LargeResultsSetPagination
@@ -342,3 +343,124 @@ class ProviderViewSet(viewsets.ModelViewSet):
         Soft delete en lugar de eliminar físicamente
         """
         instance.delete()  # Usa el soft delete del modelo
+
+
+class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet simplificado para el Catálogo de Patrones de Facturas
+    
+    Cada patrón extrae un campo específico (número factura, MBL, total, IVA, etc.)
+    Los patrones se agrupan visualmente en el frontend por:
+    - COSTO: proveedor
+    - VENTA: tipo_documento
+    
+    Permisos:
+    - Admin y Jefe de Operaciones: CRUD completo
+    - Otros roles: Solo lectura
+    
+    Filtros:
+    - activo: true/false
+    - tipo_patron: 'costo' o 'venta'
+    - tipo_factura: 'nacional' o 'internacional'
+    - proveedor: ID del proveedor
+    - campo_objetivo: código del campo
+    - search: nombre, notas, campo_objetivo, tipo_documento
+    """
+    queryset = InvoicePatternCatalog.objects.all()
+    serializer_class = InvoicePatternCatalogSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['activo', 'tipo_patron', 'tipo_factura', 'proveedor', 'campo_objetivo']
+    search_fields = ['nombre', 'notas', 'campo_objetivo', 'tipo_documento']
+    ordering_fields = ['nombre', 'prioridad', 'created_at', 'uso_count', 'tasa_exito']
+    ordering = ['proveedor__nombre', 'tipo_documento', 'campo_objetivo', 'prioridad']
+    
+    def get_permissions(self):
+        """
+        Admin y Jefe de Operaciones pueden hacer todo
+        Otros roles solo pueden leer
+        """
+        if self.action in ['list', 'retrieve', 'probar_regex']:
+            permission_classes = [ReadOnly]
+        else:
+            permission_classes = [IsAdmin | IsJefeOperaciones]
+        return [permission() for permission in permission_classes]
+    
+    @action(detail=True, methods=['post'], url_path='probar')
+    def probar_regex(self, request, pk=None):
+        """
+        Endpoint para probar un patrón regex con texto de prueba
+        
+        POST /api/catalogs/invoice-pattern-catalog/{id}/probar/
+        
+        Body:
+        {
+            "texto_prueba": "Invoice #12345\nTotal: $1,234.56"
+        }
+        
+        Response:
+        {
+            "success": true,
+            "coincide": true,
+            "valor_extraido": "12345",
+            "coincidencia_completa": "Invoice #12345",
+            "patron_usado": "Invoice\\s*#?([0-9]+)",
+            "campo_objetivo": "numero_factura"
+        }
+        """
+        import re
+        
+        patron_obj = self.get_object()
+        texto_prueba = request.data.get('texto_prueba', '')
+        
+        if not texto_prueba:
+            return Response(
+                {'error': 'Se requiere texto_prueba'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Usar patron_regex si existe
+        regex_pattern = patron_obj.patron_regex
+        
+        if not regex_pattern:
+            return Response(
+                {'error': 'El patrón no tiene regex configurado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            flags = 0 if patron_obj.case_sensitive else re.IGNORECASE
+            compiled_regex = re.compile(regex_pattern, flags)
+            match = compiled_regex.search(texto_prueba)
+            
+            if match:
+                # Priorizar grupo de captura, sino toda la coincidencia
+                valor_extraido = match.group(1) if match.groups() else match.group(0)
+                
+                return Response({
+                    'success': True,
+                    'coincide': True,
+                    'valor_extraido': valor_extraido,
+                    'coincidencia_completa': match.group(0),
+                    'patron_usado': regex_pattern,
+                    'campo_objetivo': patron_obj.campo_objetivo,
+                    'case_sensitive': patron_obj.case_sensitive,
+                })
+            else:
+                return Response({
+                    'success': True,
+                    'coincide': False,
+                    'mensaje': 'No se encontró coincidencia',
+                    'patron_usado': regex_pattern,
+                    'campo_objetivo': patron_obj.campo_objetivo,
+                })
+                
+        except re.error as e:
+            return Response(
+                {
+                    'success': False,
+                    'error': f'Error en la expresión regular: {str(e)}',
+                    'patron_usado': regex_pattern,
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )

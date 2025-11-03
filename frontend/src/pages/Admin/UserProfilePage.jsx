@@ -1,15 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import toast from "react-hot-toast";
+
+
+
+
 import apiClient from "../../lib/api";
 import { useAuth } from "../../hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../../components/ui/Card";
-import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
-import { Label } from "../../components/ui/Label";
+
+
+
+
+
 import { Avatar, AvatarFallback } from "../../components/ui/Avatar";
 import { Loader2, UserCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
@@ -18,11 +19,7 @@ import { AdminProfileView } from "../../components/admin/AdminProfileView";
 import { UserActivityTab } from "../../components/admin/UserActivityTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 
-// Esquema para actualizar perfil
-const profileSchema = z.object({
-    full_name: z.string().min(1, "El nombre no puede estar vacío."),
-    email: z.string().email("Email inválido."),
-});
+
 
 // Helper para obtener iniciales
 const getInitials = (name = "") => {

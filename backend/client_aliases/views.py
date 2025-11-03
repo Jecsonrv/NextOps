@@ -347,39 +347,21 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         Returns:
             int: Cantidad de sugerencias eliminadas/rechazadas
         """
-        obsolete_count = 0
-
         # PASO 1: Rechazar sugerencias donde algún alias ya está fusionado
-        # Usar update directo para evitar validaciones del modelo
-        from django.db import connection
-
         merged_suggestions = SimilarityMatch.objects.filter(
             status='pending'
         ).filter(
             Q(alias_1__merged_into__isnull=False) | Q(alias_2__merged_into__isnull=False)
         )
 
-        merged_ids = list(merged_suggestions.values_list('id', flat=True))
-
-        if merged_ids:
-            # Usar SQL directo para evitar la validación de full_clean()
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    UPDATE similarity_matches
-                    SET status = %s,
-                        review_notes = %s,
-                        reviewed_by_id = %s,
-                        reviewed_at = %s,
-                        updated_at = NOW()
-                    WHERE id = ANY(%s)
-                """, [
-                    'rejected',
-                    'Auto-rechazado: uno o ambos clientes ya fueron fusionados/normalizados',
-                    user.id,
-                    timezone.now(),
-                    merged_ids
-                ])
-            obsolete_count += len(merged_ids)
+        if merged_suggestions.exists():
+            count = merged_suggestions.update(
+                status='rejected',
+                review_notes='Auto-rechazado: uno o ambos clientes ya fueron fusionados/normalizados',
+                reviewed_by=user,
+                reviewed_at=timezone.now()
+            )
+            obsolete_count += count
 
         # PASO 2: Obtener sugerencias pendientes con aliases activos y NO fusionados
         pending_matches = SimilarityMatch.objects.filter(
@@ -391,7 +373,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         ).select_related('alias_1', 'alias_2')
 
         # Preparar IDs para rechazo por score bajo
-        low_score_ids = []
+        low_score_updates = []
 
         for match in pending_matches:
             # Recalcular similitud con el algoritmo mejorado actual
@@ -404,7 +386,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
 
             # Si el nuevo score está por debajo del umbral, agregarlo a la lista
             if new_score < current_threshold:
-                low_score_ids.append({
+                low_score_updates.append({
                     'id': match.id,
                     'notes': (
                         f'Auto-rechazado: el algoritmo mejorado calculó {new_score:.1f}% '
@@ -412,20 +394,16 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
                     )
                 })
 
-        # Rechazar en batch usando SQL directo
-        if low_score_ids:
-            with connection.cursor() as cursor:
-                for item in low_score_ids:
-                    cursor.execute("""
-                        UPDATE similarity_matches
-                        SET status = %s,
-                            review_notes = %s,
-                            reviewed_by_id = %s,
-                            reviewed_at = %s,
-                            updated_at = NOW()
-                        WHERE id = %s
-                    """, ['rejected', item['notes'], user.id, timezone.now(), item['id']])
-            obsolete_count += len(low_score_ids)
+        # Rechazar en batch
+        if low_score_updates:
+            for update_data in low_score_updates:
+                SimilarityMatch.objects.filter(id=update_data['id']).update(
+                    status='rejected',
+                    review_notes=update_data['notes'],
+                    reviewed_by=user,
+                    reviewed_at=timezone.now()
+                )
+            obsolete_count += len(low_score_updates)
 
         return obsolete_count
     

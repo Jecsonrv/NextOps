@@ -48,6 +48,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     confidence_level = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     tipo_costo_display = serializers.SerializerMethodField()
+    tipo_proveedor_display = serializers.SerializerMethodField()
 
     # Forzar que las fechas NO se conviertan a timezone en lectura
     fecha_emision = serializers.DateField(format='%Y-%m-%d')
@@ -92,6 +93,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'proveedor_nombre',
             'proveedor_data',
             'tipo_proveedor',
+            'tipo_proveedor_display',
             'ot_number',
             'ot_data',
             'estado_provision',
@@ -142,6 +144,10 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     def get_tipo_costo_display(self, obj):
         """Display del tipo de costo"""
         return obj.get_tipo_costo_display() if obj.tipo_costo else None
+    
+    def get_tipo_proveedor_display(self, obj):
+        """Display del tipo de proveedor"""
+        return obj.get_tipo_proveedor_display() if obj.tipo_proveedor else None
 
     def get_confidence_level(self, obj):
         """Nivel de confianza legible"""
@@ -176,7 +182,8 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         return disputa_activa.id if disputa_activa else None
 
     def get_has_credit_notes(self, obj):
-        return obj.notas_credito.exists()
+        """Verifica si tiene notas de crédito activas (no eliminadas)"""
+        return obj.notas_credito.filter(is_deleted=False).exists()
     
     def get_es_costo_vinculado_ot(self, obj):
         """Indica si es un costo vinculado a OT (Flete/Cargos Naviera)"""
@@ -198,10 +205,10 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             return []
 
     def get_notas_credito(self, obj):
-        """Serializar notas de crédito básicas para listas"""
+        """Serializar notas de crédito activas (no eliminadas) para listas"""
         try:
             return CreditNoteListSerializer(
-                obj.notas_credito.all(),
+                obj.notas_credito.filter(is_deleted=False),
                 many=True,
                 context=self.context
             ).data
@@ -216,8 +223,6 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     """
     
     uploaded_file_data = UploadedFileSerializer(source='uploaded_file', read_only=True)
-    # Use SerializerMethodField for related serializers to avoid import-time NameError
-    # (DisputeListSerializer and CreditNoteListSerializer are defined later in this module)
     disputas = serializers.SerializerMethodField()
     notas_credito = serializers.SerializerMethodField()
     
@@ -228,18 +233,18 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     monto_anulado = serializers.SerializerMethodField()
 
-    # Campos computados para términos de pago
     dias_hasta_vencimiento = serializers.SerializerMethodField()
     esta_vencida = serializers.SerializerMethodField()
     esta_proxima_a_vencer = serializers.SerializerMethodField()
-    
-    # Forzar que las fechas NO se conviertan a timezone (ni en lectura ni escritura)
+
+    sales_invoices_data = serializers.SerializerMethodField()
+    supplier_payment_links = serializers.SerializerMethodField()
+
     fecha_emision = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
     fecha_vencimiento = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
     fecha_provision = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
     fecha_facturacion = serializers.DateField(required=False, allow_null=True, input_formats=['%Y-%m-%d'], format='%Y-%m-%d')
     
-    # Campos para escritura
     ot_id = serializers.PrimaryKeyRelatedField(
         queryset=OT.objects.all(),
         source='ot',
@@ -256,7 +261,23 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Invoice
-        fields = '__all__'
+        fields = [
+            'id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted', 'ot',
+            'ot_number', 'proveedor', 'proveedor_nit', 'proveedor_nombre',
+            'tipo_proveedor', 'proveedor_categoria', 'numero_factura',
+            'fecha_emision', 'tipo_pago', 'dias_credito_aplicado',
+            'fecha_vencimiento', 'alerta_vencimiento', 'monto_original', 'monto',
+            'monto_aplicable', 'tipo_costo', 'referencias_detectadas',
+            'confianza_match', 'assignment_method', 'requiere_revision',
+            'estado_provision', 'fecha_provision', 'estado_facturacion',
+            'fecha_facturacion', 'estado_pago', 'monto_pagado', 'monto_pendiente',
+            'uploaded_file', 'processed_at', 'processed_by', 'processing_source',
+            'notas', 'uploaded_file_data', 'disputas', 'notas_credito',
+            'proveedor_data', 'ot_data', 'confidence_level', 'file_url',
+            'monto_anulado', 'dias_hasta_vencimiento', 'esta_vencida',
+            'esta_proxima_a_vencer', 'ot_id', 'proveedor_id', 'sales_invoices_data',
+            'supplier_payment_links'
+        ]
         read_only_fields = [
             'id',
             'created_at',
@@ -264,6 +285,43 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
             'deleted_at',
             'is_deleted',
         ]
+
+    def get_sales_invoices_data(self, obj):
+        from sales.models import SalesInvoice
+        class SimpleSalesInvoiceSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = SalesInvoice
+                fields = [
+                    'id', 'numero_factura', 'monto_total', 'subtotal_gravado',
+                    'subtotal_exento', 'iva_total', 'monto_retencion_iva',
+                    'monto_retencion_renta', 'total_retenciones', 'monto_neto_cobrar'
+                ]
+
+        sales_invoices = [
+            mapping.sales_invoice for mapping in obj.sales_mappings.all()
+        ]
+        return SimpleSalesInvoiceSerializer(sales_invoices, many=True).data
+
+    def get_supplier_payment_links(self, obj):
+        """Historial de pagos realizados a esta factura"""
+        from supplier_payments.models import SupplierPaymentLink
+
+        links = SupplierPaymentLink.objects.filter(
+            cost_invoice=obj,
+            supplier_payment__is_deleted=False  # Filtrar pagos eliminados
+        ).select_related('supplier_payment').order_by('-created_at')
+
+        return [{
+            'id': link.id,
+            'supplier_payment_id': link.supplier_payment.id,
+            'monto_pagado_factura': str(link.monto_pagado_factura),
+            'created_at': link.created_at.isoformat() if link.created_at else None,
+            'supplier_payment_data': {
+                'referencia': link.supplier_payment.referencia,
+                'fecha_pago': link.supplier_payment.fecha_pago.isoformat() if link.supplier_payment.fecha_pago else None,
+                'monto_total': str(link.supplier_payment.monto_total),
+            }
+        } for link in links]
     
     def get_proveedor_data(self, obj):
         """Datos del proveedor desde el catálogo"""
@@ -285,14 +343,13 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
                 context=self.context
             ).data
         except NameError:
-            # If serializer is not yet defined for some reason, return empty list
             return []
 
     def get_notas_credito(self, obj):
-        """Serializar notas de crédito relacionadas usando CreditNoteListSerializer"""
+        """Serializar notas de crédito activas (no eliminadas) relacionadas"""
         try:
             return CreditNoteListSerializer(
-                obj.notas_credito.all(),
+                obj.notas_credito.filter(is_deleted=False),
                 many=True,
                 context=self.context
             ).data
@@ -308,7 +365,7 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
                 'operativo': obj.ot.operativo,
                 'cliente': obj.ot.cliente.original_name if obj.ot.cliente else None,
                 'mbl': obj.ot.master_bl,
-                'naviera': obj.ot.proveedor.nombre if obj.ot.proveedor else None,  # Proveedor es la naviera
+                'naviera': obj.ot.proveedor.nombre if obj.ot.proveedor else None,
                 'barco': obj.ot.barco,
                 'estado': obj.ot.estado,
                 'tipo_operacion': obj.ot.tipo_operacion,
@@ -731,6 +788,18 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
         """
         from ots.models import OT
         
+        # BUG FIX: Si se cambia tipo_costo de vinculable a no vinculable, limpiar fechas
+        TIPOS_VINCULABLES = ['FLETE', 'CARGOS_NAVIERA']
+        
+        if 'tipo_costo' in validated_data:
+            old_tipo = instance.tipo_costo
+            new_tipo = validated_data['tipo_costo']
+            
+            # Si cambia de vinculable a no vinculable, limpiar fechas que vinieron de OT
+            if old_tipo in TIPOS_VINCULABLES and new_tipo not in TIPOS_VINCULABLES:
+                validated_data['fecha_provision'] = None
+                validated_data['fecha_facturacion'] = None
+        
         # Si se asigna OT, actualizar campos relacionados
         if 'ot' in validated_data and validated_data['ot']:
             instance.assignment_method = 'manual'
@@ -777,6 +846,7 @@ class InvoiceStatsSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     provisionadas = serializers.IntegerField()
     pendientes_provision = serializers.IntegerField()
+    pagadas = serializers.IntegerField()
     disputadas = serializers.IntegerField()
     anuladas = serializers.IntegerField()
     sin_fecha_provision = serializers.IntegerField()

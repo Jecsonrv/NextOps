@@ -38,9 +38,23 @@ export function ClientAliasFormPage() {
 
     // Form state
     const [formData, setFormData] = useState({
-        alias_name: "",
-        official_client_name: "",
+        original_name: "",
+        short_name: "",
         is_verified: false,
+        // Campos tributarios - El Salvador
+        tipo_contribuyente: "contribuyente_normal",
+        nit: "",
+        nrc: "",
+        aplica_retencion_iva: false,
+        aplica_retencion_renta: false,
+        porcentaje_retencion_renta: "",
+        acepta_credito_fiscal: true,
+        // Información de contacto
+        direccion_fiscal: "",
+        telefono: "",
+        email_facturacion: "",
+        actividad_economica: "",
+        notes: "",
     });
 
     const [errors, setErrors] = useState({});
@@ -51,9 +65,25 @@ export function ClientAliasFormPage() {
     useEffect(() => {
         if (alias) {
             setFormData({
-                alias_name: alias.alias_name || "",
-                official_client_name: alias.official_client_name || "",
+                original_name: alias.original_name || "",
+                short_name: alias.short_name || "",
                 is_verified: alias.is_verified || false,
+                // Campos tributarios
+                tipo_contribuyente: alias.tipo_contribuyente || "contribuyente_normal",
+                nit: alias.nit || "",
+                nrc: alias.nrc || "",
+                aplica_retencion_iva: alias.aplica_retencion_iva || false,
+                aplica_retencion_renta: alias.aplica_retencion_renta || false,
+                porcentaje_retencion_renta: alias.porcentaje_retencion_renta || "",
+                acepta_credito_fiscal: alias.acepta_credito_fiscal !== undefined
+                    ? alias.acepta_credito_fiscal
+                    : true,
+                // Información de contacto
+                direccion_fiscal: alias.direccion_fiscal || "",
+                telefono: alias.telefono || "",
+                email_facturacion: alias.email_facturacion || "",
+                actividad_economica: alias.actividad_economica || "",
+                notes: alias.notes || "",
             });
         }
     }, [alias]);
@@ -64,8 +94,8 @@ export function ClientAliasFormPage() {
             setErrors({ ...errors, [field]: null });
         }
 
-        // Check for similar aliases when alias_name changes
-        if (field === "alias_name" && value.length > 2) {
+        // Check for similar aliases when original_name changes
+        if (field === "original_name" && value.length > 2) {
             checkSimilarAliases(value);
         }
     };
@@ -85,13 +115,24 @@ export function ClientAliasFormPage() {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.alias_name.trim()) {
-            newErrors.alias_name = "El alias es obligatorio";
+        if (!formData.original_name.trim()) {
+            newErrors.original_name = "El nombre del cliente es obligatorio";
         }
 
-        if (!formData.official_client_name.trim()) {
-            newErrors.official_client_name =
-                "El cliente oficial es obligatorio";
+        // Validar NIT si se proporciona (formato El Salvador: 9999-999999-999-9)
+        if (formData.nit && formData.nit.trim()) {
+            const nitPattern = /^\d{4}-\d{6}-\d{3}-\d$/;
+            if (!nitPattern.test(formData.nit.trim())) {
+                newErrors.nit = "Formato de NIT inválido (debe ser: 9999-999999-999-9)";
+            }
+        }
+
+        // Validar email si se proporciona
+        if (formData.email_facturacion && formData.email_facturacion.trim()) {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(formData.email_facturacion.trim())) {
+                newErrors.email_facturacion = "Email inválido";
+            }
         }
 
         setErrors(newErrors);
@@ -184,70 +225,65 @@ export function ClientAliasFormPage() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit}>
-                {/* Información del Alias */}
-                <Card className="mb-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Información Básica */}
+                <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Users className="w-5 h-5" />
-                            Información del Alias
+                            Información Básica
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Alias del Cliente *
+                                Nombre del Cliente *
                             </label>
                             <Input
                                 type="text"
-                                value={formData.alias_name}
+                                value={formData.original_name}
                                 onChange={(e) =>
-                                    handleChange("alias_name", e.target.value)
+                                    handleChange("original_name", e.target.value)
                                 }
                                 placeholder="Ej: COCA-COLA, Cocacola S.A., The Coca Cola Company"
                                 className={
-                                    errors.alias_name ? "border-red-500" : ""
+                                    errors.original_name ? "border-red-500" : ""
                                 }
                             />
-                            {errors.alias_name && (
+                            {errors.original_name && (
                                 <p className="text-red-500 text-sm mt-1">
-                                    {errors.alias_name}
+                                    {errors.original_name}
                                 </p>
                             )}
                             {checkingSimilar && (
                                 <p className="text-gray-500 text-sm mt-1">
-                                    Buscando alias similares...
+                                    Buscando clientes similares...
                                 </p>
                             )}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Cliente Oficial *
+                                Nombre Corto (Alias)
                             </label>
                             <Input
                                 type="text"
-                                value={formData.official_client_name}
+                                value={formData.short_name}
                                 onChange={(e) =>
-                                    handleChange(
-                                        "official_client_name",
-                                        e.target.value
-                                    )
+                                    handleChange("short_name", e.target.value.toUpperCase())
                                 }
-                                placeholder="Ej: The Coca-Cola Company"
+                                placeholder="Ej: COCA-COLA (se genera automáticamente si no lo especificas)"
                                 className={
-                                    errors.official_client_name
-                                        ? "border-red-500"
-                                        : ""
+                                    errors.short_name ? "border-red-500" : ""
                                 }
                             />
-                            {errors.official_client_name && (
+                            {errors.short_name && (
                                 <p className="text-red-500 text-sm mt-1">
-                                    {errors.official_client_name}
+                                    {errors.short_name}
                                 </p>
                             )}
                             <p className="text-xs text-gray-500 mt-1">
-                                Nombre normalizado que se usará en el sistema
+                                Versión corta para mostrar en reportes. Se generará automáticamente si no lo especificas.
                             </p>
                         </div>
 
@@ -257,22 +293,255 @@ export function ClientAliasFormPage() {
                                     type="checkbox"
                                     checked={formData.is_verified}
                                     onChange={(e) =>
-                                        handleChange(
-                                            "is_verified",
-                                            e.target.checked
-                                        )
+                                        handleChange("is_verified", e.target.checked)
                                     }
                                     className="w-4 h-4 text-blue-600 rounded"
                                 />
                                 <span className="text-sm font-medium text-gray-700">
-                                    Alias Verificado Manualmente
+                                    Cliente Verificado Manualmente
                                 </span>
                             </label>
                             <p className="text-xs text-gray-500 mt-1 ml-6">
-                                Marca como verificado si has confirmado que este
-                                alias es correcto
+                                Marca como verificado si has confirmado que la información es correcta
                             </p>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Información Tributaria - El Salvador */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-blue-700">
+                            <span className="text-lg">🇸🇻</span>
+                            Información Tributaria - El Salvador
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tipo de Contribuyente *
+                                </label>
+                                <select
+                                    value={formData.tipo_contribuyente}
+                                    onChange={(e) =>
+                                        handleChange("tipo_contribuyente", e.target.value)
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="gran_contribuyente">Gran Contribuyente</option>
+                                    <option value="contribuyente_normal">Contribuyente Normal</option>
+                                    <option value="pequeño_contribuyente">Pequeño Contribuyente</option>
+                                    <option value="regimen_simple">Régimen Simplificado</option>
+                                    <option value="no_contribuyente">No Contribuyente / Extranjero</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Determina si aplican retenciones de IVA y Renta
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer pt-8">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.acepta_credito_fiscal}
+                                        onChange={(e) =>
+                                            handleChange("acepta_credito_fiscal", e.target.checked)
+                                        }
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                        Acepta Crédito Fiscal (CCF)
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    NIT (Número de Identificación Tributaria)
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={formData.nit}
+                                    onChange={(e) =>
+                                        handleChange("nit", e.target.value)
+                                    }
+                                    placeholder="9999-999999-999-9"
+                                    className={errors.nit ? "border-red-500" : ""}
+                                />
+                                {errors.nit && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.nit}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    NRC (Número de Registro de Contribuyente)
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={formData.nrc}
+                                    onChange={(e) =>
+                                        handleChange("nrc", e.target.value)
+                                    }
+                                    placeholder="99999-9"
+                                    className={errors.nrc ? "border-red-500" : ""}
+                                />
+                                {errors.nrc && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.nrc}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Actividad Económica
+                            </label>
+                            <Input
+                                type="text"
+                                value={formData.actividad_economica}
+                                onChange={(e) =>
+                                    handleChange("actividad_economica", e.target.value)
+                                }
+                                placeholder="Ej: Comercio al por mayor de bebidas"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Retenciones - El Salvador */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-orange-700">
+                            <span className="text-lg">⚠️</span>
+                            Retención de Renta 1% - ISR (Art. 162 Código Tributario)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-blue-900 font-medium mb-2">
+                                ¿Qué es la retención de Renta (ISR) 1%?
+                            </p>
+                            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                                <li>Regulada por el <strong>Art. 162 del Código Tributario</strong></li>
+                                <li>Solo aplica si el cliente es <strong>agente de retención</strong> designado por Hacienda</li>
+                                <li>Grandes contribuyentes e instituciones públicas generalmente son agentes de retención</li>
+                                <li>Se calcula: <strong>1% sobre el monto total sin IVA</strong> (subtotal gravado)</li>
+                                <li>Es un adelanto del <strong>Impuesto sobre la Renta (ISR)</strong> que nosotros (proveedor) debemos pagar</li>
+                            </ul>
+                        </div>
+
+                        <div className="border-l-4 border-orange-500 bg-orange-50 p-4">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.aplica_retencion_iva}
+                                    onChange={(e) =>
+                                        handleChange("aplica_retencion_iva", e.target.checked)
+                                    }
+                                    className="w-5 h-5 text-orange-600 rounded mt-0.5"
+                                />
+                                <div className="flex-1">
+                                    <span className="text-base font-semibold text-gray-900 block mb-1">
+                                        ✅ Este cliente ES agente de retención (retiene Renta/ISR 1%)
+                                    </span>
+                                    <p className="text-sm text-gray-700">
+                                        Marca esta casilla si el cliente ha sido designado por el Ministerio de Hacienda
+                                        como agente de retención. Al emitir facturas a este cliente, automáticamente
+                                        se calculará la retención del 1% sobre el subtotal gravado (sin IVA).
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">
+                                <strong>Ejemplo de cálculo:</strong><br/>
+                                Subtotal gravado (sin IVA): $10,000.00<br/>
+                                Retención Renta/ISR 1%: $10,000 × 1% = <strong className="text-orange-600">$100.00</strong><br/>
+                                → Este monto se restará del total a cobrar
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Información de Contacto */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <span className="text-lg">📞</span>
+                            Información de Contacto
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Dirección Fiscal
+                            </label>
+                            <textarea
+                                value={formData.direccion_fiscal}
+                                onChange={(e) =>
+                                    handleChange("direccion_fiscal", e.target.value)
+                                }
+                                rows="2"
+                                placeholder="Dirección completa del cliente"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Teléfono
+                                </label>
+                                <Input
+                                    type="text"
+                                    value={formData.telefono}
+                                    onChange={(e) =>
+                                        handleChange("telefono", e.target.value)
+                                    }
+                                    placeholder="+503 2222-2222"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Email para Facturación
+                                </label>
+                                <Input
+                                    type="email"
+                                    value={formData.email_facturacion}
+                                    onChange={(e) =>
+                                        handleChange("email_facturacion", e.target.value)
+                                    }
+                                    placeholder="facturacion@cliente.com"
+                                    className={errors.email_facturacion ? "border-red-500" : ""}
+                                />
+                                {errors.email_facturacion && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.email_facturacion}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Notas */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Notas Internas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => handleChange("notes", e.target.value)}
+                            rows="3"
+                            placeholder="Notas adicionales sobre el cliente..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                     </CardContent>
                 </Card>
 

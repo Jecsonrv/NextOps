@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../lib/api";
-import { exportOTsToExcel } from "../lib/exportUtils";
+
 import { formatDate } from "../lib/dateUtils";
 import {
     Card,
@@ -71,46 +71,7 @@ const arraysAreEqual = (a = [], b = []) => {
 const normalizeSingleValue = (value) =>
     typeof value === "string" ? value.trim() : "";
 
-const logicalSortOTs = (ots) => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
 
-    return ots.sort((a, b) => {
-        const etaA = a.fecha_eta ? new Date(a.fecha_eta) : null;
-        const etaB = b.fecha_eta ? new Date(b.fecha_eta) : null;
-
-        if (etaA && etaB) {
-            const diffA = Math.abs(etaA - now);
-            const diffB = Math.abs(etaB - now);
-
-            // Prioritize OTs with ETA in the future
-            if (etaA >= now && etaB < now) return -1;
-            if (etaA < now && etaB >= now) return 1;
-
-            // If both are in the future, sort by proximity to now
-            if (etaA >= now && etaB >= now) {
-                return diffA - diffB;
-            }
-
-            // If both are in the past, sort by proximity to now, but penalize if older than 4 days
-            if (etaA < now && etaB < now) {
-                const isOldA = (now - etaA) / (1000 * 60 * 60 * 24) > 4;
-                const isOldB = (now - etaB) / (1000 * 60 * 60 * 24) > 4;
-
-                if (isOldA && !isOldB) return 1;
-                if (!isOldA && isOldB) return -1;
-
-                return diffA - diffB;
-            }
-        } else if (etaA) {
-            return -1;
-        } else if (etaB) {
-            return 1;
-        }
-
-        return 0;
-    });
-};
 
 const estadoColors = {
     almacenadora: "secondary",
@@ -584,204 +545,44 @@ export function OTsPage() {
     const { data: filterValues } = useQuery({
         queryKey: ["ots-filter-values", filtersKey, normalizedSearch],
         queryFn: async () => {
-            // Función helper para construir params excluyendo un campo específico
-            const buildParamsExcluding = (excludeField) => {
-                const params = new URLSearchParams({
-                    page_size: "1000",
-                });
-
-                if (normalizedSearch) {
-                    params.append("search", normalizedSearch);
-                }
-
-                // Aplicar filtros de estado multi-select
-                if (filters.estados?.length && excludeField !== "estados") {
-                    filters.estados.forEach((estado) => {
-                        params.append("estado", estado);
-                    });
-                }
-                if (
-                    filters.estado_provision &&
-                    excludeField !== "estado_provision"
-                ) {
-                    params.append("estado_provision", filters.estado_provision);
-                }
-                if (
-                    filters.estado_facturado &&
-                    excludeField !== "estado_facturado"
-                ) {
-                    params.append("estado_facturado", filters.estado_facturado);
-                }
-                if (
-                    filters.tipo_operacion &&
-                    excludeField !== "tipo_operacion"
-                ) {
-                    params.append("tipo_operacion", filters.tipo_operacion);
-                }
-
-                // Aplicar filtros multi-select (excluyendo el campo actual)
-                if (filters.clientes?.length && excludeField !== "clientes") {
-                    filters.clientes.forEach((cliente) => {
-                        params.append("cliente", cliente);
-                    });
-                }
-                if (
-                    filters.operativos?.length &&
-                    excludeField !== "operativos"
-                ) {
-                    filters.operativos.forEach((operativo) => {
-                        params.append("operativo", operativo);
-                    });
-                }
-                if (
-                    filters.proveedores?.length &&
-                    excludeField !== "proveedores"
-                ) {
-                    filters.proveedores.forEach((proveedor) => {
-                        params.append("proveedor", proveedor);
-                    });
-                }
-
-                return params;
-            };
-
-            // Obtener datos para cada campo excluyendo su propio filtro
-            const [
-                clientesResponse,
-                operativosResponse,
-                proveedoresResponse,
-                estadosResponse,
-                estadosProvisionResponse,
-                estadosFacturadoResponse,
-            ] = await Promise.all([
-                apiClient.get(`/ots/?${buildParamsExcluding("clientes")}`),
-                apiClient.get(`/ots/?${buildParamsExcluding("operativos")}`),
-                apiClient.get(`/ots/?${buildParamsExcluding("proveedores")}`),
-                apiClient.get(`/ots/?${buildParamsExcluding("estados")}`),
-                apiClient.get(
-                    `/ots/?${buildParamsExcluding("estado_provision")}`
-                ),
-                apiClient.get(
-                    `/ots/?${buildParamsExcluding("estado_facturado")}`
-                ),
-            ]);
-
-            // Extraer valores únicos de cada response
-            const clientes = [
-                ...new Set(
-                    clientesResponse.data.results
-                        .map((ot) => ot.cliente_nombre)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            const operativos = [
-                ...new Set(
-                    operativosResponse.data.results
-                        .map((ot) => ot.operativo)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            const proveedores = [
-                ...new Set(
-                    proveedoresResponse.data.results
-                        .map((ot) => ot.proveedor_nombre)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            const estados = [
-                ...new Set(
-                    estadosResponse.data.results
-                        .map((ot) => ot.estado)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            const estados_provision = [
-                ...new Set(
-                    estadosProvisionResponse.data.results
-                        .map((ot) => ot.estado_provision)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            const estados_facturado = [
-                ...new Set(
-                    estadosFacturadoResponse.data.results
-                        .map((ot) => ot.estado_facturado)
-                        .filter(Boolean)
-                ),
-            ].sort();
-
-            return {
-                clientes,
-                operativos,
-                proveedores,
-                estados,
-                estados_provision,
-                estados_facturado,
-            };
+            const params = buildFilterParams(false); // Do not include pagination
+            const response = await apiClient.get(`/ots/filter-values/?${params}`);
+            return response.data;
         },
         staleTime: 5 * 60 * 1000, // Cache por 5 minutos
     });
 
     const handleExport = async () => {
+        const toastId = toast.loading("Exportando datos...");
         try {
-            toast.loading("Exportando datos...", { id: "export-toast" });
+            const params = buildFilterParams(false); // false = no incluir paginación
+            const response = await apiClient.get(`/ots/export-excel/?${params}`, {
+                responseType: 'blob',
+            });
 
-            // Construir parámetros con los filtros actuales
-            const baseParams = buildFilterParams(false); // false = no incluir paginación
-
-            // Obtener todos los datos haciendo múltiples peticiones si es necesario
-            let allOTs = [];
-            let currentPage = 1;
-            let hasMoreData = true;
-            const pageSize = 200; // Usar el máximo permitido por el backend
-
-            while (hasMoreData) {
-                const exportParams = baseParams
-                    ? `${baseParams}&page=${currentPage}&page_size=${pageSize}`
-                    : `page=${currentPage}&page_size=${pageSize}`;
-
-                toast.loading(
-                    `Obteniendo datos... (${allOTs.length} registros)`,
-                    { id: "export-toast" }
-                );
-
-                const response = await apiClient.get(`/ots/?${exportParams}`);
-                const pageData = response.data.results || [];
-
-                allOTs = [...allOTs, ...pageData];
-
-                // Verificar si hay más páginas
-                hasMoreData = response.data.next !== null;
-                currentPage++;
-
-                // Seguridad: evitar bucle infinito
-                if (currentPage > 1000) {
-                    console.warn("Se alcanzó el límite de 1000 páginas");
-                    break;
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = 'OTs_Export.xlsx';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
                 }
             }
 
-            if (!allOTs || allOTs.length === 0) {
-                toast.error("No hay datos para exportar", { id: "export-toast" });
-                return;
-            }
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
 
-            // Exportar todos los datos
-            toast.loading("Generando archivo Excel...", { id: "export-toast" });
-            exportOTsToExcel(allOTs, "OTs_Export");
-
-            toast.success(
-                `Se exportaron ${allOTs.length} OT${allOTs.length !== 1 ? "s" : ""} exitosamente`,
-                { id: "export-toast", duration: 4000 }
-            );
+            toast.success("Exportación completada.", { id: toastId });
         } catch (error) {
             console.error("Error al exportar:", error);
-            toast.error("Error al exportar los datos", { id: "export-toast" });
+            toast.error("Error al exportar los datos.", { id: toastId });
         }
     };
 
@@ -1500,7 +1301,7 @@ export function OTsPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200 bg-white">
-                                            {logicalSortOTs(data?.results)?.map((ot) => (
+                                            {data?.results?.map((ot) => (
                                                 <tr
                                                     key={ot.id}
                                                     className="hover:bg-gray-50 transition-colors"

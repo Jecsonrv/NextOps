@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 /**
  * Modal para asignar una OT a una factura
  * Permite buscar OTs por número, MBL o contenedor y asignarlas manualmente
@@ -9,14 +11,13 @@ import { Search, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import apiClient from "../../lib/api";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 
 export function InvoiceAssignOTModal({
     isOpen = false,
     onClose = () => {},
     invoice = null,
-    onAssign = async () => {}
+    onAssign = async () => {},
 }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -60,11 +61,14 @@ export function InvoiceAssignOTModal({
 
     useEffect(() => {
         if (!isOpen) {
+            // Reset completo al cerrar
             setSearchTerm("");
             setSearchResults([]);
             setSelectedOT(null);
             setError(null);
             setSuccessMessage(null);
+            setIsAssigning(false); // Resetear estado de carga
+            setIsSearching(false);
         }
     }, [isOpen]);
 
@@ -116,11 +120,13 @@ export function InvoiceAssignOTModal({
     if (!isOpen) return null;
 
     const modalContent = (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-white shadow-2xl">
-                <CardHeader className="border-b">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
+            <div className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white shadow-2xl rounded-lg">
+                <div className="border-b p-6">
                     <div className="flex items-center justify-between">
-                        <CardTitle>Asignar OT a Factura</CardTitle>
+                        <h2 className="text-xl font-semibold">
+                            Asignar OT a Factura
+                        </h2>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -133,9 +139,9 @@ export function InvoiceAssignOTModal({
                     <p className="text-sm text-gray-600 mt-2">
                         Factura: <strong>{invoice?.numero_factura}</strong>
                     </p>
-                </CardHeader>
+                </div>
 
-                <CardContent className="flex-1 overflow-auto p-6 space-y-6">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* Barra de búsqueda con indicador de búsqueda en tiempo real */}
                     <div className="space-y-2">
                         <div className="flex gap-2 items-center">
@@ -213,16 +219,16 @@ export function InvoiceAssignOTModal({
                             </h3>
                             <div className="space-y-2 max-h-96 overflow-y-auto">
                                 {searchResults.map((ot) => (
-                                    <Card
+                                    <div
                                         key={ot.id}
-                                        className={`cursor-pointer transition-all ${
+                                        className={`cursor-pointer transition-all rounded-lg ${
                                             selectedOT?.id === ot.id
-                                                ? "ring-2 ring-blue-500 bg-blue-50"
-                                                : "hover:bg-gray-50"
+                                                ? "border-2 border-blue-500 bg-blue-50 shadow-sm"
+                                                : "border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                                         }`}
                                         onClick={() => setSelectedOT(ot)}
                                     >
-                                        <CardContent className="p-4">
+                                        <div className="p-4">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-2">
@@ -304,8 +310,8 @@ export function InvoiceAssignOTModal({
                                                     </div>
                                                 </div>
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -333,101 +339,97 @@ export function InvoiceAssignOTModal({
                             <h3 className="font-semibold text-gray-900 mb-3">
                                 OT Actualmente Asignada
                             </h3>
-                            <Card className="bg-blue-50 border-blue-200">
-                                <CardContent className="p-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-semibold text-lg text-blue-900 mb-1">
-                                                    {invoice.ot_data.numero_ot}
-                                                </p>
-                                            </div>
-                                            {invoice.confianza_match && (
-                                                <Badge
-                                                    variant={
-                                                        parseFloat(
-                                                            invoice.confianza_match
-                                                        ) >= 0.8
-                                                            ? "success"
-                                                            : parseFloat(
-                                                                  invoice.confianza_match
-                                                              ) >= 0.5
-                                                            ? "warning"
-                                                            : "destructive"
-                                                    }
-                                                >
-                                                    Confianza:{" "}
-                                                    {(
-                                                        parseFloat(
-                                                            invoice.confianza_match
-                                                        ) * 100
-                                                    ).toFixed(0)}
-                                                    %
-                                                </Badge>
-                                            )}
+                            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 shadow-sm">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-lg text-blue-900 mb-1">
+                                                {invoice.ot_data.numero_ot}
+                                            </p>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 text-sm">
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    Operativo:
-                                                </span>
-                                                <p className="text-gray-900">
-                                                    {invoice.ot_data
-                                                        .operativo || "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    Cliente:
-                                                </span>
-                                                <p className="text-gray-900">
-                                                    {invoice.ot_data.cliente ||
-                                                        "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    MBL:
-                                                </span>
-                                                <p className="text-gray-900 font-mono text-xs">
-                                                    {invoice.ot_data.mbl ||
-                                                        "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    Naviera:
-                                                </span>
-                                                <p className="text-gray-900">
-                                                    {invoice.ot_data.naviera ||
-                                                        "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    Barco:
-                                                </span>
-                                                <p className="text-gray-900">
-                                                    {invoice.ot_data.barco ||
-                                                        "N/A"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600 font-medium">
-                                                    Estado:
-                                                </span>
-                                                <p className="text-gray-900 capitalize">
-                                                    {invoice.ot_data.estado ||
-                                                        "N/A"}
-                                                </p>
-                                            </div>
+                                        {invoice.confianza_match && (
+                                            <Badge
+                                                variant={
+                                                    parseFloat(
+                                                        invoice.confianza_match
+                                                    ) >= 0.8
+                                                        ? "success"
+                                                        : parseFloat(
+                                                              invoice.confianza_match
+                                                          ) >= 0.5
+                                                        ? "warning"
+                                                        : "destructive"
+                                                }
+                                            >
+                                                Confianza:{" "}
+                                                {(
+                                                    parseFloat(
+                                                        invoice.confianza_match
+                                                    ) * 100
+                                                ).toFixed(0)}
+                                                %
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                Operativo:
+                                            </span>
+                                            <p className="text-gray-900">
+                                                {invoice.ot_data.operativo ||
+                                                    "N/A"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                Cliente:
+                                            </span>
+                                            <p className="text-gray-900">
+                                                {invoice.ot_data.cliente ||
+                                                    "N/A"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                MBL:
+                                            </span>
+                                            <p className="text-gray-900 font-mono text-xs">
+                                                {invoice.ot_data.mbl || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                Naviera:
+                                            </span>
+                                            <p className="text-gray-900">
+                                                {invoice.ot_data.naviera ||
+                                                    "N/A"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                Barco:
+                                            </span>
+                                            <p className="text-gray-900">
+                                                {invoice.ot_data.barco || "N/A"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600 font-medium">
+                                                Estado:
+                                            </span>
+                                            <p className="text-gray-900 capitalize">
+                                                {invoice.ot_data.estado ||
+                                                    "N/A"}
+                                            </p>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         </div>
                     )}
-                </CardContent>
+                </div>
 
                 {/* Footer con acciones */}
                 <div className="border-t p-6 flex items-center justify-between bg-gray-50">
@@ -455,7 +457,7 @@ export function InvoiceAssignOTModal({
                         )}
                     </Button>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 
@@ -463,4 +465,11 @@ export function InvoiceAssignOTModal({
 }
 InvoiceAssignOTModal.defaultProps = {
     invoice: null,
+};
+
+InvoiceAssignOTModal.propTypes = {
+    isOpen: PropTypes.bool,
+    onClose: PropTypes.func,
+    invoice: PropTypes.object,
+    onAssign: PropTypes.func,
 };

@@ -2,14 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "../lib/api";
 
 /**
- * Hook para listar notas de crédito con filtros
+ * Hook para listar notas de crédito de COSTOS (proveedores) con filtros
  */
 export function useCreditNotes(filters = {}) {
     return useQuery({
         queryKey: ["credit-notes", filters],
         queryFn: async () => {
             const params = new URLSearchParams(
-                Object.entries(filters).filter(([_, value]) => value)
+                Object.entries(filters).filter(([, value]) => value)
             );
             const response = await apiClient.get(
                 `/invoices/credit-notes/?${params.toString()}`
@@ -36,7 +36,7 @@ export function useCreditNoteDetail(id) {
 }
 
 /**
- * Hook para obtener estadísticas de notas de crédito
+ * Hook para obtener estadísticas de notas de crédito de costos
  */
 export function useCreditNoteStats() {
     return useQuery({
@@ -51,7 +51,7 @@ export function useCreditNoteStats() {
 }
 
 /**
- * Hook para crear una nueva nota de crédito
+ * Hook para crear una nueva nota de crédito de costo
  */
 export function useCreateCreditNote() {
     const queryClient = useQueryClient();
@@ -77,7 +77,7 @@ export function useCreateCreditNote() {
 }
 
 /**
- * Hook para actualizar una nota de crédito
+ * Hook para actualizar una nota de crédito de costo
  */
 export function useUpdateCreditNote(id) {
     const queryClient = useQueryClient();
@@ -99,7 +99,7 @@ export function useUpdateCreditNote(id) {
 }
 
 /**
- * Hook para eliminar una nota de crédito
+ * Hook para eliminar una nota de crédito de costo
  */
 export function useDeleteCreditNote() {
     const queryClient = useQueryClient();

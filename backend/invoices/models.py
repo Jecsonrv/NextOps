@@ -70,11 +70,17 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
     """
     
     # Choices para campos enumerados
+    # Usar las mismas opciones que Provider.TYPE_CHOICES para consistencia
     TIPO_PROVEEDOR_CHOICES = [
         ('naviera', 'Naviera'),
-        ('transporte_local', 'Transporte Local'),
-        ('aduana', 'Aduana'),
-        ('agente_carga', 'Agente de Carga'),
+        ('agente_local', 'Agente Local'),
+        ('agencia_aduanal', 'Agencia Aduanal'),
+        ('agente_origen', 'Agente de Origen'),
+        ('aseguradora', 'Aseguradora'),
+        ('aerolinea', 'Aerolínea'),
+        ('consolidadora', 'Consolidadora'),
+        ('almacenadora', 'Almacenadora'),
+        ('transportista', 'Transportista'),
         ('otro', 'Otro'),
     ]
     
@@ -311,7 +317,36 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         blank=True,
         help_text="Fecha en que se facturó"
     )
-    
+
+    # === Estado de Pago (CxP - Cuentas por Pagar) ===
+    ESTADO_PAGO_CHOICES = [
+        ('pendiente', 'Pendiente de Pago'),
+        ('pagado_parcial', 'Pagado Parcialmente'),
+        ('pagado_total', 'Pagado Totalmente'),
+    ]
+
+    estado_pago = models.CharField(
+        max_length=20,
+        choices=ESTADO_PAGO_CHOICES,
+        default='pendiente',
+        db_index=True,
+        help_text="Estado de pago a proveedor"
+    )
+
+    monto_pagado = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Monto total pagado a este proveedor por esta factura"
+    )
+
+    monto_pendiente = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Monto pendiente de pago (calculado automáticamente)"
+    )
+
     # === Archivo Asociado ===
     uploaded_file = models.OneToOneField(
         UploadedFile,
@@ -448,8 +483,32 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
 
         if self.monto_aplicable is None:
             self.monto_aplicable = self.monto
+        
+        # VALIDACIÓN MEJORADA: Solo permitir monto_aplicable diferente de monto
+        # si hay notas de crédito o disputas que justifiquen el cambio
+        if self.monto_aplicable != self.monto:
+            # Verificar si hay razones válidas para tener monto_aplicable diferente
+            tiene_nc_aplicadas = self.notas_credito.filter(
+                is_deleted=False, 
+                estado='aplicada'
+            ).exists() if self.pk else False
+            
+            tiene_disputas_aprobadas = self.disputas.filter(
+                is_deleted=False,
+                estado__in=['resuelta', 'cerrada'],
+                resultado__in=['aprobada_total', 'aprobada_parcial']
+            ).exists() if self.pk else False
+            
+            # Si no hay razones válidas y monto_aplicable <= 0, restaurar al monto original
+            if not tiene_nc_aplicadas and not tiene_disputas_aprobadas:
+                if self.monto_aplicable <= Decimal('0.00'):
+                    self.monto_aplicable = self.monto
+        
+        # Asegurar que nunca sea negativo
         if self.monto_aplicable < Decimal('0.00'):
             self.monto_aplicable = Decimal('0.00')
+        
+        # Asegurar que no exceda el monto original
         if self.monto_aplicable > self.monto:
             self.monto_aplicable = self.monto
 
@@ -472,7 +531,30 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
                 # Solo cambiar estado si es pendiente
                 if self.estado_facturacion == 'pendiente':
                     self.estado_facturacion = 'facturada'
-        
+
+        # === Cálculo de Estado de Pago ===
+        # Usar monto_aplicable si existe, sino usar monto
+        monto_a_pagar = self.monto_aplicable if self.monto_aplicable else self.monto
+
+        # Calcular monto pendiente
+        self.monto_pendiente = monto_a_pagar - self.monto_pagado
+
+        # Asegurar que el monto pendiente no sea negativo
+        if self.monto_pendiente < Decimal('0.00'):
+            self.monto_pendiente = Decimal('0.00')
+
+        # Actualizar estado_pago automáticamente
+        if self.monto_pagado == Decimal('0.00'):
+            self.estado_pago = 'pendiente'
+        elif self.monto_pagado >= monto_a_pagar:
+            self.estado_pago = 'pagado_total'
+            # Asegurar que monto_pagado no exceda el monto a pagar
+            if self.monto_pagado > monto_a_pagar:
+                self.monto_pagado = monto_a_pagar
+            self.monto_pendiente = Decimal('0.00')
+        else:
+            self.estado_pago = 'pagado_parcial'
+
         super().save(*args, **kwargs)
 
         # NOTA: La sincronización Invoice -> OT ahora se maneja mediante señal
@@ -1268,17 +1350,24 @@ class CreditNote(TimeStampedModel, SoftDeleteModel):
             from django.utils import timezone
         super().save(*args, **kwargs)
 
+        # Actualizar factura relacionada cuando se aplica la nota de crédito
         if self.estado == 'aplicada' and self.invoice_relacionada:
             invoice = self.invoice_relacionada
+            
+            # Guardar el monto original si no existe
             if invoice.monto_original is None:
                 invoice.monto_original = invoice.monto
 
+            # CRÍTICO: Filtrar solo notas de crédito NO eliminadas
             total_credit_notes = invoice.notas_credito.filter(
-                estado='aplicada'
+                estado='aplicada',
+                is_deleted=False  # ← FIX: Excluir notas eliminadas
             ).aggregate(total=models.Sum('monto'))['total'] or 0
             
+            # Calcular monto aplicable después de notas de crédito
             invoice.monto_aplicable = invoice.monto_original + total_credit_notes
 
+            # Actualizar estado según monto aplicable
             if invoice.monto_aplicable <= 0:
                 invoice.estado_provision = 'anulada'
             else:

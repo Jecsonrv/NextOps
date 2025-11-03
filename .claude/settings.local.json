@@ -19,7 +19,20 @@
       "Bash(python -m py_compile:*)",
       "Bash(python manage.py makemigrations:*)",
       "Bash(docker exec:*)",
-      "Bash(docker logs nextops_backend --tail 50)"
+      "Bash(docker logs nextops_backend --tail 50)",
+      "Bash(python manage.py startapp:*)",
+      "Bash(npm run build:*)",
+      "Bash(docker ps:*)",
+      "Bash(curl:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker cp:*)",
+      "WebFetch(domain:www.maersk.com)",
+      "WebSearch",
+      "WebFetch(domain:www.aufaitux.com)",
+      "Bash(rm:*)",
+      "Bash(npm run dev:*)",
+      "Bash(python update_supplier_payments.py:*)"
     ],
     "deny": [],
     "ask": []

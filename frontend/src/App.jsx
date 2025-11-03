@@ -25,7 +25,7 @@ import { CreditNotesPage } from "./pages/CreditNotesPage";
 import { CreditNoteDetailPage } from "./pages/CreditNoteDetailPage";
 import { InvoiceEditPage } from "./pages/InvoiceEditPage";
 import ClientsPage from "./pages/ClientsPage";
-import ProviderPatternsPage from "./pages/ProviderPatternsPage";
+import InvoicePatternCatalogPage from "./pages/InvoicePatternCatalogPage";
 import TargetFieldsPage from "./pages/TargetFieldsPage";
 
 // Catalog pages
@@ -39,6 +39,17 @@ import { CostCategoriesPage } from "./pages/CostCategoriesPage";
 import { CostCategoryFormPage } from "./pages/CostCategoryFormPage";
 import { UserManagementPage } from "./pages/Admin/UserManagementPage";
 import { UserProfilePage } from "./pages/Admin/UserProfilePage";
+
+// Sales/CRM pages
+import SalesInvoicesPage from "./pages/sales/SalesInvoicesPage";
+import SalesInvoiceFormPage from "./pages/sales/SalesInvoiceFormPage";
+import SalesInvoiceDetailPage from "./pages/sales/SalesInvoiceDetailPage";
+import PaymentsPage from "./pages/sales/PaymentsPage";
+import PaymentFormPage from "./pages/sales/PaymentFormPage";
+import FinanceDashboardPage from "./pages/sales/FinanceDashboardPage";
+
+// Supplier Payments (CxP) pages
+import SupplierPaymentsPage from "./pages/supplier-payments/SupplierPaymentsPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -111,7 +122,6 @@ function App() {
                     <Routes>
                         {/* Public routes */}
                         <Route path="/login" element={<LoginPage />} />
-
                         {/* Protected routes */}
                         <Route
                             path="/"
@@ -203,7 +213,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
                         <Route
                             path="/invoices/credit-notes"
                             element={
@@ -220,6 +229,88 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <CreditNoteDetailPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Sales/CRM Routes */}
+                        <Route
+                            path="/sales/invoices"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <SalesInvoicesPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/invoices/new"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <SalesInvoiceFormPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/invoices/:id"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <SalesInvoiceDetailPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/invoices/:id/edit"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <SalesInvoiceFormPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/payments"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <PaymentsPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/payments/new"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <PaymentFormPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/sales/dashboard"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <FinanceDashboardPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* Supplier Payments (CxP) Routes */}
+                        <Route
+                            path="/supplier-payments"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <SupplierPaymentsPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }
@@ -254,7 +345,16 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
+                        <Route
+                            path="/patterns"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <InvoicePatternCatalogPage />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
                         {/* Catalog Routes */}
                         <Route
                             path="/catalogs/providers"
@@ -285,17 +385,7 @@ function App() {
                                     </Layout>
                                 </ProtectedRoute>
                             }
-                        />
-                        <Route
-                            path="/catalogs/provider-patterns"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <ProviderPatternsPage />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
+                        />{" "}
                         <Route
                             path="/catalogs/target-fields"
                             element={
@@ -396,19 +486,17 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
                         {/* Admin Routes */}
                         <Route
                             path="/admin/users"
                             element={
-                                <ProtectedRoute allowedRoles={['admin']}>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <UserManagementPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }
                         />
-
                         <Route
                             path="/profile/:userId"
                             element={
@@ -419,7 +507,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
                         <Route
                             path="/profile"
                             element={
@@ -430,11 +517,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
-
-
-
-
                         {/* Legacy provider route - redirect to new catalog route */}
                         <Route
                             path="/providers"
@@ -442,7 +524,6 @@ function App() {
                                 <Navigate to="/catalogs/providers" replace />
                             }
                         />
-
                         <Route
                             path="/automation"
                             element={
@@ -453,7 +534,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-
                         {/* Catch all - redirect to home */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

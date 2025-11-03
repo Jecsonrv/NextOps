@@ -6,6 +6,7 @@ import {
     useProviders,
 } from "../hooks/useInvoices";
 import { useCostTypes } from "../hooks/useCostTypes";
+import { useProviderTypes } from "../hooks/useProviderTypes";
 import {
     Card,
     CardContent,
@@ -15,14 +16,6 @@ import {
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { ArrowLeft, Save, Loader2, AlertCircle } from "lucide-react";
-
-const TIPO_PROVEEDOR_OPTIONS = [
-    { value: "naviera", label: "Naviera" },
-    { value: "transporte_local", label: "Transporte Local" },
-    { value: "aduana", label: "Aduana" },
-    { value: "agente_carga", label: "Agente de Carga" },
-    { value: "otro", label: "Otro" },
-];
 
 const ESTADO_PROVISION_OPTIONS = [
     { value: "pendiente", label: "Pendiente" },
@@ -45,6 +38,7 @@ export function InvoiceEditPage() {
     const { data: invoice, isLoading, error } = useInvoiceDetail(id);
     const { data: providers, isLoading: providersLoading } = useProviders();
     const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
+    const { data: providerTypes, isLoading: providerTypesLoading } = useProviderTypes();
     const updateMutation = useInvoiceUpdate(id);
 
     const [formData, setFormData] = useState({
@@ -155,6 +149,29 @@ export function InvoiceEditPage() {
         }
     }, [invoice]);
 
+    // Helper function para determinar si un tipo de costo está vinculado a OT
+    const isCostTypeLinkedToOT = (tipoCosto) => {
+        if (!tipoCosto) return false;
+
+        // Tipos hardcoded vinculados
+        if (tipoCosto === 'FLETE' || tipoCosto === 'CARGOS_NAVIERA') {
+            return true;
+        }
+
+        // Soportar prefijos (FLETE_MARITIMO, FLETE_AEREO, etc.)
+        if (tipoCosto.startsWith('FLETE') || tipoCosto.startsWith('CARGOS_NAVIERA')) {
+            return true;
+        }
+
+        // Verificación dinámica desde costTypes
+        const costType = costTypes?.results?.find(ct => ct.code === tipoCosto);
+        if (costType) {
+            return costType.is_linked_to_ot === true;
+        }
+
+        return false;
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -163,6 +180,26 @@ export function InvoiceEditPage() {
                 ...prev,
                 [name]: value,
             };
+
+            // CRÍTICO: Si se cambia el tipo de costo, verificar desvinculación
+            if (name === "tipo_costo") {
+                const oldLinked = isCostTypeLinkedToOT(prev.tipo_costo);
+                const newLinked = isCostTypeLinkedToOT(value);
+
+                // Si cambió de vinculado a NO vinculado, limpiar fechas
+                if (oldLinked && !newLinked) {
+                    newData.fecha_provision = "";
+                    newData.fecha_facturacion = "";
+
+                    // Resetear estados a pendiente (excepto estados manuales)
+                    if (!MANUAL_PROVISION_STATES.has(prev.estado_provision)) {
+                        newData.estado_provision = "pendiente";
+                    }
+                    if (!["disputada", "en_revision"].includes(prev.estado_facturacion)) {
+                        newData.estado_facturacion = "pendiente";
+                    }
+                }
+            }
 
             // Auto-marcado de estados según fechas
             // Si se ingresa fecha_provision, marcar como provisionada
@@ -373,30 +410,20 @@ export function InvoiceEditPage() {
                                             value={option.code}
                                         >
                                             {option.name}
+                                            {option.is_linked_to_ot ? ' (Vinculado a OT)' : ''}
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tipo de Proveedor
-                                </label>
-                                <select
-                                    name="tipo_proveedor"
-                                    value={formData.tipo_proveedor}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    {TIPO_PROVEEDOR_OPTIONS.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                {isCostTypeLinkedToOT(formData.tipo_costo) && invoice?.ot && (
+                                    <p className="mt-1 text-xs text-blue-600">
+                                        ℹ️ Este tipo de costo está vinculado a la OT. Las fechas se sincronizan automáticamente.
+                                    </p>
+                                )}
+                                {!isCostTypeLinkedToOT(formData.tipo_costo) && formData.tipo_costo && (
+                                    <p className="mt-1 text-xs text-gray-600">
+                                        Este tipo de costo no está vinculado a OT. Las fechas son independientes.
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </CardContent>
@@ -445,14 +472,14 @@ export function InvoiceEditPage() {
                                     onChange={handleChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    {TIPO_PROVEEDOR_OPTIONS.map((option) => (
+                                    {providerTypes?.map((option) => (
                                         <option
                                             key={option.value}
                                             value={option.value}
                                         >
                                             {option.label}
                                         </option>
-                                    ))}
+                                    )) || []}
                                 </select>
                             </div>
                         </div>

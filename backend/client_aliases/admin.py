@@ -14,23 +14,31 @@ class ClientAliasAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'original_name',
+        'nit',
+        'tipo_contribuyente',
         'provider_link',
         'usage_badge',
         'verified_badge',
         'merged_badge',
         'created_at'
     ]
-    
+
     list_filter = [
+        'tipo_contribuyente',
+        'aplica_retencion_iva',
+        'aplica_retencion_renta',
+        'acepta_credito_fiscal',
         'is_verified',
         'provider',
         ('merged_into', admin.EmptyFieldListFilter),
         'created_at'
     ]
-    
+
     search_fields = [
         'original_name',
         'normalized_name',
+        'nit',
+        'nrc',
         'notes'
     ]
     
@@ -51,8 +59,35 @@ class ClientAliasAdmin(admin.ModelAdmin):
             'fields': (
                 'id',
                 'original_name',
-                'normalized_name'
+                'normalized_name',
+                'short_name'
             )
+        }),
+        ('Información Tributaria - El Salvador', {
+            'fields': (
+                'tipo_contribuyente',
+                'nit',
+                'nrc',
+                'actividad_economica',
+                'acepta_credito_fiscal'
+            ),
+            'classes': ('wide',)
+        }),
+        ('Retenciones', {
+            'fields': (
+                'aplica_retencion_iva',
+                'aplica_retencion_renta',
+                'porcentaje_retencion_renta'
+            ),
+            'classes': ('wide',)
+        }),
+        ('Información de Contacto', {
+            'fields': (
+                'direccion_fiscal',
+                'telefono',
+                'email_facturacion'
+            ),
+            'classes': ('collapse',)
         }),
         ('Asociaciones', {
             'fields': (

@@ -23,6 +23,9 @@ import {
     AlertCircle,
     UserCog,
     User,
+    Receipt,
+    TrendingUp,
+    Wallet,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useState } from "react";
@@ -32,8 +35,38 @@ const navigation = [
     { name: "OTs", href: "/ots", icon: Ship },
     { name: "Facturas", href: "/invoices", icon: FileText },
     { name: "Disputas", href: "/disputes", icon: AlertCircle },
-    { name: "Notas de Crédito", href: "/invoices/credit-notes", icon: FileMinus },
+    {
+        name: "Notas de Crédito",
+        href: "/invoices/credit-notes",
+        icon: FileMinus,
+    },
     { name: "Clientes", href: "/clients", icon: Users },
+    {
+        name: "CRM / Ventas",
+        icon: TrendingUp,
+        children: [
+            {
+                name: "Dashboard Finanzas",
+                href: "/sales/dashboard",
+                icon: LayoutDashboard,
+            },
+            {
+                name: "Facturas de Venta",
+                href: "/sales/invoices",
+                icon: Receipt,
+            },
+            {
+                name: "Pagos Recibidos",
+                href: "/sales/payments",
+                icon: Wallet,
+            },
+            {
+                name: "Pagos a Proveedores",
+                href: "/supplier-payments",
+                icon: DollarSign,
+            },
+        ],
+    },
     {
         name: "Catálogos",
         icon: FolderOpen,
@@ -44,8 +77,8 @@ const navigation = [
                 icon: Building2,
             },
             {
-                name: "Patrones Proveedor",
-                href: "/catalogs/provider-patterns",
+                name: "Patrones (Beta)",
+                href: "/patterns",
                 icon: Regex,
             },
             {
@@ -77,6 +110,9 @@ export function Layout({ children }) {
     const { user, logout } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [salesOpen, setSalesOpen] = useState(
+        location.pathname.startsWith("/sales")
+    );
     const [catalogsOpen, setCatalogsOpen] = useState(
         location.pathname.startsWith("/catalogs")
     );
@@ -133,20 +169,35 @@ export function Layout({ children }) {
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                         {navigationItems.map((item) => {
-                            // Handle parent items with children (Catalogs)
+                            // Handle parent items with children (Sales, Catalogs, etc.)
                             if (item.children) {
-                                const isAnyCatalogActive =
-                                    location.pathname.startsWith("/catalogs");
+                                const isSalesSection =
+                                    item.name === "CRM / Ventas";
+                                const isCatalogsSection =
+                                    item.name === "Catálogos";
+                                const isOpen = isSalesSection
+                                    ? salesOpen
+                                    : isCatalogsSection
+                                    ? catalogsOpen
+                                    : false;
+                                const toggleOpen = isSalesSection
+                                    ? () => setSalesOpen(!salesOpen)
+                                    : () => setCatalogsOpen(!catalogsOpen);
+
+                                // Check if any child is active
+                                const isAnyChildActive = item.children.some(
+                                    (child) =>
+                                        location.pathname.startsWith(child.href)
+                                );
+
                                 return (
                                     <div key={item.name}>
                                         <button
-                                            onClick={() =>
-                                                setCatalogsOpen(!catalogsOpen)
-                                            }
+                                            onClick={toggleOpen}
                                             className={`
                                                 w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
                                                 ${
-                                                    isAnyCatalogActive
+                                                    isAnyChildActive
                                                         ? "bg-blue-50 text-blue-600"
                                                         : "text-gray-700 hover:bg-gray-100"
                                                 }
@@ -156,7 +207,7 @@ export function Layout({ children }) {
                                                 <item.icon className="w-5 h-5 mr-3" />
                                                 {item.name}
                                             </div>
-                                            {catalogsOpen ? (
+                                            {isOpen ? (
                                                 <ChevronDown className="w-4 h-4" />
                                             ) : (
                                                 <ChevronRight className="w-4 h-4" />
@@ -164,7 +215,7 @@ export function Layout({ children }) {
                                         </button>
 
                                         {/* Submenu */}
-                                        {catalogsOpen && (
+                                        {isOpen && (
                                             <div className="ml-4 mt-1 space-y-1">
                                                 {item.children.map((child) => {
                                                     const isActive =
@@ -227,14 +278,19 @@ export function Layout({ children }) {
 
                     {/* User info */}
                     <div className="p-4 border-t border-gray-200">
-                        <Link to="/profile" className="block hover:bg-gray-50 p-2 rounded-lg">
+                        <Link
+                            to="/profile"
+                            className="block hover:bg-gray-50 p-2 rounded-lg"
+                        >
                             <div className="flex items-center">
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-900">
                                         {user?.email}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                        {user?.role_display || user?.role || "Usuario"}
+                                        {user?.role_display ||
+                                            user?.role ||
+                                            "Usuario"}
                                     </p>
                                 </div>
                                 <User className="w-5 h-5 text-gray-400" />
@@ -271,6 +327,16 @@ export function Layout({ children }) {
                                     (item) => item.href === location.pathname
                                 );
                                 if (currentNav) return currentNav.name;
+
+                                // Check in navigation children (CRM, Catálogos)
+                                for (const item of navigation) {
+                                    if (item.children) {
+                                        const child = item.children.find(
+                                            (c) => c.href === location.pathname
+                                        );
+                                        if (child) return child.name;
+                                    }
+                                }
 
                                 // Check if in catalogs section
                                 if (location.pathname.startsWith("/catalogs")) {

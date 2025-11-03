@@ -1,0 +1,153 @@
+﻿docker-compose : time="2025-11-01T09:24:47-06:00" level=warning 
+msg="C:\\Users\\jecso\\Desktop\\NextOps\\docker-compose.yml: the attribute `version` is 
+obsolete, it will be ignored, please remove it to avoid potential confusion"
+At line:1 char:1
++ docker-compose exec backend python analyze_facturas.py 2>&1 | Out-Fil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2025-11-0...tial confusion":String) [], R 
+   emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+================================================================================
+ANALIZANDO: DTE-03-M001P001-000000000003465.pdf
+================================================================================
+
+--- P├üGINA 1 ---
+DOCUMENTO TRIBUTARIO ELECTR├ôNICO
+COMPROBANTE DE CR├ëDITO FISCAL
+C├│digo de Generaci├│n: 31F301B5-37C7-4635-974B-2302DE3A2C5C
+N├║mero de Control: DTE-03-M001P001-000000000003465
+Sello de Recepci├│n: 202527D73FCF13774F509BB14ED1EBEE52EE8WQD
+Fecha y Hora de Generaci├│n: 08/10/2025 15:41:00
+Modelo de Facturaci├│n: Modelo Facturaci├│n previo
+Tipo de Transmisi├│n: Transmisi├│n normal
+EMISOR RECEPTOR
+Nombre o raz├│n social: PLG DIVISION ADUANAS S.A. DE C.V. Nombre o raz├│n social: SUPER REPUESTOS EL SALVADOR, S.A.
+NIT: 06141802061026 DE C.V.
+NRC: 1712941 NIT: 06141511720027
+Actividad econ├│mica: Servicios para el transporte por v├¡a NRC: 2755
+terrestre n.c.p. Actividad econ├│mica: Venta de partes, piezas y accesorios
+Direcci├│n: 9A CALLE PONIENTE BIS, ENTRE 95 Y nuevos para veh├¡culos automotores
+99 AV. NORTE # 46, SAN SALVADOR Direcci├│n: Blv. Constituci├│n, Col. Miranda, #504.,
+CENTRO, SAN SALVADOR SAN SALVADOR CENTRO, SAN
+N├║mero de tel├⌐fono: 2234-7141 SALVADOR
+Correo electr├│nico: dte@plg.com.sv N├║mero de tel├⌐fono: 22392000
+Nombre comercial: PLG DIVISION ADUANAS S.A. DE C.V. Correo electr├│nico: apsresa@superrepuestos.com
+Tipo de establecimien.: Casa matriz Nombre comercial: SUPER REPUESTOS EL SALVADOR, S.A.
+DE C.V.
+Otros
+Precio Ventas No Ventas Ventas
+No. Cant. Unidad C├│digo Descripci├│n montos No
+Unitario Sujetas Exentas Gravadas
+Afectos
+1 1.00 Otra 16 FLETE MARITIMO DE 4,675.00 0.00 4,675.00 0.00 0.00
+IMPORTACION FCL
+2 1.00 Otra 20 CARGOS DE NAVIERA 390.00 0.00 0.00 0.00 390.00
+3 1.00 Otra 21 CARGOS EXW 345.00 0.00 345.00 0.00 0.00
+4 1.00 Otra 21 CARGOS FCA 2,228.69 0.00 2,228.69 0.00 0.00
+Suma: 0.00 7,248.69 0.00 390.00
+Condici├│n de la Operaci├│n: Cr├⌐dito 15 D Suma Total de Operaciones: 7,638.69
+Fecha de vencimiento: 23/10/2025 Descuento a Vtas No Sujetas: 0.00
+Valor en Letras Descuento a Vtas Exentas: 0.00
+SIETE MIL SEISCIENTOS OCHENTA Y CINCO CON 49/100 DOLARES Descuento a Vtas Gravadas: 0.00
+Observaciones: Sub-Total: 7,638.69
+ORIGEN: HONG KONG // DESTINO: ACAJUTLA // REF BL. SYNHKG25SE080004 IVA (13.00%): 50.70
+// CNTR: TLLU4312744 // 25OT1951 Monto Total de la Operaci├│n: 7,689.39
+Emitido por: Recibido por: IVA Percibido: 0.00
+Nombre: Nombre: IVA Retenido: 3.90
+Documento: Documento: Retenci├│n de Renta: 0.00
+Total Otros Montos no Afectos: 0.00
+Total: 7,685.49
+Documento: 5989, Usuario: Genesis Marroquin P├ígina 1 de 1
+
+================================================================================
+AN├üLISIS COMPLETADO
+================================================================================
+Longitud del texto: 2337 caracteres
+
+================================================================================
+ANALIZANDO: DTE-03-M001P001-000000000003533 FLETE MARITIMO - 25OT2292.pdf
+================================================================================
+
+--- P├üGINA 1 ---
+DOCUMENTO TRIBUTARIO ELECTR├ôNICO
+COMPROBANTE DE CR├ëDITO FISCAL
+C├│digo de Generaci├│n: EF8B4E32-32E6-407E-A1AD-01388475BEF0
+N├║mero de Control: DTE-03-M001P001-000000000003533
+Sello de Recepci├│n: 202561782B6922B845B887A3FD9933DA7DA0ARQV
+Fecha y Hora de Generaci├│n: 14/10/2025 14:34:51
+Modelo de Facturaci├│n: Modelo Facturaci├│n previo
+Tipo de Transmisi├│n: Transmisi├│n normal
+EMISOR RECEPTOR
+Nombre o raz├│n social: PLG DIVISION ADUANAS S.A. DE C.V. Nombre o raz├│n social: ALMACENES BOU, S.A. DE C.V.
+NIT: 06141802061026 NIT: 02100106710016
+NRC: 1712941 NRC: 33340
+Actividad econ├│mica: Servicios para el transporte por v├¡a Actividad econ├│mica: Venta al por mayor de art├¡culos de
+terrestre n.c.p. ferreter├¡a y pinturer├¡as
+Direcci├│n: 9A CALLE PONIENTE BIS, ENTRE 95 Y Direcci├│n: 9a. Calle Ote. Entre 19 y 21 Av. Sur, Local
+99 AV. NORTE # 46, SAN SALVADOR 53., SANTA ANA CENTRO, SANTA ANA
+CENTRO, SAN SALVADOR N├║mero de tel├⌐fono: 24478033
+N├║mero de tel├⌐fono: 2234-7141 Correo electr├│nico: contabilidad@almacenesbousa.com
+Correo electr├│nico: dte@plg.com.sv Nombre comercial: ALMACENES BOU, S.A. DE C.V.
+Nombre comercial: PLG DIVISION ADUANAS S.A. DE C.V.
+Tipo de establecimien.: Casa matriz
+Otros
+Precio Ventas No Ventas Ventas
+No. Cant. Unidad C├│digo Descripci├│n montos No
+Unitario Sujetas Exentas Gravadas
+Afectos
+1 1.00 Otra 16 FLETE MARITIMO DE 2,350.00 0.00 2,350.00 0.00 0.00
+IMPORTACION FCL
+2 1.00 Otra 20 CARGOS DE NAVIERA 350.00 0.00 0.00 0.00 350.00
+Suma: 0.00 2,350.00 0.00 350.00
+Condici├│n de la Operaci├│n: Cr├⌐dito 30 D Suma Total de Operaciones: 2,700.00
+Fecha de vencimiento: 13/11/2025 Descuento a Vtas No Sujetas: 0.00
+Valor en Letras Descuento a Vtas Exentas: 0.00
+DOS MIL SETECIENTOS CUARENTA Y CINCO CON 50/100 DOLARES Descuento a Vtas Gravadas: 0.00
+Observaciones: Sub-Total: 2,700.00
+ORIGEN: SANTOS PT // DESTINO: ACAJUTLA // REF BL. SSZACL2507005 // IVA (13.00%): 45.50
+CNTR: MRSU0112990 // 25OT2292 Monto Total de la Operaci├│n: 2,745.50
+Emitido por: Recibido por: IVA Percibido: 0.00
+Nombre: Nombre: IVA Retenido: 0.00
+Documento: Documento: Retenci├│n de Renta: 0.00
+Total Otros Montos no Afectos: 0.00
+Total: 2,745.50
+Documento: 6067, Usuario: Genesis Marroquin P├ígina 1 de 1
+
+================================================================================
+AN├üLISIS COMPLETADO
+================================================================================
+Longitud del texto: 2189 caracteres
+
+================================================================================
+ANALIZANDO: WRT WORLD ENTEPRISES SV25-856 25OT1770.PDF
+================================================================================
+
+--- P├üGINA 1 ---
+INVOICE ORIGINAL
+Date: 29/08/2025
+PLG DIVISION ADUANAS SA DE CV
+Invoice N┬║: SV25-856
+Total amount: $5,065.00
+9a. Calle Poniente BIS, entre 95 y 99 Avenida Norte # 46
+Colonia Escalon, San Salvador, EL Salvador, C.A. Due date:
+Proveedor: Wrt World Enterprises BILL TO:WRT WORLD ENTERPRISES
+Consignatario: Juguesal, S.A. de C.V.
+Origen / Destino: Ningbo Pt / Acajutla
+Fecha de Creacion: May/28/2025
+Transportista: MSC
+11300 NW 131 STREET, MIAMI FL 33178 UNITED STATES
+AWB/BL No:/CARTA PO NGP2576492
+MBL: NGP2576492
+#Contenedor: ECMU2960610
+OT: 25OT1770
+Unit Description Unit Price USD Total Net USD
+1 FLETE MARITIMO DE IMPORTACION FCL $5,065.00 $5,065.00
+SON: CINCO MIL SESENTA y CINCO 00/100 US DOLARES TOTAL $5,065.00
+INFORMATION IN THIS DOCUMENT IS TRUE AND CORRECT
+
+================================================================================
+AN├üLISIS COMPLETADO
+================================================================================
+Longitud del texto: 766 caracteres

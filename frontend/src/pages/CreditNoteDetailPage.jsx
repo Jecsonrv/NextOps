@@ -5,18 +5,20 @@
 
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
-import {
-    formatDate,
-    formatDateLocalized,
-    formatDateTime,
-} from "../lib/dateUtils";
+import { formatDateLocalized, formatDateTime } from "../lib/dateUtils";
 import { FilePreview } from "../components/ui/FilePreview";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import {
     ArrowLeft,
     FileText,
@@ -30,10 +32,10 @@ import {
     Ship,
     User,
     FileMinus,
-    TrendingDown,
     CheckCircle,
     Clock,
     XCircle,
+    Trash2,
 } from "lucide-react";
 
 const estadoColors = {
@@ -51,10 +53,16 @@ export function CreditNoteDetailPage() {
     // Determinar página de origen para navegación contextual
     const originPage = location.state?.from || "/invoices/credit-notes";
 
-    const { data: creditNote, isLoading, error } = useQuery({
+    const {
+        data: creditNote,
+        isLoading,
+        error,
+    } = useQuery({
         queryKey: ["credit-note", id],
         queryFn: async () => {
-            const response = await apiClient.get(`/invoices/credit-notes/${id}/`);
+            const response = await apiClient.get(
+                `/invoices/credit-notes/${id}/`
+            );
             return response.data;
         },
     });
@@ -65,6 +73,37 @@ export function CreditNoteDetailPage() {
         opening: false,
         error: null,
     });
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Mutation para eliminar nota de crédito
+    const deleteMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.delete(`/invoices/credit-notes/${id}/`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["credit-notes"]);
+            queryClient.invalidateQueries(["credit-notes-stats"]);
+            queryClient.invalidateQueries(["invoices"]);
+            toast.success("Nota de crédito eliminada exitosamente");
+            navigate("/invoices/credit-notes");
+        },
+        onError: (error) => {
+            const errorMsg =
+                error.response?.data?.detail ||
+                error.response?.data?.error ||
+                "Error al eliminar la nota de crédito";
+            toast.error(errorMsg);
+        },
+    });
+
+    const handleDelete = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = () => {
+        deleteMutation.mutate();
+        setShowDeleteConfirm(false);
+    };
 
     useEffect(() => {
         setFileCache(null);
@@ -72,9 +111,12 @@ export function CreditNoteDetailPage() {
     }, [id]);
 
     const fetchCreditNoteBlob = async () => {
-        const response = await apiClient.get(`/invoices/credit-notes/${id}/file/`, {
-            responseType: "blob",
-        });
+        const response = await apiClient.get(
+            `/invoices/credit-notes/${id}/file/`,
+            {
+                responseType: "blob",
+            }
+        );
         return response.data;
     };
 
@@ -120,7 +162,8 @@ export function CreditNoteDetailPage() {
             const contentDisposition = response.headers["content-disposition"];
             let filename = `NC_${creditNote.numero_nota || id}.pdf`;
             if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
                 if (filenameMatch && filenameMatch[1]) {
                     filename = filenameMatch[1];
                 }
@@ -231,7 +274,8 @@ export function CreditNoteDetailPage() {
                             </h1>
                         </div>
                         <p className="text-gray-600 mt-1 text-sm">
-                            {creditNote.proveedor_nombre || "Sin proveedor"} • Creada {formatDateTime(creditNote.created_at)}
+                            {creditNote.proveedor_nombre || "Sin proveedor"} •
+                            Creada {formatDateTime(creditNote.created_at)}
                         </p>
                     </div>
                 </div>
@@ -264,10 +308,21 @@ export function CreditNoteDetailPage() {
                                 ) : (
                                     <Download className="w-4 h-4 mr-2" />
                                 )}
-                                {fileActions.downloading ? "Descargando..." : "Descargar"}
+                                {fileActions.downloading
+                                    ? "Descargando..."
+                                    : "Descargar"}
                             </Button>
                         </>
                     )}
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Eliminar
+                    </Button>
                 </div>
             </div>
 
@@ -285,7 +340,9 @@ export function CreditNoteDetailPage() {
                                     </CardTitle>
                                     <Link
                                         to={`/invoices/${creditNote.invoice_data.id}`}
-                                        state={{ from: `/invoices/credit-notes/${id}` }}
+                                        state={{
+                                            from: `/invoices/credit-notes/${id}`,
+                                        }}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
                                     >
                                         <Eye className="w-4 h-4" />
@@ -300,7 +357,10 @@ export function CreditNoteDetailPage() {
                                             Número de Factura
                                         </label>
                                         <p className="text-lg font-bold text-blue-600 mt-1">
-                                            {creditNote.invoice_data.numero_factura}
+                                            {
+                                                creditNote.invoice_data
+                                                    .numero_factura
+                                            }
                                         </p>
                                     </div>
                                     <div>
@@ -308,7 +368,10 @@ export function CreditNoteDetailPage() {
                                             Estado
                                         </label>
                                         <p className="text-sm text-gray-700 mt-1 capitalize">
-                                            {creditNote.invoice_data.estado_provision_display || creditNote.invoice_data.estado_provision}
+                                            {creditNote.invoice_data
+                                                .estado_provision_display ||
+                                                creditNote.invoice_data
+                                                    .estado_provision}
                                         </p>
                                     </div>
                                 </div>
@@ -316,22 +379,55 @@ export function CreditNoteDetailPage() {
                                 {/* Cálculo de montos */}
                                 <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-700">Monto Original de Factura:</span>
+                                        <span className="text-sm text-gray-700">
+                                            Monto Original de Factura:
+                                        </span>
                                         <span className="font-semibold text-gray-900">
-                                            ${parseFloat(creditNote.invoice_data.monto || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                            $
+                                            {parseFloat(
+                                                creditNote.invoice_data.monto ||
+                                                    0
+                                            ).toLocaleString("es-MX", {
+                                                minimumFractionDigits: 2,
+                                            })}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-700">Nota de Crédito:</span>
+                                        <span className="text-sm text-gray-700">
+                                            Nota de Crédito:
+                                        </span>
                                         <span className="font-medium text-red-600">
-                                            -${Math.abs(parseFloat(creditNote.monto || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                            -$
+                                            {Math.abs(
+                                                parseFloat(
+                                                    creditNote.monto || 0
+                                                )
+                                            ).toLocaleString("es-MX", {
+                                                minimumFractionDigits: 2,
+                                            })}
                                         </span>
                                     </div>
                                     <div className="pt-3 border-t-2 border-gray-300">
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-gray-800">Monto Restante de Factura:</span>
+                                            <span className="font-bold text-gray-800">
+                                                Monto Restante de Factura:
+                                            </span>
                                             <span className="text-xl font-bold text-green-600">
-                                                ${(parseFloat(creditNote.invoice_data.monto || 0) - Math.abs(parseFloat(creditNote.monto || 0))).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                $
+                                                {(
+                                                    parseFloat(
+                                                        creditNote.invoice_data
+                                                            .monto || 0
+                                                    ) -
+                                                    Math.abs(
+                                                        parseFloat(
+                                                            creditNote.monto ||
+                                                                0
+                                                        )
+                                                    )
+                                                ).toLocaleString("es-MX", {
+                                                    minimumFractionDigits: 2,
+                                                })}
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1 text-right">
@@ -354,7 +450,9 @@ export function CreditNoteDetailPage() {
                                     </CardTitle>
                                     <Link
                                         to={`/ots/${creditNote.ot_data.id}`}
-                                        state={{ from: `/invoices/credit-notes/${id}` }}
+                                        state={{
+                                            from: `/invoices/credit-notes/${id}`,
+                                        }}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
                                     >
                                         <Eye className="w-4 h-4" />
@@ -372,7 +470,10 @@ export function CreditNoteDetailPage() {
                                             <div className="flex items-center gap-2 mt-1">
                                                 <User className="w-4 h-4 text-gray-400" />
                                                 <p className="font-medium text-gray-900">
-                                                    {creditNote.ot_data.operativo}
+                                                    {
+                                                        creditNote.ot_data
+                                                            .operativo
+                                                    }
                                                 </p>
                                             </div>
                                         </div>
@@ -391,7 +492,10 @@ export function CreditNoteDetailPage() {
                                                 Cliente
                                             </label>
                                             <p className="font-medium text-gray-900 mt-1">
-                                                {creditNote.ot_data.cliente_nombre}
+                                                {
+                                                    creditNote.ot_data
+                                                        .cliente_nombre
+                                                }
                                             </p>
                                         </div>
                                     )}
@@ -457,7 +561,12 @@ export function CreditNoteDetailPage() {
                                         Monto
                                     </label>
                                     <p className="text-2xl font-bold text-red-600 mt-1">
-                                        -${Math.abs(parseFloat(creditNote.monto || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                        -$
+                                        {Math.abs(
+                                            parseFloat(creditNote.monto || 0)
+                                        ).toLocaleString("es-MX", {
+                                            minimumFractionDigits: 2,
+                                        })}
                                     </p>
                                 </div>
 
@@ -468,7 +577,9 @@ export function CreditNoteDetailPage() {
                                     <div className="flex items-center gap-2 mt-1">
                                         <Calendar className="w-4 h-4 text-gray-400" />
                                         <p className="text-gray-900">
-                                            {formatDateLocalized(creditNote.fecha_emision)}
+                                            {formatDateLocalized(
+                                                creditNote.fecha_emision
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -537,8 +648,10 @@ export function CreditNoteDetailPage() {
                                                 Condiciones de Crédito
                                             </label>
                                             <p className="text-gray-900 mt-1">
-                                                {creditNote.proveedor
-                                                    .payment_terms}
+                                                {
+                                                    creditNote.proveedor
+                                                        .payment_terms
+                                                }
                                             </p>
                                         </div>
                                     )}
@@ -553,7 +666,9 @@ export function CreditNoteDetailPage() {
                             invoiceId={creditNote.id}
                             fileUrl={creditNote.file_url}
                             fileName={creditNote.uploaded_file_data.filename}
-                            contentType={creditNote.uploaded_file_data.content_type}
+                            contentType={
+                                creditNote.uploaded_file_data.content_type
+                            }
                             cachedFile={fileCache}
                             onFileLoaded={handleFileLoaded}
                             fileEndpoint={`/invoices/credit-notes/${creditNote.id}/file/`}
@@ -573,11 +688,23 @@ export function CreditNoteDetailPage() {
                                 <p className="text-sm font-medium text-gray-600 mb-2">
                                     Estado de la Nota
                                 </p>
-                                <Badge variant={estadoColors[creditNote.estado] || "secondary"}>
-                                    {creditNote.estado === "aplicada" && <CheckCircle className="w-3 h-3 mr-1" />}
-                                    {creditNote.estado === "pendiente" && <Clock className="w-3 h-3 mr-1" />}
-                                    {creditNote.estado === "rechazada" && <XCircle className="w-3 h-3 mr-1" />}
-                                    {creditNote.estado?.toUpperCase() || "DESCONOCIDO"}
+                                <Badge
+                                    variant={
+                                        estadoColors[creditNote.estado] ||
+                                        "secondary"
+                                    }
+                                >
+                                    {creditNote.estado === "aplicada" && (
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                    )}
+                                    {creditNote.estado === "pendiente" && (
+                                        <Clock className="w-3 h-3 mr-1" />
+                                    )}
+                                    {creditNote.estado === "rechazada" && (
+                                        <XCircle className="w-3 h-3 mr-1" />
+                                    )}
+                                    {creditNote.estado?.toUpperCase() ||
+                                        "DESCONOCIDO"}
                                 </Badge>
                             </div>
                         </CardContent>
@@ -598,7 +725,8 @@ export function CreditNoteDetailPage() {
                                         Nombre del Archivo
                                     </label>
                                     <p className="text-sm text-gray-900 mt-1 break-words font-mono">
-                                        {creditNote.uploaded_file_data.filename || "NC.pdf"}
+                                        {creditNote.uploaded_file_data
+                                            .filename || "NC.pdf"}
                                     </p>
                                 </div>
 
@@ -609,7 +737,12 @@ export function CreditNoteDetailPage() {
                                                 Tamaño
                                             </label>
                                             <p className="text-sm text-gray-900 mt-1">
-                                                {creditNote.uploaded_file_data.size_mb} MB
+                                                {
+                                                    creditNote
+                                                        .uploaded_file_data
+                                                        .size_mb
+                                                }{" "}
+                                                MB
                                             </p>
                                         </div>
                                     )}
@@ -618,9 +751,14 @@ export function CreditNoteDetailPage() {
                                             Tipo
                                         </label>
                                         <p className="text-sm text-gray-900 mt-1 font-medium">
-                                            {creditNote.uploaded_file_data.content_type === "application/pdf"
+                                            {creditNote.uploaded_file_data
+                                                .content_type ===
+                                            "application/pdf"
                                                 ? "PDF"
-                                                : creditNote.uploaded_file_data.content_type?.split("/")[1]?.toUpperCase() || "Archivo"}
+                                                : creditNote.uploaded_file_data.content_type
+                                                      ?.split("/")[1]
+                                                      ?.toUpperCase() ||
+                                                  "Archivo"}
                                         </p>
                                     </div>
                                 </div>
@@ -638,7 +776,9 @@ export function CreditNoteDetailPage() {
                                         ) : (
                                             <Eye className="w-4 h-4 mr-2" />
                                         )}
-                                        {fileActions.opening ? "Abriendo..." : "Ver en navegador"}
+                                        {fileActions.opening
+                                            ? "Abriendo..."
+                                            : "Ver en navegador"}
                                     </Button>
                                     <Button
                                         variant="default"
@@ -652,7 +792,9 @@ export function CreditNoteDetailPage() {
                                         ) : (
                                             <Download className="w-4 h-4 mr-2" />
                                         )}
-                                        {fileActions.downloading ? "Descargando..." : "Descargar archivo"}
+                                        {fileActions.downloading
+                                            ? "Descargando..."
+                                            : "Descargar archivo"}
                                     </Button>
                                     {fileActions.error && (
                                         <p className="text-xs text-red-600 text-center">
@@ -675,9 +817,11 @@ export function CreditNoteDetailPage() {
                                     Método de Carga
                                 </label>
                                 <Badge variant="outline" className="mt-2">
-                                    {creditNote.processing_source === "upload_auto"
+                                    {creditNote.processing_source ===
+                                    "upload_auto"
                                         ? "Automático"
-                                        : creditNote.processing_source === "manual_entry"
+                                        : creditNote.processing_source ===
+                                          "manual_entry"
                                         ? "Manual"
                                         : "Desconocido"}
                                 </Badge>
@@ -695,17 +839,32 @@ export function CreditNoteDetailPage() {
                             )}
 
                             {creditNote.processed_at && (
-                                <div className={!creditNote.processed_by ? "pt-3 border-t border-gray-200" : ""}>
+                                <div
+                                    className={
+                                        !creditNote.processed_by
+                                            ? "pt-3 border-t border-gray-200"
+                                            : ""
+                                    }
+                                >
                                     <label className="text-xs font-semibold text-gray-600 uppercase">
                                         Procesado
                                     </label>
                                     <p className="text-gray-900 mt-1">
-                                        {formatDateTime(creditNote.processed_at)}
+                                        {formatDateTime(
+                                            creditNote.processed_at
+                                        )}
                                     </p>
                                 </div>
                             )}
 
-                            <div className={(!creditNote.processed_at && !creditNote.processed_by) ? "pt-3 border-t border-gray-200" : ""}>
+                            <div
+                                className={
+                                    !creditNote.processed_at &&
+                                    !creditNote.processed_by
+                                        ? "pt-3 border-t border-gray-200"
+                                        : ""
+                                }
+                            >
                                 <label className="text-xs font-semibold text-gray-600 uppercase">
                                     Creada
                                 </label>
@@ -728,6 +887,51 @@ export function CreditNoteDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Diálogo de Confirmación */}
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                title="Eliminar Nota de Crédito"
+                message={
+                    <div>
+                        <p className="mb-2">
+                            ¿Estás seguro de que deseas eliminar esta nota de
+                            crédito?
+                        </p>
+                        <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm">
+                            <p>
+                                <strong>Número:</strong>{" "}
+                                {creditNote?.numero_nota}
+                            </p>
+                            <p>
+                                <strong>Monto:</strong> -$
+                                {Math.abs(
+                                    parseFloat(creditNote?.monto || 0)
+                                ).toFixed(2)}
+                            </p>
+                            <p>
+                                <strong>Proveedor:</strong>{" "}
+                                {creditNote?.proveedor_nombre}
+                            </p>
+                            {creditNote?.invoice_data && (
+                                <p>
+                                    <strong>Factura:</strong>{" "}
+                                    {creditNote.invoice_data.numero_factura}
+                                </p>
+                            )}
+                        </div>
+                        <p className="mt-3 text-red-600 font-medium">
+                            Esta acción no se puede deshacer. Si la nota está
+                            aplicada, se revertirá el monto en la factura.
+                        </p>
+                    </div>
+                }
+                confirmText="Eliminar"
+                confirmVariant="danger"
+                isLoading={deleteMutation.isPending}
+            />
         </div>
     );
 }

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 
@@ -45,3 +46,14 @@ export function AdminProfileView({ user }) {
         </Card>
     );
 }
+
+AdminProfileView.propTypes = {
+    user: PropTypes.shape({
+        username: PropTypes.string,
+        full_name: PropTypes.string,
+        email: PropTypes.string,
+        role: PropTypes.string,
+        is_active: PropTypes.bool,
+        date_joined: PropTypes.string,
+    }).isRequired,
+};

@@ -1,14 +1,5 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import { Chip, Tooltip } from '@mui/material';
-import {
-  CheckCircle,
-  HourglassEmpty,
-  Warning,
-  Cancel,
-  RemoveCircle,
-  Block,
-  RateReview
-} from '@mui/icons-material';
 
 /**
  * Badge visual para mostrar el estado de provisión de una factura.
@@ -122,6 +113,10 @@ const InvoiceStatusBadge = ({ invoice }) => {
   );
 };
 
+InvoiceStatusBadge.propTypes = {
+    invoice: PropTypes.object.isRequired,
+};
+
 /**
  * Badge para mostrar el resultado de una disputa.
  */
@@ -177,10 +172,14 @@ export const DisputeResultBadge = ({ resultado }) => {
   );
 };
 
+DisputeResultBadge.propTypes = {
+    resultado: PropTypes.string,
+};
+
 /**
  * Indicador de tipo de costo (vinculado vs auxiliar).
  */
-export const CostTypeBadge = ({ invoice }) => {
+export const CostTypeBadge = () => {
   // Badge removido - ya no se muestra
   return null;
 };
@@ -212,6 +211,10 @@ export const ExcludedFromStatsBadge = ({ invoice }) => {
       />
     </Tooltip>
   );
+};
+
+ExcludedFromStatsBadge.propTypes = {
+    invoice: PropTypes.object.isRequired,
 };
 
 export default InvoiceStatusBadge;

@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "../lib/api";
+
 /**
  * Página de gestión de Alias de Clientes
  * Gestiona la normalización de nombres de clientes y sus aliases cortos
@@ -58,6 +61,14 @@ export function ClientAliasesPage() {
 
     // Queries
     const { data: aliasesData, isLoading } = useClientAliases(filters);
+    const { data: stats } = useQuery({
+        queryKey: ["client-aliases-stats", filters],
+        queryFn: async () => {
+            const params = new URLSearchParams(filters);
+            const response = await apiClient.get(`/client-aliases/stats/?${params}`);
+            return response.data;
+        },
+    });
     const updateMutation = useUpdateAlias();
     const verifyMutation = useVerifyAlias();
     const deleteMutation = useDeleteAlias();
@@ -207,7 +218,7 @@ export function ClientAliasesPage() {
                                     Total Alias
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {aliasesData?.count || 0}
+                                    {stats?.total_aliases || 0}
                                 </p>
                             </div>
                             <Users className="w-8 h-8 text-blue-500" />
@@ -223,10 +234,7 @@ export function ClientAliasesPage() {
                                     Verificados
                                 </p>
                                 <p className="text-2xl font-bold text-green-600">
-                                    {
-                                        aliases.filter((a) => a.is_verified)
-                                            .length
-                                    }
+                                    {stats?.verified_count || 0}
                                 </p>
                             </div>
                             <CheckCircle className="w-8 h-8 text-green-500" />
@@ -242,10 +250,7 @@ export function ClientAliasesPage() {
                                     Mergeados
                                 </p>
                                 <p className="text-2xl font-bold text-purple-600">
-                                    {
-                                        aliases.filter((a) => a.merged_into)
-                                            .length
-                                    }
+                                    {stats?.merged_count || 0}
                                 </p>
                             </div>
                             <Link2 className="w-8 h-8 text-purple-500" />
@@ -258,16 +263,13 @@ export function ClientAliasesPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-600">
-                                    Total Usos
+                                    Sugerencias Pendientes
                                 </p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                    {aliases.reduce(
-                                        (sum, a) => sum + (a.usage_count || 0),
-                                        0
-                                    )}
+                                <p className="text-2xl font-bold text-yellow-600">
+                                    {stats?.pending_matches || 0}
                                 </p>
                             </div>
-                            <TrendingUp className="w-8 h-8 text-blue-500" />
+                            <AlertCircle className="w-8 h-8 text-yellow-500" />
                         </div>
                     </CardContent>
                 </Card>
@@ -420,6 +422,15 @@ export function ClientAliasesPage() {
                                             Alias
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            NIT / NRC 🇸🇻
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Tipo Contribuyente
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Retención Renta/ISR 1%
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Estado
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -477,6 +488,55 @@ export function ClientAliasesPage() {
                                                     <span className="text-sm text-gray-400 italic">
                                                         Sin alias
                                                     </span>
+                                                )}
+                                            </td>
+
+                                            {/* NIT / NRC */}
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm space-y-0.5">
+                                                    {alias.nit && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500 text-xs">NIT:</span>
+                                                            <span className="text-gray-900 font-mono text-xs">{alias.nit}</span>
+                                                        </div>
+                                                    )}
+                                                    {alias.nrc && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500 text-xs">NRC:</span>
+                                                            <span className="text-gray-900 font-mono text-xs">{alias.nrc}</span>
+                                                        </div>
+                                                    )}
+                                                    {!alias.nit && !alias.nrc && (
+                                                        <span className="text-gray-400 italic text-xs">Sin datos</span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* Tipo Contribuyente */}
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                                    alias.tipo_contribuyente === 'gran_contribuyente'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : alias.tipo_contribuyente === 'contribuyente_normal'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : alias.tipo_contribuyente === 'pequeño_contribuyente'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : alias.tipo_contribuyente === 'regimen_simple'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {alias.tipo_contribuyente_display || 'No especificado'}
+                                                </span>
+                                            </td>
+
+                                            {/* Retención Renta/ISR */}
+                                            <td className="px-6 py-4">
+                                                {alias.aplica_retencion_iva ? (
+                                                    <Badge variant="warning" className="text-xs font-semibold">
+                                                        ⚠️ Retiene Renta/ISR 1%
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-gray-400 italic text-xs">No retiene</span>
                                                 )}
                                             </td>
 

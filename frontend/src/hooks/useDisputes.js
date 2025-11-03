@@ -9,7 +9,7 @@ export function useDisputes(filters = {}) {
         queryKey: ["disputes", filters],
         queryFn: async () => {
             const params = new URLSearchParams(
-                Object.entries(filters).filter(([_, value]) => value)
+                Object.entries(filters).filter(([, value]) => value)
             );
             const response = await apiClient.get(
                 `/invoices/disputes/?${params.toString()}`

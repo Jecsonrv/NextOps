@@ -1,16 +1,5 @@
-/* eslint-disable react/prop-types */
-/**
- * Página profesional de gestión de Clientes y Normalización de Aliases
- *
- * Sistema completo con datos reales:
- * - Visualización de aliases REALES de la BD
- * - Detección masiva de duplicados
- * - Tabs organizados por flujo de trabajo
- * - Proceso guiado de revisión y aprobación
- * - Analytics y métricas en tiempo real
- */
-
-import { useState } from "react";
+import PropTypes from "prop-types";
+import { useState, useMemo } from "react";
 import {
     Users,
     TrendingUp,
@@ -40,7 +29,6 @@ import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { showConfirm } from "../utils/toast";
 import { InputDialog } from "../components/ui/InputDialog";
 import {
-    useClientAliases,
     useSuggestAllMatches,
     useApplyNormalization,
     useSimilarityMatches,
@@ -51,6 +39,7 @@ import {
 
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "../lib/api";
+
 export default function ClientsPage() {
     // Estados
     const [activeTab, setActiveTab] = useState("overview");
@@ -73,12 +62,26 @@ export default function ClientsPage() {
 
     // Dialogs
     const [detectDialog, setDetectDialog] = useState({ isOpen: false });
-    const [rejectDialog, setRejectDialog] = useState({ isOpen: false, match: null });
-    const [resultDialog, setResultDialog] = useState({ isOpen: false, title: '', message: '' });
-    const [renameDialog, setRenameDialog] = useState({ isOpen: false, alias: null });
+    const [rejectDialog, setRejectDialog] = useState({
+        isOpen: false,
+        match: null,
+    });
+    const [resultDialog, setResultDialog] = useState({
+        isOpen: false,
+        title: "",
+        message: "",
+    });
+    const [renameDialog, setRenameDialog] = useState({
+        isOpen: false,
+        alias: null,
+    });
 
     // Queries - datos reales de la BD
-    const { data: aliasesData, isLoading: loadingAliases, refetch: refetchAliases } = useQuery({
+    const {
+        data: aliasesData,
+        isLoading: loadingAliases,
+        refetch: refetchAliases,
+    } = useQuery({
         queryKey: ["clients-from-ots", filters, searchTerm],
         queryFn: async () => {
             const params = new URLSearchParams();
@@ -129,14 +132,15 @@ export default function ClientsPage() {
     const renameClient = useRenameClient();
 
     // Datos procesados
-    const aliases = aliasesData?.results || [];
+    const aliases = useMemo(() => aliasesData?.results || [], [aliasesData]);
     const matches = matchesData?.results || [];
 
     // Filtrar pendientes: solo mostrar si AMBOS clientes NO están fusionados
-    const pendingMatches = matches.filter((m) =>
-        m.status === "pending" &&
-        !m.alias_1.merged_into &&
-        !m.alias_2.merged_into
+    const pendingMatches = matches.filter(
+        (m) =>
+            m.status === "pending" &&
+            !m.alias_1.merged_into &&
+            !m.alias_2.merged_into
     );
     const approvedMatches = matches.filter((m) => m.status === "approved");
 
@@ -156,8 +160,8 @@ export default function ClientsPage() {
 
             setResultDialog({
                 isOpen: true,
-                title: '✅ Análisis Completado',
-                message: `Clientes analizados: ${result.total_aliases_analyzed}\nNuevas sugerencias: ${result.suggestions_created}\nYa existían: ${result.suggestions_skipped}`
+                title: "✅ Análisis Completado",
+                message: `Clientes analizados: ${result.total_aliases_analyzed}\nNuevas sugerencias: ${result.suggestions_created}\nYa existían: ${result.suggestions_skipped}`,
             });
 
             refetchMatches();
@@ -166,8 +170,8 @@ export default function ClientsPage() {
         } catch (error) {
             setResultDialog({
                 isOpen: true,
-                title: '❌ Error',
-                message: error.response?.data?.error || error.message
+                title: "❌ Error",
+                message: error.response?.data?.error || error.message,
             });
         }
     };
@@ -211,8 +215,9 @@ export default function ClientsPage() {
 
             setResultDialog({
                 isOpen: true,
-                title: '✅ Sugerencia Rechazada',
-                message: 'La sugerencia de duplicado ha sido rechazada exitosamente.'
+                title: "✅ Sugerencia Rechazada",
+                message:
+                    "La sugerencia de duplicado ha sido rechazada exitosamente.",
             });
 
             refetchMatches();
@@ -220,8 +225,8 @@ export default function ClientsPage() {
         } catch (error) {
             setResultDialog({
                 isOpen: true,
-                title: '❌ Error',
-                message: error.response?.data?.error || error.message
+                title: "❌ Error",
+                message: error.response?.data?.error || error.message,
             });
         }
     };
@@ -252,8 +257,14 @@ export default function ClientsPage() {
 
             setResultDialog({
                 isOpen: true,
-                title: '✅ ' + result.message,
-                message: `OTs actualizadas: ${result.ots_updated}\nCliente final: ${result.final_target_name || result.target_alias?.original_name || finalDisplayName}`
+                title: "✅ " + result.message,
+                message: `OTs actualizadas: ${
+                    result.ots_updated
+                }\nCliente final: ${
+                    result.final_target_name ||
+                    result.target_alias?.original_name ||
+                    finalDisplayName
+                }`,
             });
 
             refetchAliases();
@@ -262,8 +273,8 @@ export default function ClientsPage() {
         } catch (error) {
             setResultDialog({
                 isOpen: true,
-                title: '❌ Error',
-                message: error.response?.data?.error || error.message
+                title: "❌ Error",
+                message: error.response?.data?.error || error.message,
             });
         }
     };
@@ -283,7 +294,7 @@ export default function ClientsPage() {
                 notes: `Renombrado desde la página de Clientes.`,
             });
 
-            if (result.status === 'conflict') {
+            if (result.status === "conflict") {
                 // Conflicto de duplicado
                 showConfirm(
                     `Ya existe un cliente con el nombre "${newName}". ¿Deseas fusionar "${alias.original_name}" con "${newName}"?`,
@@ -299,7 +310,7 @@ export default function ClientsPage() {
             } else {
                 setResultDialog({
                     isOpen: true,
-                    title: '✅ Cliente Renombrado',
+                    title: "✅ Cliente Renombrado",
                     message: result.message,
                 });
 
@@ -309,12 +320,11 @@ export default function ClientsPage() {
         } catch (error) {
             setResultDialog({
                 isOpen: true,
-                title: '❌ Error al Renombrar',
+                title: "❌ Error al Renombrar",
                 message: error.response?.data?.error || error.message,
             });
         }
     };
-
 
     // Tabs
     const tabs = [
@@ -443,7 +453,9 @@ export default function ClientsPage() {
                                             : ""
                                     }`}
                                 />
-                                <span className="hidden sm:inline">Actualizar</span>
+                                <span className="hidden sm:inline">
+                                    Actualizar
+                                </span>
                             </Button>
                             <Button
                                 size="sm"
@@ -484,9 +496,14 @@ export default function ClientsPage() {
                                 `}
                             >
                                 <Icon className="w-4 h-4" />
-                                <span className="hidden sm:inline">{tab.label}</span>
+                                <span className="hidden sm:inline">
+                                    {tab.label}
+                                </span>
                                 {tab.count > 0 && (
-                                    <Badge variant={tab.badge || "secondary"} className="text-xs">
+                                    <Badge
+                                        variant={tab.badge || "secondary"}
+                                        className="text-xs"
+                                    >
                                         {tab.count}
                                     </Badge>
                                 )}
@@ -567,9 +584,7 @@ export default function ClientsPage() {
                 onClose={() => setDetectDialog({ isOpen: false })}
                 onConfirm={confirmDetectDuplicates}
                 title="¿Analizar TODOS los clientes?"
-                message="Esto comparará todos los nombres con fuzzy matching para detectar posibles duplicados.
-
-Solo genera sugerencias, no fusiona automáticamente."
+                message="Esto comparará todos los nombres con fuzzy matching para detectar posibles duplicados.\r\n\r\nSolo genera sugerencias, no fusiona automáticamente."
                 confirmText="Analizar"
                 variant="default"
                 isConfirming={suggestMatches.isPending}
@@ -579,7 +594,9 @@ Solo genera sugerencias, no fusiona automáticamente."
             {rejectDialog.match && (
                 <InputDialog
                     isOpen={rejectDialog.isOpen}
-                    onClose={() => setRejectDialog({ isOpen: false, match: null })}
+                    onClose={() =>
+                        setRejectDialog({ isOpen: false, match: null })
+                    }
                     onConfirm={confirmRejectMatch}
                     title="¿Por qué no son duplicados?"
                     message={`"${rejectDialog.match.alias_1.original_name}"\nvs\n"${rejectDialog.match.alias_2.original_name}"`}
@@ -593,8 +610,12 @@ Solo genera sugerencias, no fusiona automáticamente."
             {/* Dialog: Resultados */}
             <ConfirmDialog
                 isOpen={resultDialog.isOpen}
-                onClose={() => setResultDialog({ isOpen: false, title: '', message: '' })}
-                onConfirm={() => setResultDialog({ isOpen: false, title: '', message: '' })}
+                onClose={() =>
+                    setResultDialog({ isOpen: false, title: "", message: "" })
+                }
+                onConfirm={() =>
+                    setResultDialog({ isOpen: false, title: "", message: "" })
+                }
                 title={resultDialog.title}
                 message={resultDialog.message}
                 confirmText="Entendido"
@@ -606,1012 +627,17 @@ Solo genera sugerencias, no fusiona automáticamente."
             {renameDialog.alias && (
                 <InputDialog
                     isOpen={renameDialog.isOpen}
-                    onClose={() => setRenameDialog({ isOpen: false, alias: null })}
+                    onClose={() =>
+                        setRenameDialog({ isOpen: false, alias: null })
+                    }
                     onConfirm={confirmRename}
                     title={`Renombrar a "${renameDialog.alias.original_name}"`}
-                    message="Ingresa el nuevo nombre para el cliente. Esto actualizará todas las OTs asociadas."
-                    placeholder="Nuevo nombre del cliente"
+                    message="Ingrese el nuevo nombre para este cliente"
+                    placeholder="Nuevo nombre"
                     confirmText="Renombrar"
                     isConfirming={renameClient.isPending}
                 />
             )}
         </div>
-    );
-}
-
-// ============= SUB-COMPONENTES =============
-
-function OverviewTab({
-    aliases,
-    pendingMatches,
-    approvedMatches,
-    stats,
-    onNavigate,
-}) {
-    // Usar top_clients del backend si está disponible, sino calcular localmente
-    const topClients =
-        stats?.top_clients && stats.top_clients.length > 0
-            ? stats.top_clients
-            : [...aliases]
-                  .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
-                  .slice(0, 10);
-
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Estado del Sistema</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {pendingMatches.length > 0 && (
-                            <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white/70 p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-                                        <AlertCircle className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-900">
-                                            {pendingMatches.length} pendientes
-                                            por revisar
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            Prioriza estas sugerencias para
-                                            mantener la base limpia.
-                                        </p>
-                                    </div>
-                                </div>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={onNavigate}
-                                >
-                                    Revisar
-                                </Button>
-                            </div>
-                        )}
-
-                        {approvedMatches.length > 0 && (
-                            <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white/70 p-4">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                                    <CheckCircle className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-gray-900">
-                                        {approvedMatches.length} normalizaciones
-                                        completadas
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        Tus clientes duplicados ya fueron
-                                        consolidados.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {pendingMatches.length === 0 &&
-                            approvedMatches.length === 0 && (
-                                <div className="text-center py-8 text-sm text-gray-500">
-                                    <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                                    No hay sugerencias por el momento.
-                                </div>
-                            )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Package className="w-5 h-5" />
-                        Top 10 Clientes
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {topClients.length > 0 ? (
-                        <div className="space-y-2">
-                            {topClients.map((alias, idx) => (
-                                <div
-                                    key={alias.id}
-                                    className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white/60 p-3 transition-colors hover:border-gray-200"
-                                >
-                                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                                        <span className="w-6 text-sm font-semibold text-gray-400">
-                                            #{idx + 1}
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium text-gray-900">
-                                                {alias.original_name}
-                                            </p>
-                                            {alias.country && (
-                                                <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                                                    <Globe className="h-3 w-3 text-gray-400" />
-                                                    <span>{alias.country}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600">
-                                        <FileText className="h-3 w-3 text-gray-400" />
-                                        {alias.usage_count || 0}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-500">Sin datos</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function PendingTab({ matches, onApprove, onReject, isLoading }) {
-    const [sortBy, setSortBy] = useState("score"); // score, date, impact
-    const [filterScore, setFilterScore] = useState("all"); // all, high, medium
-    const [expandedMatch, setExpandedMatch] = useState(null);
-
-    const highSimilarityCount = matches.filter(
-        (match) => match.similarity_score >= 90
-    ).length;
-    const mediumSimilarityCount = matches.filter(
-        (match) => match.similarity_score >= 75 && match.similarity_score < 90
-    ).length;
-
-    // Filtrar matches por score
-    const filteredMatches = matches.filter((match) => {
-        if (filterScore === "high") return match.similarity_score >= 90;
-        if (filterScore === "medium")
-            return match.similarity_score >= 75 && match.similarity_score < 90;
-        return true; // all
-    });
-
-    // Ordenar matches
-    const sortedMatches = [...filteredMatches].sort((a, b) => {
-        if (sortBy === "score") return b.similarity_score - a.similarity_score;
-        if (sortBy === "date")
-            return new Date(b.created_at) - new Date(a.created_at);
-        if (sortBy === "impact") {
-            const impactA =
-                (a.alias_1.usage_count || 0) + (a.alias_2.usage_count || 0);
-            const impactB =
-                (b.alias_1.usage_count || 0) + (b.alias_2.usage_count || 0);
-            return impactB - impactA;
-        }
-        return 0;
-    });
-
-    const getScoreLabel = (score) => {
-        if (score >= 95) return "Casi Exacto";
-        if (score >= 85) return "Alta Similitud";
-        if (score >= 75) return "Media Similitud";
-        return "Baja Similitud";
-    };
-
-    if (isLoading) {
-        return (
-            <Card>
-                <CardContent className="py-12">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-500">Cargando sugerencias...</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (matches.length === 0) {
-        return (
-            <Card>
-                <CardContent className="py-12">
-                    <div className="text-center">
-                        <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                            ¡Todo revisado!
-                        </h3>
-                        <p className="text-gray-500 mb-4">
-                            No hay sugerencias pendientes de revisión
-                        </p>
-                        <p className="text-sm text-gray-400">
-                            Usa &quot;Detectar Duplicados&quot; para generar
-                            nuevas sugerencias
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    return (
-        <div className="space-y-5">
-            {/* Filtros y ordenamiento */}
-            <Card>
-                <CardContent className="space-y-4 pt-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Ordenar por
-                            </label>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
-                            >
-                                <option value="score">Mayor similitud</option>
-                                <option value="impact">Mayor impacto</option>
-                                <option value="date">Más recientes</option>
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Filtrar por similitud
-                            </label>
-                            <select
-                                value={filterScore}
-                                onChange={(e) => setFilterScore(e.target.value)}
-                                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
-                            >
-                                <option value="all">
-                                    Todas ({matches.length})
-                                </option>
-                                <option value="high">
-                                    Alta similitud ≥90% ({highSimilarityCount})
-                                </option>
-                                <option value="medium">
-                                    Media 75-90% ({mediumSimilarityCount})
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                        <div>
-                            <p className="text-sm font-semibold text-gray-800">
-                                {sortedMatches.length} sugerencias activas
-                            </p>
-                            <p className="text-xs text-gray-500">
-                                Usá los filtros para enfocarte en las
-                                coincidencias más relevantes.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-gray-600">
-                            <span className="rounded-full border border-green-100 bg-white px-3 py-1 text-green-600">
-                                ≥90%: {highSimilarityCount}
-                            </span>
-                            <span className="rounded-full border border-amber-100 bg-white px-3 py-1 text-amber-600">
-                                75-90%: {mediumSimilarityCount}
-                            </span>
-                            <span className="rounded-full border border-gray-200 bg-white px-3 py-1">
-                                Total: {matches.length}
-                            </span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Lista de sugerencias */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Sugerencias Pendientes</span>
-                        <Badge variant="warning">{sortedMatches.length}</Badge>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {sortedMatches.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                            No hay sugerencias con los filtros seleccionados
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {sortedMatches.map((match) => {
-                                const isExpanded = expandedMatch === match.id;
-                                const totalImpact =
-                                    (match.alias_1.usage_count || 0) +
-                                    (match.alias_2.usage_count || 0);
-
-                                // Determinar cuál es "actual" (menos OTs) y cuál es "similar" (más OTs)
-                                const alias1Uses =
-                                    match.alias_1.usage_count || 0;
-                                const alias2Uses =
-                                    match.alias_2.usage_count || 0;
-                                const currentAlias =
-                                    alias1Uses <= alias2Uses
-                                        ? match.alias_1
-                                        : match.alias_2;
-                                const similarAlias =
-                                    alias1Uses > alias2Uses
-                                        ? match.alias_1
-                                        : match.alias_2;
-                                const detectionIsAuto =
-                                    match.detection_method ===
-                                    "batch_fuzzywuzzy";
-
-                                return (
-                                    <div
-                                        key={match.id}
-                                        className="rounded-2xl border border-gray-200 bg-white/70 p-5 transition-all hover:border-gray-300 hover:shadow-sm"
-                                    >
-                                        <div className="flex flex-col gap-5">
-                                            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                                                <div className="flex-1 space-y-2">
-                                                    <p className="text-xs uppercase tracking-wide text-gray-400">
-                                                        Cliente actual
-                                                    </p>
-                                                    <p className="text-base font-semibold text-gray-900">
-                                                        {
-                                                            currentAlias.original_name
-                                                        }
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                                        {currentAlias.country && (
-                                                            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5">
-                                                                {
-                                                                    currentAlias.country
-                                                                }
-                                                            </span>
-                                                        )}
-                                                        <span className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-0.5">
-                                                            <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                                            {currentAlias.usage_count ||
-                                                                0}{" "}
-                                                            usos
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-start gap-3 text-sm text-gray-600 md:flex-col md:items-end">
-                                                    <span
-                                                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-                                                            match.similarity_score >=
-                                                            95
-                                                                ? "bg-green-50 text-green-700"
-                                                                : match.similarity_score >=
-                                                                  85
-                                                                ? "bg-blue-50 text-blue-700"
-                                                                : match.similarity_score >=
-                                                                  75
-                                                                ? "bg-amber-50 text-amber-700"
-                                                                : "bg-gray-100 text-gray-600"
-                                                        }`}
-                                                    >
-                                                        {match.similarity_score.toFixed(
-                                                            1
-                                                        )}
-                                                        %
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {getScoreLabel(
-                                                            match.similarity_score
-                                                        )}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        Impacto: {totalImpact}{" "}
-                                                        OTs
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex-1 space-y-2 text-left md:text-right">
-                                                    <p className="text-xs uppercase tracking-wide text-gray-400">
-                                                        Posible duplicado
-                                                    </p>
-                                                    <p className="text-base font-semibold text-gray-900">
-                                                        {
-                                                            similarAlias.original_name
-                                                        }
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 md:justify-end">
-                                                        <span className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-0.5">
-                                                            <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                                            {similarAlias.usage_count ||
-                                                                0}{" "}
-                                                            usos
-                                                        </span>
-                                                        {similarAlias.country && (
-                                                            <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5">
-                                                                {
-                                                                    similarAlias.country
-                                                                }
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 md:flex-row md:items-center md:justify-between">
-                                                <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                                                    <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 font-medium text-gray-600">
-                                                        {detectionIsAuto
-                                                            ? "Detectado automáticamente"
-                                                            : "Cargado manualmente"}
-                                                    </span>
-                                                    <button
-                                                        onClick={() =>
-                                                            setExpandedMatch(
-                                                                isExpanded
-                                                                    ? null
-                                                                    : match.id
-                                                            )
-                                                        }
-                                                        className="text-blue-600 transition-colors hover:text-blue-700"
-                                                    >
-                                                        {isExpanded
-                                                            ? "Ocultar detalles"
-                                                            : "Ver detalles"}
-                                                    </button>
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            onApprove(match)
-                                                        }
-                                                        disabled={isLoading}
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                    >
-                                                        <CheckCircle className="mr-1 h-4 w-4" />
-                                                        Normalizar
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            onReject(match)
-                                                        }
-                                                        disabled={isLoading}
-                                                        className="border-red-300 text-red-700 hover:bg-red-50"
-                                                    >
-                                                        <XCircle className="mr-1 h-4 w-4" />
-                                                        Rechazar
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Panel expandido */}
-                                        {isExpanded && (
-                                            <div className="border-t border-gray-100 bg-white px-5 pb-5 pt-4">
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <div className="rounded-xl border border-gray-100 bg-white p-3">
-                                                        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                                            Cliente 1
-                                                        </h4>
-                                                        <p className="mt-2 text-sm font-medium text-gray-900">
-                                                            {
-                                                                match.alias_1
-                                                                    .original_name
-                                                            }
-                                                        </p>
-                                                        <div className="mt-2 space-y-1 text-xs text-gray-600">
-                                                            <p>
-                                                                • ID:{" "}
-                                                                {
-                                                                    match
-                                                                        .alias_1
-                                                                        .id
-                                                                }
-                                                            </p>
-                                                            <p>
-                                                                • País:{" "}
-                                                                {match.alias_1
-                                                                    .country ||
-                                                                    "-"}
-                                                            </p>
-                                                            <p>
-                                                                • Usos:{" "}
-                                                                {match.alias_1
-                                                                    .usage_count ||
-                                                                    0}{" "}
-                                                                OTs
-                                                            </p>
-                                                            {match.alias_1
-                                                                .normalized_name && (
-                                                                <p>
-                                                                    •
-                                                                    Normalizado:{" "}
-                                                                    {
-                                                                        match
-                                                                            .alias_1
-                                                                            .normalized_name
-                                                                    }
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="rounded-xl border border-gray-100 bg-white p-3">
-                                                        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                                            Cliente 2
-                                                        </h4>
-                                                        <p className="mt-2 text-sm font-medium text-gray-900">
-                                                            {
-                                                                match.alias_2
-                                                                    .original_name
-                                                            }
-                                                        </p>
-                                                        <div className="mt-2 space-y-1 text-xs text-gray-600">
-                                                            <p>
-                                                                • ID:{" "}
-                                                                {
-                                                                    match
-                                                                        .alias_2
-                                                                        .id
-                                                                }
-                                                            </p>
-                                                            <p>
-                                                                • País:{" "}
-                                                                {match.alias_2
-                                                                    .country ||
-                                                                    "-"}
-                                                            </p>
-                                                            <p>
-                                                                • Usos:{" "}
-                                                                {match.alias_2
-                                                                    .usage_count ||
-                                                                    0}{" "}
-                                                                OTs
-                                                            </p>
-                                                            {match.alias_2
-                                                                .normalized_name && (
-                                                                <p>
-                                                                    •
-                                                                    Normalizado:{" "}
-                                                                    {
-                                                                        match
-                                                                            .alias_2
-                                                                            .normalized_name
-                                                                    }
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-600">
-                                                    <p className="leading-relaxed">
-                                                        <strong className="text-gray-700">
-                                                            ℹ️ Impacto estimado:
-                                                        </strong>{" "}
-                                                        Se actualizarán{" "}
-                                                        {match.alias_1
-                                                            .usage_count ||
-                                                            0}{" "}
-                                                        OTs que hoy usan “
-                                                        <span className="font-semibold text-gray-800">
-                                                            {
-                                                                match.alias_1
-                                                                    .original_name
-                                                            }
-                                                        </span>
-                                                        ” para que utilicen “
-                                                        <span className="font-semibold text-gray-800">
-                                                            {
-                                                                match.alias_2
-                                                                    .original_name
-                                                            }
-                                                        </span>
-                                                        ”. Total: {totalImpact}{" "}
-                                                        OTs afectadas.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function ApprovedTab({ matches, isLoading }) {
-    if (isLoading) {
-        return (
-            <Card>
-                <CardContent className="py-12">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-500">Cargando...</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (matches.length === 0) {
-        return (
-            <Card>
-                <CardContent className="py-12">
-                    <div className="text-center">
-                        <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                            Sin historial
-                        </h3>
-                        <p className="text-gray-500">
-                            Aún no hay normalizaciones aprobadas
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        Historial de Normalizaciones
-                    </span>
-                    <Badge variant="success">{matches.length}</Badge>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-3">
-                    {matches.map((match) => {
-                        const date = match.reviewed_at ? new Date(match.reviewed_at).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }) : 'Fecha desconocida';
-
-                        // Extraer los nombres desde review_notes si está disponible
-                        // Formato esperado: "Renombrado de 'OLD' a 'NEW'" o similar
-                        let sourceName = match.alias_1.original_name;
-                        let targetName = match.alias_2.original_name;
-                        let sourceOTs = match.alias_1.usage_count || 0;
-                        let targetOTs = match.alias_2.usage_count || 0;
-
-                        // Intentar detectar el orden correcto desde las notas
-                        if (match.review_notes) {
-                            const renameMatch = match.review_notes.match(/Renombrado de ['"](.+?)['"] a ['"](.+?)['"]/);
-                            const normMatch = match.review_notes.match(/Normalización masiva/);
-
-                            if (renameMatch) {
-                                sourceName = renameMatch[1];
-                                targetName = renameMatch[2];
-                            } else if (normMatch) {
-                                // En normalización masiva, buscar el patrón de OTs
-                                const otsMatch = match.review_notes.match(/(\d+) OTs/);
-                                if (otsMatch) {
-                                    const otsCount = parseInt(otsMatch[1]);
-                                    // El que tiene menos o igual OTs es el source
-                                    if (match.alias_1.usage_count <= match.alias_2.usage_count) {
-                                        sourceName = match.alias_1.original_name;
-                                        targetName = match.alias_2.original_name;
-                                        sourceOTs = match.alias_1.usage_count || 0;
-                                        targetOTs = match.alias_2.usage_count || 0;
-                                    } else {
-                                        sourceName = match.alias_2.original_name;
-                                        targetName = match.alias_1.original_name;
-                                        sourceOTs = match.alias_2.usage_count || 0;
-                                        targetOTs = match.alias_1.usage_count || 0;
-                                    }
-                                }
-                            }
-                        }
-
-                        return (
-                            <div
-                                key={match.id}
-                                className="rounded-2xl border border-gray-200 bg-gradient-to-r from-green-50/50 to-white p-4 sm:p-5 transition-all hover:shadow-md"
-                            >
-                                <div className="space-y-4">
-                                    {/* Header con fecha y score */}
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            <span>{date}</span>
-                                        </div>
-                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-white px-3 py-1 text-xs font-medium text-emerald-600 w-fit">
-                                            {match.similarity_score.toFixed(1)}% similitud
-                                        </span>
-                                    </div>
-
-                                    {/* Nombres */}
-                                    <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] items-center">
-                                        <div className="space-y-1">
-                                            <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
-                                                Origen
-                                            </p>
-                                            <p className="text-sm font-medium text-gray-700">
-                                                {sourceName}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {sourceOTs} OTs
-                                            </p>
-                                        </div>
-
-                                        <div className="hidden sm:flex items-center justify-center text-gray-300">
-                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
-                                                Destino (actual)
-                                            </p>
-                                            <p className="text-sm font-medium text-gray-700">
-                                                {targetName}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {targetOTs} OTs
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Notas */}
-                                    {match.review_notes && (
-                                        <div className="pt-3 border-t border-gray-100">
-                                            <p className="text-xs text-gray-500 italic">
-                                                <strong className="font-medium text-gray-600 not-italic">Notas:</strong> {match.review_notes}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Revisor */}
-                                    {match.reviewed_by_name && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <Users className="w-3.5 h-3.5" />
-                                            <span>Revisado por: {match.reviewed_by_name}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-function AllAliasesTab({
-    aliases,
-    searchTerm,
-    setSearchTerm,
-    filters,
-    setFilters,
-    isLoading,
-    matches,
-    aliasesData,
-    onRename,
-}) {
-    const totalPages = aliasesData?.count
-        ? Math.ceil(aliasesData.count / filters.page_size)
-        : 1;
-
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) {
-            setFilters({ ...filters, page: newPage });
-        }
-    };
-
-    const handlePageSizeChange = (newPageSize) => {
-        setFilters({ ...filters, page_size: newPageSize, page: 1 });
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span>Todos los Clientes</span>
-                    <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600">
-                        {aliasesData?.count || 0}
-                    </span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                {/* Filtros */}
-                <div className="mb-6 space-y-3">
-                    <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Buscar cliente..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
-                            />
-                        </div>
-                        <select
-                            value={filters.merged}
-                            onChange={(e) =>
-                                setFilters({
-                                    ...filters,
-                                    merged: e.target.value,
-                                })
-                            }
-                            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-200"
-                        >
-                            <option value="false">Solo activos</option>
-                            <option value="true">Fusionados</option>
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="has_ots"
-                            checked={filters.has_ots === "true"}
-                            onChange={(e) =>
-                                setFilters({
-                                    ...filters,
-                                    has_ots: e.target.checked ? "true" : "",
-                                })
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <label htmlFor="has_ots" className="ml-2 block text-sm text-gray-900">
-                            Mostrar solo clientes con OTs
-                        </label>
-                    </div>
-                </div>
-
-                {/* Tabla */}
-                {isLoading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-500">Cargando...</p>
-                    </div>
-                ) : aliases.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                            Sin resultados
-                        </h3>
-                        <p className="text-gray-500">
-                            {searchTerm
-                                ? "Intenta otro término"
-                                : "Sin clientes"}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <div className="min-w-full overflow-hidden rounded-2xl border border-gray-200">
-                            <table className="min-w-full divide-y divide-gray-100">
-                                <thead className="bg-gray-50/80">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Cliente
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            País
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Usos
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Estado
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Acciones
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                    {aliases.map((alias) => {
-                                        const hasPending = matches.some(
-                                            (m) =>
-                                                (m.alias_1.id === alias.id ||
-                                                    m.alias_2.id ===
-                                                        alias.id) &&
-                                                m.status === "pending"
-                                        );
-
-                                        return (
-                                            <tr
-                                                key={alias.id}
-                                                className="hover:bg-gray-50/80"
-                                            >
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    {alias.original_name}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {alias.country ? (
-                                                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                            <Globe className="h-3 w-3 text-gray-400" />
-                                                            <span>
-                                                                {alias.country}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-400">
-                                                            -
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-600">
-                                                        <FileText className="h-3 w-3 text-gray-400" />
-                                                        {alias.usage_count || 0}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-2 text-xs font-medium text-gray-600">
-                                                        {hasPending && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-100 bg-white px-3 py-1 text-amber-600">
-                                                                <AlertCircle className="h-3 w-3" />
-                                                                Duplicado
-                                                            </span>
-                                                        )}
-                                                        {alias.is_verified && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-white px-3 py-1 text-emerald-600">
-                                                                <CheckCircle2 className="h-3 w-3" />
-                                                                Verificado
-                                                            </span>
-                                                        )}
-                                                        {alias.merged_into && (
-                                                            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-                                                                <XCircle className="h-3 w-3" />
-                                                                Fusionado
-                                                            </span>
-                                                        )}
-                                                        {!hasPending &&
-                                                            !alias.is_verified &&
-                                                            !alias.merged_into && (
-                                                                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-500">
-                                                                    Normal
-                                                                </span>
-                                                            )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => onRename(alias)}
-                                                        disabled={alias.merged_into}
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                         {totalPages > 1 && (
-                            <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                                <div className="flex items-center gap-4 text-sm text-gray-700">
-                                    <span>Página {filters.page} de {totalPages}</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={filters.page === 1}
-                                        onClick={() => handlePageChange(filters.page - 1)}
-                                    >
-                                        Anterior
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={filters.page === totalPages}
-                                        onClick={() => handlePageChange(filters.page + 1)}
-                                    >
-                                        Siguiente
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
     );
 }

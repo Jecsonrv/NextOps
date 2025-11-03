@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -199,3 +200,9 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
         </div>
     );
 }
+
+OTsTableResponsive.propTypes = {
+    ots: PropTypes.array.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    deletingId: PropTypes.number,
+};

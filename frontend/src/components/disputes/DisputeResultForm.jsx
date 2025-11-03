@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   TextField,
@@ -183,6 +184,23 @@ const DisputeResultForm = ({ dispute, formData, setFormData }) => {
       </Box>
     </Box>
   );
+};
+
+DisputeResultForm.propTypes = {
+  dispute: PropTypes.shape({
+    monto_disputa: PropTypes.number,
+    invoice_data: PropTypes.shape({
+      numero_factura: PropTypes.string,
+      monto: PropTypes.number,
+    }),
+    tipo_disputa_display: PropTypes.string,
+  }).isRequired,
+  formData: PropTypes.shape({
+    resultado: PropTypes.string,
+    monto_recuperado: PropTypes.number,
+    resolucion: PropTypes.string,
+  }).isRequired,
+  setFormData: PropTypes.func.isRequired,
 };
 
 export default DisputeResultForm;

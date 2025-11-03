@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Provider, CostType, CostCategory
+from .models import Provider, CostType, CostCategory, InvoicePatternCatalog
 import re
 
 
@@ -347,3 +347,94 @@ class ProviderSerializer(serializers.ModelSerializer):
         if value not in categorias_validas:
             raise serializers.ValidationError(f"Categoría inválida. Opciones válidas: {', '.join(categorias_validas)}")
         return value
+
+
+class InvoicePatternCatalogSerializer(serializers.ModelSerializer):
+    """
+    Serializer para el Catálogo de Patrones de Facturas (Sistema Unificado)
+    """
+    tipo_patron_display = serializers.CharField(source='get_tipo_patron_display', read_only=True)
+    tipo_factura_display = serializers.CharField(source='get_tipo_factura_display', read_only=True)
+    
+    # Información del proveedor (para COSTO)
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
+    proveedor_id = serializers.IntegerField(source='proveedor.id', read_only=True)
+    
+    # Información del grupo padre
+    grupo_padre_nombre = serializers.CharField(source='grupo_padre.nombre', read_only=True)
+    
+    # Estadísticas calculadas
+    tasa_exito = serializers.ReadOnlyField()
+    
+    # Cantidad de patrones hijos (si es grupo)
+    patrones_hijos_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = InvoicePatternCatalog
+        fields = [
+            'id',
+            'nombre',
+            'tipo_patron',
+            'tipo_patron_display',
+            'tipo_factura',
+            'tipo_factura_display',
+            'activo',
+            'prioridad',
+            'porcentaje_iva_default',
+            'permite_iva_mixto',
+            
+            # Organización por grupos
+            'proveedor',
+            'proveedor_nombre',
+            'proveedor_id',
+            'tipo_documento',
+            'es_grupo_principal',
+            'grupo_padre',
+            'grupo_padre_nombre',
+            'campo_objetivo',
+            'patron_regex',
+            
+            # Patrones específicos (para compatibilidad con sistema anterior)
+            'patron_numero_factura',
+            'patron_numero_control',
+            'patron_fecha_emision',
+            'patron_nit_emisor',
+            'patron_nombre_emisor',
+            'patron_nit_cliente',
+            'patron_nombre_cliente',
+            'patron_subtotal_gravado',
+            'patron_subtotal_exento',
+            'patron_otros_montos',
+            'patron_subtotal',
+            'patron_iva',
+            'patron_total',
+            'patron_retencion_iva',
+            'patron_retencion_renta',
+            'patron_retencion',
+            
+            # Estadísticas
+            'uso_count',
+            'exito_count',
+            'tasa_exito',
+            'ultima_uso',
+            'patrones_hijos_count',
+            
+            # Configuración
+            'case_sensitive',
+            'casos_prueba',
+            
+            # Notas
+            'notas',
+            'ejemplo_texto',
+            
+            # Timestamps
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'uso_count', 'exito_count', 'ultima_uso']
+    
+    def get_patrones_hijos_count(self, obj):
+        """Retorna la cantidad de patrones hijos si es un grupo"""
+        if obj.es_grupo_principal:
+            return obj.patrones_hijos.filter(activo=True).count()
+        return 0

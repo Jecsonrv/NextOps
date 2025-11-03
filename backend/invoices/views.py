@@ -91,6 +91,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         Query params:
         - estado_provision: pendiente, provisionada, rechazada
         - estado_facturacion: pendiente, facturada
+        - estado_pago: pendiente, pagado_parcial, pagado_total
         - requiere_revision: true, false
         - ot_number: número de OT
         - proveedor_nombre: búsqueda parcial por nombre
@@ -112,6 +113,16 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         estado_facturacion = self.request.query_params.get('estado_facturacion')
         if estado_facturacion:
             queryset = queryset.filter(estado_facturacion=estado_facturacion)
+        
+        # Filtro por estado de pago
+        estado_pago = self.request.query_params.get('estado_pago')
+        if estado_pago:
+            queryset = queryset.filter(estado_pago=estado_pago)
+        
+        # Parámetro especial para excluir facturas pagadas (usado en pestaña "Provisionadas")
+        excluir_pagadas = self.request.query_params.get('excluir_pagadas')
+        if excluir_pagadas and excluir_pagadas.lower() == 'true':
+            queryset = queryset.exclude(estado_pago='pagado_total')
 
         requiere_revision = self.request.query_params.get('requiere_revision')
         if requiere_revision:
@@ -440,8 +451,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist('files[]')
         proveedor_id = request.data.get('proveedor_id')
         tipo_costo = request.data.get('tipo_costo', 'OTRO')
-        # CAMBIO: auto_parse desactivado por defecto para evitar timeouts
-        auto_parse = request.data.get('auto_parse', 'false').lower() == 'true'
+        # CAMBIO: auto_parse ACTIVADO por defecto para usar patrones MSC
+        auto_parse = request.data.get('auto_parse', 'true').lower() == 'true'
         
         if not files:
             return Response(
@@ -650,6 +661,23 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         logger.error(f"Error en auto-parsing para {file.name}: {e}")
                         # Continuar con valores por defecto
                 
+                # Serializar extraction_details para JSON (convertir datetime a string)
+                serialized_details = {}
+                if extracted_data.get('extraction_details'):
+                    for key, value in extracted_data['extraction_details'].items():
+                        if isinstance(value, dict):
+                            serialized_value = {}
+                            for k, v in value.items():
+                                if isinstance(v, (datetime, date)):
+                                    serialized_value[k] = v.isoformat()
+                                elif isinstance(v, Decimal):
+                                    serialized_value[k] = float(v)
+                                else:
+                                    serialized_value[k] = v
+                            serialized_details[key] = serialized_value
+                        else:
+                            serialized_details[key] = value
+                
                 # Crear Invoice
                 # Si no se extrajo número de factura, usar temporal
                 numero_factura = extracted_data['numero_factura']
@@ -681,6 +709,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     processed_at=timezone.now(),
                     requiere_revision=requiere_revision,
                     confianza_match=Decimal(str(extracted_data['confidence'])),
+                    referencias_detectadas=serialized_details,  # Guardar datos extraídos serializados
                 )
                 
                 # Si hay OT matcheada, asignarla
@@ -818,7 +847,14 @@ class InvoiceViewSet(viewsets.ModelViewSet):
 
         # Calcular estadísticas
         total = queryset.count()
-        provisionadas = queryset.filter(estado_provision='provisionada').count()
+        
+        # Provisionadas pero NO pagadas totalmente (para la pestaña "Provisionadas")
+        provisionadas = queryset.filter(
+            estado_provision='provisionada'
+        ).exclude(
+            estado_pago='pagado_total'
+        ).count()
+        
         disputadas = total_disputadas  # Usar el contador calculado antes de la exclusión
         pendientes_queryset = queryset.filter(
             estado_provision='pendiente',
@@ -865,11 +901,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         pendientes_sin_provision = queryset.filter(
             estado_provision='pendiente'
         ).count()
+        
+        # Contador de facturas pagadas totalmente
+        pagadas_total = queryset.filter(
+            estado_pago='pagado_total'
+        ).count()
 
         data = {
             'total': total,
             'provisionadas': provisionadas,
             'pendientes_provision': pendientes_sin_provision,
+            'pagadas': pagadas_total,
             'disputadas': disputadas,
             'anuladas': total_anuladas + total_anuladas_parcial,  # Total de anuladas para pestañas
             'sin_fecha_provision': facturas_sin_fecha_provision,
@@ -1436,8 +1478,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                         ot_number_raw = invoice.ot.numero_ot or ''
                         ot_folder = re.sub(r'[^\u0000-\u007F\w]', '', ot_number_raw)[:50] or 'SIN_OT'
 
+                        filename = self._generate_friendly_filename(invoice)
+                        if not filename:
+                            filename = os.path.basename(storage_path)
+
                         # Crear estructura: Cliente/OT/archivo.pdf
-                        file_path_in_zip = f"{cliente_folder}/{ot_folder}/{os.path.basename(storage_path)}"
+                        file_path_in_zip = f"{cliente_folder}/{ot_folder}/{filename}"
                         zip_file.writestr(file_path_in_zip, file_content)
                         processed_count += 1
 
@@ -1898,10 +1944,37 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Validar que la factura no esté ya saldada
+        # Validar que la factura no esté ya saldada o anulada
         if invoice.get_monto_aplicable() <= 0:
             return Response(
                 {'invoice_relacionada_id': ['Esta factura ya ha sido saldada o anulada y no admite más notas de crédito.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que la factura no esté completamente pagada
+        if invoice.estado_pago == 'pagado_total':
+            return Response(
+                {
+                    'error': 'No se puede aplicar una nota de crédito a una factura que ya fue pagada totalmente.',
+                    'detail': f'Esta factura tiene un pago de ${invoice.monto_pagado} y ya está marcada como pagada. '
+                              'Si el proveedor emitió una nota de crédito, debe procesarse como un reembolso o crédito a favor '
+                              'para aplicar en futuras facturas del mismo proveedor.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que el monto de la NC no exceda el monto pendiente de pago
+        monto_nc = abs(Decimal(str(request.data.get('monto', 0))))
+        monto_pendiente = invoice.monto_pendiente
+        
+        if monto_nc > monto_pendiente:
+            return Response(
+                {
+                    'error': 'El monto de la nota de crédito excede el monto pendiente de pago.',
+                    'detail': f'Monto pendiente: ${monto_pendiente}. No puede aplicar una NC de ${monto_nc}. '
+                              f'Si ya se realizaron pagos parciales (${invoice.monto_pagado}), la nota de crédito '
+                              'solo puede aplicarse sobre el saldo pendiente.'
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 

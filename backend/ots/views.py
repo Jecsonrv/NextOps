@@ -835,16 +835,21 @@ class OTViewSet(viewsets.ModelViewSet):
                 'count': count
             }
         
-        # Total de contenedores (sumar desde JSONField)
+        from django.db.models.functions import Cast, Coalesce, JsonbArrayLength
+        from django.contrib.postgres.fields.jsonb import KeyTextTransform
+
+        # Total de OTs
         total_ots = qs.count()
-        total_contenedores = 0
-        for ot in qs:
-            total_contenedores += ot.get_total_contenedores()
-        
-        # Total de provisiones
-        total_provision = 0
-        for ot in qs:
-            total_provision += ot.get_provision_total()
+
+        # Total de contenedores usando agregación de base de datos
+        total_contenedores = qs.aggregate(
+            total=Coalesce(Sum(JsonbArrayLength('contenedores')), 0)
+        )['total']
+
+        # Total de provisiones usando agregación de base de datos
+        total_provision = qs.aggregate(
+            total=Coalesce(Sum(Cast(KeyTextTransform('total', 'provision_hierarchy'), models.FloatField())), 0.0)
+        )['total']
         
         # Por proveedor (top 10)
         by_proveedor = qs.values(
@@ -1030,6 +1035,29 @@ class OTViewSet(viewsets.ModelViewSet):
                 {'error': f'Error procesando CSV: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'], url_path='filter-values')
+    def filter_values(self, request):
+        """
+        Returns unique values for the filterable fields.
+        """
+        qs = self.get_queryset()
+        
+        clientes = qs.values_list('cliente__original_name', flat=True).distinct().order_by('cliente__original_name')
+        operativos = qs.values_list('operativo', flat=True).distinct().order_by('operativo')
+        proveedores = qs.values_list('proveedor__nombre', flat=True).distinct().order_by('proveedor__nombre')
+        estados = qs.values_list('estado', flat=True).distinct().order_by('estado')
+        estados_provision = qs.values_list('estado_provision', flat=True).distinct().order_by('estado_provision')
+        estados_facturado = qs.values_list('estado_facturado', flat=True).distinct().order_by('estado_facturado')
+
+        return Response({
+            'clientes': [c for c in clientes if c],
+            'operativos': [o for o in operativos if o],
+            'proveedores': [p for p in proveedores if p],
+            'estados': [e for e in estados if e],
+            'estados_provision': [ep for ep in estados_provision if ep],
+            'estados_facturado': [ef for ef in estados_facturado if ef],
+        })
 
     @action(detail=False, methods=['get'], url_path='export-excel')
     def export_excel(self, request):

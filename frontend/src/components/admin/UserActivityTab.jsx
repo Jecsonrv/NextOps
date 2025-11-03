@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 
-export function UserActivityTab({ userId }) {
+export function UserActivityTab() {
     // TODO: Fetch and display user activity
     return (
         <Card>

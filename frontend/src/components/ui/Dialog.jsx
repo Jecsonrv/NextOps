@@ -46,7 +46,7 @@ DialogContent.propTypes = {
 
 export function DialogHeader({ children = null, className = "" }) {
     return (
-        <div className={`px-6 pt-6 pb-4 border-b ${className}`}>{children}</div>
+        <div className={`px-8 pt-6 pb-4 border-b ${className}`}>{children}</div>
     );
 }
 

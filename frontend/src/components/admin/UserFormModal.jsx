@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import PropTypes from "prop-types";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,18 +9,8 @@ import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
 import { Switch } from "../ui/Switch";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/Avatar";
 
 import { Loader2 } from "lucide-react";
-
-const getInitials = (name = "") => {
-    if (!name) return "?";
-    const nameParts = name.split(" ");
-    if (nameParts.length > 1) {
-        return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
-    }
-    return name[0].toUpperCase();
-};
 
 const roleDisplayNames = {
     admin: "Administrador",

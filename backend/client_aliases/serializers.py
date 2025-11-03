@@ -19,11 +19,12 @@ User = get_user_model()
 
 class ClientAliasListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listar aliases"""
-    
+
     provider_name = serializers.CharField(source='provider.name', read_only=True)
     is_merged = serializers.SerializerMethodField()
     merged_count = serializers.SerializerMethodField()
-    
+    tipo_contribuyente_display = serializers.CharField(source='get_tipo_contribuyente_display', read_only=True)
+
     class Meta:
         model = ClientAlias
         fields = [
@@ -36,6 +37,14 @@ class ClientAliasListSerializer(serializers.ModelSerializer):
             'is_merged',
             'merged_count',
             'usage_count',
+            # Campos tributarios El Salvador
+            'tipo_contribuyente',
+            'tipo_contribuyente_display',
+            'nit',
+            'nrc',
+            'aplica_retencion_iva',
+            'aplica_retencion_renta',
+            'porcentaje_retencion_renta',
             'created_at',
         ]
     
@@ -73,6 +82,8 @@ class ClientAliasSerializer(serializers.ModelSerializer):
     merged_aliases_list = serializers.SerializerMethodField()
     similar_suggestions = serializers.SerializerMethodField()
     
+    tipo_contribuyente_display = serializers.CharField(source='get_tipo_contribuyente_display', read_only=True)
+
     class Meta:
         model = ClientAlias
         fields = [
@@ -92,6 +103,19 @@ class ClientAliasSerializer(serializers.ModelSerializer):
             'verified_at',
             'usage_count',
             'similar_suggestions',
+            # Campos tributarios - El Salvador
+            'tipo_contribuyente',
+            'tipo_contribuyente_display',
+            'nit',
+            'nrc',
+            'aplica_retencion_iva',
+            'aplica_retencion_renta',
+            'porcentaje_retencion_renta',
+            'acepta_credito_fiscal',
+            'direccion_fiscal',
+            'telefono',
+            'email_facturacion',
+            'actividad_economica',
             'created_at',
             'updated_at',
         ]
@@ -100,6 +124,7 @@ class ClientAliasSerializer(serializers.ModelSerializer):
             'verified_by',
             'verified_at',
             'usage_count',
+            'tipo_contribuyente_display',
             'created_at',
             'updated_at',
         ]

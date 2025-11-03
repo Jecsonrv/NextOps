@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link } from "react-router-dom";
 import { Button } from "../ui/Button";
 import InvoiceStatusBadge, {
@@ -314,3 +315,12 @@ export function InvoicesTableResponsive({
         </div>
     );
 }
+
+InvoicesTableResponsive.propTypes = {
+    invoices: PropTypes.array.isRequired,
+    selectedInvoices: PropTypes.array.isRequired,
+    onSelectAll: PropTypes.func.isRequired,
+    onSelectOne: PropTypes.func.isRequired,
+    onAssignOT: PropTypes.func.isRequired,
+    onCreateDispute: PropTypes.func.isRequired,
+};

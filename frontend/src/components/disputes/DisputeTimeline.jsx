@@ -139,7 +139,7 @@ export function DisputeTimeline({ disputeId }) {
                             {/* Línea vertical del timeline */}
                             <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
 
-                            {eventos.map((evento, index) => {
+                            {eventos.map((evento) => {
                                 const Icon = EVENT_ICONS[evento.tipo] || EVENT_ICONS.default;
                                 const colorClass = EVENT_COLORS[evento.tipo] || EVENT_COLORS.default;
 

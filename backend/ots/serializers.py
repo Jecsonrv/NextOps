@@ -173,6 +173,8 @@ class OTListSerializer(serializers.ModelSerializer):
     tiempo_transito = serializers.SerializerMethodField()
     estado_display = serializers.SerializerMethodField()
     mbl = serializers.CharField(source='master_bl', read_only=True)
+    cliente = serializers.PrimaryKeyRelatedField(read_only=True)
+    cliente_alias = serializers.PrimaryKeyRelatedField(read_only=True)
 
     # Campos relacionados con disputas de facturas
     has_disputed_invoices = serializers.SerializerMethodField()
@@ -194,6 +196,8 @@ class OTListSerializer(serializers.ModelSerializer):
             'numero_ot',
             'proveedor_nombre',
             'cliente_nombre',
+            'cliente',
+            'cliente_alias',
             'operativo',
             'tipo_operacion',
             'tipo_embarque',

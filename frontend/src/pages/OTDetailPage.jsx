@@ -92,6 +92,15 @@ export function OTDetailPage() {
         },
     });
 
+    // Cargar facturas de venta relacionadas
+    const { data: salesInvoicesData } = useQuery({
+        queryKey: ["sales-invoices", "ot", id],
+        queryFn: async () => {
+            const response = await apiClient.get(`/sales/invoices/?ot=${id}`);
+            return response.data;
+        },
+    });
+
     const handleDelete = async () => {
         if (
             window.confirm(
@@ -107,6 +116,13 @@ export function OTDetailPage() {
                 alert("Error al eliminar la OT");
             }
         }
+    };
+
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('es-EC', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(amount || 0);
     };
 
     // Estados de carga y error
@@ -629,6 +645,7 @@ export function OTDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Facturas de Costo</h3>
                             {invoices.length > 0 ? (
                                 <div className="space-y-2">
                                     {invoices.map((invoice) => (
@@ -714,7 +731,41 @@ export function OTDetailPage() {
                                 </div>
                             ) : (
                                 <p className="text-sm text-gray-500 text-center py-4">
-                                    No hay facturas asociadas
+                                    No hay facturas de costo asociadas
+                                </p>
+                            )}
+
+                            <h3 className="text-lg font-medium text-gray-900 mt-4 mb-2">Facturas de Venta</h3>
+                            {salesInvoicesData?.results?.length > 0 ? (
+                                <div className="space-y-2">
+                                    {salesInvoicesData.results.map((invoice) => (
+                                        <Link
+                                            key={invoice.id}
+                                            to={`/sales/invoices/${invoice.id}`}
+                                            state={{ from: `/ots/${id}` }}
+                                            className="block p-2.5 sm:p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-sm text-gray-900 truncate">
+                                                        {invoice.numero_factura}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                        {invoice.cliente_nombre}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right ml-3 shrink-0">
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {formatCurrency(invoice.monto_total)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 text-center py-4">
+                                    No hay facturas de venta asociadas
                                 </p>
                             )}
                         </CardContent>

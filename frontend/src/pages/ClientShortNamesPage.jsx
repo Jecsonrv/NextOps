@@ -59,7 +59,7 @@ export function ClientShortNamesPage() {
     const generateAllMutation = useGenerateShortNames();
     const regenerateMutation = useRegenerateShortName();
 
-    const aliases = aliasesData?.results || [];
+    const aliases = useMemo(() => aliasesData?.results || [], [aliasesData]);
     const totalPages = aliasesData?.count
         ? Math.ceil(aliasesData.count / filters.page_size)
         : 1;
@@ -93,7 +93,7 @@ export function ClientShortNamesPage() {
         setEditError("");
     };
 
-    const saveEdit = async (aliasId, originalName) => {
+    const saveEdit = async (aliasId) => {
         // Validar
         const trimmed = editValue.trim().toUpperCase();
 
