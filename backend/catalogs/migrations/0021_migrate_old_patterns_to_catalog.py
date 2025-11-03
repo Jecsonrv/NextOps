@@ -5,86 +5,15 @@ from django.db import migrations
 
 def migrate_old_patterns(apps, schema_editor):
     """
-    Migra patrones del sistema viejo (patterns.ProviderPattern) 
-    al nuevo sistema (catalogs.InvoicePatternCatalog).
+    Migración deshabilitada: Los modelos ProviderPattern (viejo) e InvoicePatternCatalog (nuevo)
+    tienen estructuras incompatibles. ProviderPattern usa un campo 'pattern' genérico, mientras
+    que InvoicePatternCatalog usa campos específicos (patron_numero_factura, patron_fecha_emision, etc).
+    
+    La migración automática no es posible. Los patrones deben recrearse manualmente en el nuevo sistema.
     """
-    InvoicePatternCatalog = apps.get_model('catalogs', 'InvoicePatternCatalog')
-    
-    # Intentar obtener el modelo viejo, si existe
-    try:
-        ProviderPattern = apps.get_model('patterns', 'ProviderPattern')
-    except LookupError:
-        # Si no existe el modelo viejo, no hay nada que migrar
-        print("⚠️  Modelo patterns.ProviderPattern no encontrado - omitiendo migración")
-        return
-    
-    # Mapeo de campos
-    tipo_patron_map = {
-        'numero_factura': 'numero_factura',
-        'invoice_number': 'numero_factura',
-        'fecha_emision': 'fecha_emision',
-        'emission_date': 'fecha_emision',
-        'fecha_vencimiento': 'fecha_vencimiento',
-        'due_date': 'fecha_vencimiento',
-        'monto_total': 'monto_total',
-        'total_amount': 'monto_total',
-        'subtotal': 'subtotal',
-        'mbl': 'mbl',
-        'hbl': 'hbl',
-        'numero_contenedor': 'numero_contenedor',
-        'container_number': 'numero_contenedor',
-    }
-    
-    # Obtener patrones viejos activos
-    old_patterns = ProviderPattern.objects.filter(is_active=True).select_related('provider', 'target_field')
-    
-    migrated = 0
-    skipped = 0
-    
-    print(f"\n📊 Encontrados {old_patterns.count()} patrones activos en el sistema viejo")
-    
-    for old_pattern in old_patterns:
-        try:
-            # Mapear nombre de proveedor
-            proveedor_nombre = old_pattern.provider.nombre if old_pattern.provider else 'GENERICO'
-            
-            # Mapear tipo de patrón
-            target_field_code = old_pattern.target_field.code if old_pattern.target_field else 'numero_factura'
-            tipo_patron = tipo_patron_map.get(target_field_code, 'numero_factura')
-            
-            # Verificar si ya existe
-            existing = InvoicePatternCatalog.objects.filter(
-                proveedor=proveedor_nombre,
-                tipo_patron=tipo_patron,
-                patron=old_pattern.pattern,
-            ).exists()
-            
-            if existing:
-                print(f'⚠️  Patrón duplicado: {proveedor_nombre} - {tipo_patron}')
-                skipped += 1
-                continue
-            
-            # Crear el nuevo patrón
-            InvoicePatternCatalog.objects.create(
-                proveedor=proveedor_nombre,
-                categoria='PROVEEDOR',
-                tipo_patron=tipo_patron,
-                patron=old_pattern.pattern,
-                es_regex=True,
-                prioridad=old_pattern.priority,
-                descripcion=old_pattern.description or f'Migrado desde patrón ID {old_pattern.id}',
-                ejemplo_texto='',  # No existe example_text en el modelo viejo
-                activo=old_pattern.is_active,
-            )
-            
-            print(f'✓ Migrado: {proveedor_nombre} - {tipo_patron}')
-            migrated += 1
-            
-        except Exception as e:
-            print(f'❌ Error migrando patrón ID {old_pattern.id}: {str(e)}')
-    
-    print(f"\n✓ Patrones migrados: {migrated}")
-    print(f"⚠️  Patrones omitidos: {skipped}\n")
+    print("\n⚠️  Migración de patrones omitida - estructuras incompatibles")
+    print("   Los patrones del sistema viejo deben recrearse manualmente en el catálogo nuevo\n")
+    pass
 
 
 def reverse_migration(apps, schema_editor):
