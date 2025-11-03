@@ -425,71 +425,105 @@ class ProviderPatternViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='by_provider/(?P<provider_id>[^/.]+)')
     def by_provider(self, request, provider_id=None):
         """
-        Obtener patrones que se aplicarán: específicos del proveedor + genéricos solo para campos sin patrón específico.
+        Obtener patrones que se aplicarán desde InvoicePatternCatalog.
         Los patrones se ordenan por prioridad (mayor primero).
         
         GET /api/patterns/provider-patterns/by_provider/{provider_id}/
         
         Query params opcionales:
-        - include_generic=true/false (default: true) - Incluir patrones genéricos del SISTEMA
+        - include_generic=true/false (default: true) - Incluir patrones genéricos sin proveedor
         """
+        from catalogs.models import InvoicePatternCatalog
+        
         include_generic = request.query_params.get('include_generic', 'true').lower() == 'true'
         
-        # Obtener proveedor SISTEMA para patrones genéricos
-        try:
-            sistema_provider = Provider.objects.get(nombre="SISTEMA")
-            sistema_id = sistema_provider.id
-        except Provider.DoesNotExist:
-            sistema_id = None
+        # Query de patrones del catálogo para este proveedor
+        catalog_patterns = InvoicePatternCatalog.objects.filter(
+            proveedor_id=provider_id,
+            activo=True,
+            is_deleted=False,
+            tipo_patron='costo'
+        ).order_by('prioridad')
         
-        # Query base: patrones activos del proveedor
-        specific_patterns = list(
-            ProviderPattern.objects.filter(
-                provider_id=provider_id,
-                is_active=True
-            ).select_related('target_field', 'provider')
-        )
+        specific_patterns_count = catalog_patterns.count()
         
-        # Identificar campos que YA tienen patrones específicos
-        fields_with_specific = {p.target_field_id for p in specific_patterns}
-        
-        patterns = specific_patterns
-        generic_patterns_used = []
-        
-        # Si se solicitan genéricos, agregar SOLO para campos sin patrón específico
-        if include_generic and sistema_id:
-            generic_patterns = ProviderPattern.objects.filter(
-                provider_id=sistema_id,
-                is_active=True
-            ).select_related('target_field', 'provider')
-            
-            # Filtrar: solo genéricos para campos SIN patrón específico
-            for generic in generic_patterns:
-                if generic.target_field_id not in fields_with_specific:
-                    patterns.append(generic)
-                    generic_patterns_used.append(generic)
-        
-        # Ordenar por prioridad DESC
-        patterns.sort(key=lambda p: -p.priority)
-        
-        # Serializar
-        serializer = ProviderPatternListSerializer(patterns, many=True)
-        
-        # Agrupar por campo objetivo para mejor visualización
+        # Construir respuesta con ambos formatos (individual y legacy)
+        patterns_list = []
         by_field = {}
-        for pattern_data in serializer.data:
-            field_code = pattern_data.get('target_field_code', 'unknown')
-            if field_code not in by_field:
-                by_field[field_code] = []
-            by_field[field_code].append(pattern_data)
+        
+        # Mapeo de campo_objetivo a nombre legible
+        field_name_mapping = {
+            'numero_factura': 'Número de Factura',
+            'fecha_emision': 'Fecha de Emisión',
+            'mbl': 'MBL',
+            'hbl': 'HBL',
+            'contenedor': 'Contenedor',
+            'total': 'Total',
+            'subtotal': 'Subtotal',
+            'iva': 'IVA',
+            'nit_emisor': 'NIT Emisor',
+            'nombre_emisor': 'Nombre Emisor',
+        }
+        
+        for cp in catalog_patterns:
+            # CASO 1: Formato individual con campo_objetivo
+            if cp.campo_objetivo and cp.patron_regex:
+                field_name = field_name_mapping.get(cp.campo_objetivo, cp.campo_objetivo.replace('_', ' ').title())
+                pattern_data = {
+                    'id': cp.id,
+                    'name': cp.nombre,
+                    'target_field_code': cp.campo_objetivo,
+                    'target_field_name': field_name,
+                    'pattern': cp.patron_regex[:100],  # Preview
+                    'priority': cp.prioridad,
+                    'is_generic': False,
+                    'provider_name': cp.proveedor.nombre if cp.proveedor else 'GENÉRICO',
+                }
+                patterns_list.append(pattern_data)
+                
+                # Agrupar por campo
+                if cp.campo_objetivo not in by_field:
+                    by_field[cp.campo_objetivo] = []
+                by_field[cp.campo_objetivo].append(pattern_data)
+            
+            # CASO 2: Formato legacy con patron_* fields
+            else:
+                legacy_field_mapping = {
+                    'patron_numero_factura': ('invoice_number', 'Número de Factura'),
+                    'patron_fecha_emision': ('issue_date', 'Fecha de Emisión'),
+                    'patron_total': ('total_amount', 'Total'),
+                    'patron_subtotal': ('subtotal', 'Subtotal'),
+                    'patron_iva': ('tax_amount', 'IVA'),
+                    'patron_nit_emisor': ('issuer_nit', 'NIT Emisor'),
+                    'patron_nombre_emisor': ('issuer_name', 'Nombre Emisor'),
+                }
+                
+                for field_attr, (field_code, field_name) in legacy_field_mapping.items():
+                    pattern_text = getattr(cp, field_attr, None)
+                    if pattern_text:
+                        pattern_data = {
+                            'id': f"{cp.id}_{field_code}",
+                            'name': f"{cp.nombre} - {field_name}",
+                            'target_field_code': field_code,
+                            'target_field_name': field_name,
+                            'pattern': pattern_text[:100],
+                            'priority': cp.prioridad,
+                            'is_generic': False,
+                            'provider_name': cp.proveedor.nombre if cp.proveedor else 'GENÉRICO',
+                        }
+                        patterns_list.append(pattern_data)
+                        
+                        if field_code not in by_field:
+                            by_field[field_code] = []
+                        by_field[field_code].append(pattern_data)
         
         return Response({
             'provider_id': int(provider_id),
-            'total': len(patterns),
-            'specific_patterns': len(specific_patterns),
-            'generic_patterns': len(generic_patterns_used),
-            'patterns': serializer.data,
-            'by_field': by_field,  # Agrupado por campo para facilitar visualización
+            'total': len(patterns_list),
+            'specific_patterns': specific_patterns_count,
+            'generic_patterns': 0,  # No genéricos por ahora
+            'patterns': patterns_list,
+            'by_field': by_field,
         })
     
     @action(detail=False, methods=['post'])
