@@ -438,3 +438,26 @@ class InvoicePatternCatalogSerializer(serializers.ModelSerializer):
         if obj.es_grupo_principal:
             return obj.patrones_hijos.filter(activo=True).count()
         return 0
+    
+    def validate_nombre(self, value):
+        """
+        Validar que el nombre sea único solo entre registros activos (no eliminados)
+        """
+        # Si estamos actualizando, excluir el registro actual de la búsqueda
+        queryset = InvoicePatternCatalog.objects.filter(
+            nombre=value,
+            is_deleted=False
+        )
+        
+        # Si es actualización, excluir el objeto actual
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        
+        # Si existe algún registro con ese nombre y no está eliminado, rechazar
+        if queryset.exists():
+            raise serializers.ValidationError(
+                "Ya existe un patrón activo con este nombre. Si deseas reutilizar este nombre, "
+                "primero elimina el patrón anterior."
+            )
+        
+        return value

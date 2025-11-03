@@ -40,40 +40,55 @@ def diagnosticar_patrones(request):
         patterns_list = []
         pattern_count = 0
         
-        # Contar campos de patrón definidos en cada catálogo
+        # Procesar cada patrón del catálogo
         for cp in catalog_patterns:
-            pattern_fields = [
-                ('patron_numero_factura', 'Número de Factura'),
-                ('patron_numero_control', 'Número de Control'),
-                ('patron_fecha_emision', 'Fecha de Emisión'),
-                ('patron_nit_emisor', 'NIT Emisor'),
-                ('patron_nombre_emisor', 'Nombre Emisor'),
-                ('patron_nit_cliente', 'NIT Cliente'),
-                ('patron_nombre_cliente', 'Nombre Cliente'),
-                ('patron_subtotal', 'Subtotal'),
-                ('patron_subtotal_gravado', 'Subtotal Gravado'),
-                ('patron_subtotal_exento', 'Subtotal Exento'),
-                ('patron_iva', 'IVA'),
-                ('patron_total', 'Total'),
-                ('patron_retencion', 'Retención'),
-                ('patron_retencion_iva', 'Retención IVA'),
-                ('patron_retencion_renta', 'Retención Renta'),
-                ('patron_otros_montos', 'Otros Montos'),
-            ]
+            # CASO 1: Patrón individual con campo_objetivo y patron_regex
+            if cp.campo_objetivo and cp.patron_regex:
+                pattern_count += 1
+                patterns_list.append({
+                    'id': cp.id,
+                    'name': cp.nombre,
+                    'priority': cp.prioridad,
+                    'field_code': cp.campo_objetivo,
+                    'field_name': cp.nombre.split(' - ')[-1] if ' - ' in cp.nombre else cp.campo_objetivo,
+                    'pattern_preview': cp.patron_regex[:100],
+                    'is_active': cp.activo,
+                })
             
-            for field_attr, field_name in pattern_fields:
-                pattern_text = getattr(cp, field_attr, None)
-                if pattern_text and pattern_text.strip():
-                    pattern_count += 1
-                    patterns_list.append({
-                        'id': f"{cp.id}_{field_attr}",
-                        'name': f"{cp.nombre} - {field_name}",
-                        'priority': cp.prioridad,
-                        'field_code': field_attr.replace('patron_', ''),
-                        'field_name': field_name,
-                        'pattern_preview': pattern_text[:100],
-                        'is_active': cp.activo,
-                    })
+            # CASO 2: Patrón legacy con múltiples campos patron_*
+            else:
+                pattern_fields = [
+                    ('patron_numero_factura', 'Número de Factura'),
+                    ('patron_numero_control', 'Número de Control'),
+                    ('patron_fecha_emision', 'Fecha de Emisión'),
+                    ('patron_nit_emisor', 'NIT Emisor'),
+                    ('patron_nombre_emisor', 'Nombre Emisor'),
+                    ('patron_nit_cliente', 'NIT Cliente'),
+                    ('patron_nombre_cliente', 'Nombre Cliente'),
+                    ('patron_subtotal', 'Subtotal'),
+                    ('patron_subtotal_gravado', 'Subtotal Gravado'),
+                    ('patron_subtotal_exento', 'Subtotal Exento'),
+                    ('patron_iva', 'IVA'),
+                    ('patron_total', 'Total'),
+                    ('patron_retencion', 'Retención'),
+                    ('patron_retencion_iva', 'Retención IVA'),
+                    ('patron_retencion_renta', 'Retención Renta'),
+                    ('patron_otros_montos', 'Otros Montos'),
+                ]
+                
+                for field_attr, field_name in pattern_fields:
+                    pattern_text = getattr(cp, field_attr, None)
+                    if pattern_text and pattern_text.strip():
+                        pattern_count += 1
+                        patterns_list.append({
+                            'id': f"{cp.id}_{field_attr}",
+                            'name': f"{cp.nombre} - {field_name}",
+                            'priority': cp.prioridad,
+                            'field_code': field_attr.replace('patron_', ''),
+                            'field_name': field_name,
+                            'pattern_preview': pattern_text[:100],
+                            'is_active': cp.activo,
+                        })
         
         # Si se especificó un proveedor, filtrar solo ese
         if provider_name and provider_name.lower() not in provider.nombre.lower():

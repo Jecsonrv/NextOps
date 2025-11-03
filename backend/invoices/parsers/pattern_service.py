@@ -76,51 +76,101 @@ class PatternApplicationService:
         """
         Extrae patrones individuales de un InvoicePatternCatalog y los convierte
         a objetos similares a ProviderPattern para mantener compatibilidad.
-        """
-        # Mapeo de campos del catálogo a códigos de TargetField
-        field_mapping = {
-            'patron_numero_factura': ('invoice_number', 'Número de Factura'),
-            'patron_numero_control': ('control_number', 'Número de Control'),
-            'patron_fecha_emision': ('issue_date', 'Fecha de Emisión'),
-            'patron_nit_emisor': ('issuer_nit', 'NIT Emisor'),
-            'patron_nombre_emisor': ('issuer_name', 'Nombre Emisor'),
-            'patron_nit_cliente': ('client_nit', 'NIT Cliente'),
-            'patron_nombre_cliente': ('client_name', 'Nombre Cliente'),
-            'patron_subtotal': ('subtotal', 'Subtotal'),
-            'patron_subtotal_gravado': ('taxable_subtotal', 'Subtotal Gravado'),
-            'patron_subtotal_exento': ('exempt_subtotal', 'Subtotal Exento'),
-            'patron_iva': ('tax_amount', 'IVA'),
-            'patron_total': ('total_amount', 'Total'),
-            'patron_retencion': ('retention', 'Retención'),
-            'patron_retencion_iva': ('retention_vat', 'Retención IVA'),
-            'patron_retencion_renta': ('retention_income', 'Retención Renta'),
-            'patron_otros_montos': ('other_amounts', 'Otros Montos'),
-        }
         
-        for field_attr, (field_code, field_name) in field_mapping.items():
-            pattern_text = getattr(catalog_pattern, field_attr, None)
+        Soporta DOS formatos:
+        1. Nuevo: campo_objetivo + patron_regex (un patrón por registro)
+        2. Legacy: patron_numero_factura, patron_fecha_emision, etc. (múltiples patrones en un registro)
+        """
+        
+        # CASO 1: Formato nuevo - patrón individual con campo_objetivo
+        if catalog_pattern.campo_objetivo and catalog_pattern.patron_regex:
+            # Mapeo de campo_objetivo a nombre legible y tipo de dato
+            field_info_mapping = {
+                'numero_factura': ('invoice_number', 'Número de Factura', 'text'),
+                'fecha_emision': ('issue_date', 'Fecha de Emisión', 'date'),
+                'mbl': ('mbl', 'MBL', 'text'),
+                'hbl': ('hbl', 'HBL', 'text'),
+                'contenedor': ('container', 'Contenedor', 'text'),
+                'total': ('total_amount', 'Total', 'decimal'),
+                'subtotal': ('subtotal', 'Subtotal', 'decimal'),
+                'iva': ('tax_amount', 'IVA', 'decimal'),
+                'nit_emisor': ('issuer_nit', 'NIT Emisor', 'text'),
+                'nombre_emisor': ('issuer_name', 'Nombre Emisor', 'text'),
+            }
             
-            if pattern_text and pattern_text.strip():
-                # Crear un objeto mock que simula ProviderPattern
-                mock_pattern = type('MockPattern', (), {
-                    'id': f"{catalog_pattern.id}_{field_code}",
-                    'name': f"{catalog_pattern.nombre} - {field_name}",
-                    'pattern': pattern_text,
-                    'priority': catalog_pattern.prioridad,
-                    'case_sensitive': False,
-                    'provider': type('MockProvider', (), {
-                        'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
-                        'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
-                    })(),
-                    'target_field': type('MockField', (), {
-                        'code': field_code,
-                        'name': field_name,
-                        'data_type': self._get_data_type_for_field(field_code)
-                    })(),
-                    'test': lambda text, p=pattern_text: self._test_pattern(p, text, False)
-                })()
+            # Obtener info del campo o usar el campo_objetivo como está
+            field_code, field_name, data_type = field_info_mapping.get(
+                catalog_pattern.campo_objetivo, 
+                (catalog_pattern.campo_objetivo, catalog_pattern.campo_objetivo.replace('_', ' ').title(), 'text')
+            )
+            
+            mock_pattern = type('MockPattern', (), {
+                'id': catalog_pattern.id,
+                'name': catalog_pattern.nombre,
+                'pattern': catalog_pattern.patron_regex,
+                'priority': catalog_pattern.prioridad,
+                'case_sensitive': catalog_pattern.case_sensitive,
+                'provider': type('MockProvider', (), {
+                    'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
+                    'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
+                })(),
+                'target_field': type('MockField', (), {
+                    'code': field_code,
+                    'name': field_name,
+                    'data_type': data_type
+                })(),
+                'test': lambda text, p=catalog_pattern.patron_regex, cs=catalog_pattern.case_sensitive: self._test_pattern(p, text, cs)
+            })()
+            
+            self.patterns.append(mock_pattern)
+            logger.info(f"✓ Cargado patrón: {catalog_pattern.nombre} ({field_name})")
+        
+        # CASO 2: Formato legacy - múltiples campos patron_*
+        else:
+            field_mapping = {
+                'patron_numero_factura': ('invoice_number', 'Número de Factura'),
+                'patron_numero_control': ('control_number', 'Número de Control'),
+                'patron_fecha_emision': ('issue_date', 'Fecha de Emisión'),
+                'patron_nit_emisor': ('issuer_nit', 'NIT Emisor'),
+                'patron_nombre_emisor': ('issuer_name', 'Nombre Emisor'),
+                'patron_nit_cliente': ('client_nit', 'NIT Cliente'),
+                'patron_nombre_cliente': ('client_name', 'Nombre Cliente'),
+                'patron_subtotal': ('subtotal', 'Subtotal'),
+                'patron_subtotal_gravado': ('taxable_subtotal', 'Subtotal Gravado'),
+                'patron_subtotal_exento': ('exempt_subtotal', 'Subtotal Exento'),
+                'patron_iva': ('tax_amount', 'IVA'),
+                'patron_total': ('total_amount', 'Total'),
+                'patron_retencion': ('retention', 'Retención'),
+                'patron_retencion_iva': ('retention_vat', 'Retención IVA'),
+                'patron_retencion_renta': ('retention_income', 'Retención Renta'),
+                'patron_otros_montos': ('other_amounts', 'Otros Montos'),
+            }
+            
+            for field_attr, (field_code, field_name) in field_mapping.items():
+                pattern_text = getattr(catalog_pattern, field_attr, None)
                 
-                self.patterns.append(mock_pattern)
+                if pattern_text and pattern_text.strip():
+                    # Crear un objeto mock que simula ProviderPattern
+                    mock_pattern = type('MockPattern', (), {
+                        'id': f"{catalog_pattern.id}_{field_code}",
+                        'name': f"{catalog_pattern.nombre} - {field_name}",
+                        'pattern': pattern_text,
+                        'priority': catalog_pattern.prioridad,
+                        'case_sensitive': catalog_pattern.case_sensitive,
+                        'provider': type('MockProvider', (), {
+                            'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
+                            'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
+                        })(),
+                        'target_field': type('MockField', (), {
+                            'code': field_code,
+                            'name': field_name,
+                            'data_type': self._get_data_type_for_field(field_code)
+                        })(),
+                        'test': lambda text, p=pattern_text, cs=catalog_pattern.case_sensitive: self._test_pattern(p, text, cs)
+                    })()
+                    
+                    self.patterns.append(mock_pattern)
+                    logger.info(f"✓ Cargado patrón legacy: {catalog_pattern.nombre} - {field_name}")
     
     def _get_data_type_for_field(self, field_code: str) -> str:
         """Determina el tipo de dato según el código del campo"""
