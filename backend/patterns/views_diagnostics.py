@@ -6,7 +6,7 @@ Permite verificar patrones sin acceso a terminal.
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from catalogs.models import Provider
+from catalogs.models import Provider, InvoicePatternCatalog
 from patterns.models import ProviderPattern, TargetField
 
 
@@ -19,7 +19,7 @@ def diagnosticar_patrones(request):
     Query params:
     - provider: nombre del proveedor (opcional)
     
-    Retorna información de todos los patrones del sistema.
+    Retorna información de todos los patrones del sistema usando InvoicePatternCatalog.
     """
     provider_name = request.query_params.get('provider', '').strip()
     
@@ -29,23 +29,51 @@ def diagnosticar_patrones(request):
     providers_data = []
     
     for provider in providers:
-        patterns = ProviderPattern.objects.filter(
-            provider=provider,
-            is_active=True,
-            is_deleted=False
-        ).select_related('target_field')
+        # Buscar patrones en InvoicePatternCatalog
+        catalog_patterns = InvoicePatternCatalog.objects.filter(
+            proveedor=provider,
+            activo=True,
+            is_deleted=False,
+            tipo_patron='costo'
+        )
         
         patterns_list = []
-        for p in patterns:
-            patterns_list.append({
-                'id': p.id,
-                'name': p.name,
-                'priority': p.priority,
-                'field_code': p.target_field.code if p.target_field else None,
-                'field_name': p.target_field.name if p.target_field else None,
-                'pattern_preview': p.pattern[:100],
-                'is_active': p.is_active,
-            })
+        pattern_count = 0
+        
+        # Contar campos de patrón definidos en cada catálogo
+        for cp in catalog_patterns:
+            pattern_fields = [
+                ('patron_numero_factura', 'Número de Factura'),
+                ('patron_numero_control', 'Número de Control'),
+                ('patron_fecha_emision', 'Fecha de Emisión'),
+                ('patron_nit_emisor', 'NIT Emisor'),
+                ('patron_nombre_emisor', 'Nombre Emisor'),
+                ('patron_nit_cliente', 'NIT Cliente'),
+                ('patron_nombre_cliente', 'Nombre Cliente'),
+                ('patron_subtotal', 'Subtotal'),
+                ('patron_subtotal_gravado', 'Subtotal Gravado'),
+                ('patron_subtotal_exento', 'Subtotal Exento'),
+                ('patron_iva', 'IVA'),
+                ('patron_total', 'Total'),
+                ('patron_retencion', 'Retención'),
+                ('patron_retencion_iva', 'Retención IVA'),
+                ('patron_retencion_renta', 'Retención Renta'),
+                ('patron_otros_montos', 'Otros Montos'),
+            ]
+            
+            for field_attr, field_name in pattern_fields:
+                pattern_text = getattr(cp, field_attr, None)
+                if pattern_text and pattern_text.strip():
+                    pattern_count += 1
+                    patterns_list.append({
+                        'id': f"{cp.id}_{field_attr}",
+                        'name': f"{cp.nombre} - {field_name}",
+                        'priority': cp.prioridad,
+                        'field_code': field_attr.replace('patron_', ''),
+                        'field_name': field_name,
+                        'pattern_preview': pattern_text[:100],
+                        'is_active': cp.activo,
+                    })
         
         # Si se especificó un proveedor, filtrar solo ese
         if provider_name and provider_name.lower() not in provider.nombre.lower():
@@ -55,20 +83,14 @@ def diagnosticar_patrones(request):
             'id': provider.id,
             'nombre': provider.nombre,
             'tipo': provider.tipo,
-            'patrones_count': patterns.count(),
+            'patrones_count': pattern_count,
             'patrones': patterns_list,
         })
     
     # Estadísticas generales
-    total_patterns = ProviderPattern.objects.filter(
-        is_active=True,
-        is_deleted=False
-    ).count()
+    total_patterns = sum(p['patrones_count'] for p in providers_data)
     
-    total_fields = TargetField.objects.filter(
-        is_active=True,
-        is_deleted=False
-    ).count()
+    total_fields = 16  # Número de campos disponibles
     
     return Response({
         'total_providers': providers.count(),

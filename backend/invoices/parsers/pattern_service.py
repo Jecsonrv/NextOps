@@ -15,7 +15,7 @@ import re
 import logging
 
 from patterns.models import ProviderPattern, TargetField
-from catalogs.models import Provider
+from catalogs.models import Provider, InvoicePatternCatalog
 
 logger = logging.getLogger(__name__)
 
@@ -39,34 +39,152 @@ class PatternApplicationService:
     
     def load_patterns(self):
         """
-        Carga patrones del proveedor y patrones genéricos.
-        Los ordena por prioridad (mayor a menor).
+        Carga patrones desde InvoicePatternCatalog para el proveedor.
+        Convierte los campos individuales de regex en objetos similares a ProviderPattern.
         """
-        # Obtener proveedor SISTEMA para patrones genéricos
-        try:
-            sistema_provider = Provider.objects.get(nombre="SISTEMA")
-            sistema_id = sistema_provider.id
-        except Provider.DoesNotExist:
-            sistema_id = None
-            logger.warning("Proveedor SISTEMA no encontrado, no se cargarán patrones genéricos")
+        self.patterns = []
         
-        # Query para obtener patrones
-        query = ProviderPattern.objects.filter(is_active=True).select_related('target_field', 'provider')
+        # Buscar patrones del catálogo
+        query = InvoicePatternCatalog.objects.filter(activo=True, tipo_patron='costo')
         
-        # Si hay proveedor específico, incluir sus patrones + genéricos
+        # Si hay proveedor específico, buscar por proveedor
         if self.provider_id:
-            if sistema_id:
-                query = query.filter(provider_id__in=[self.provider_id, sistema_id])
-            else:
-                query = query.filter(provider_id=self.provider_id)
-        elif sistema_id:
-            # Solo patrones genéricos
-            query = query.filter(provider_id=sistema_id)
+            try:
+                provider = Provider.objects.get(id=self.provider_id)
+                # Buscar patrón que coincida con el nombre del proveedor
+                catalog_patterns = query.filter(proveedor=provider).order_by('prioridad')
+                
+                if not catalog_patterns.exists():
+                    logger.warning(f"No se encontraron patrones para proveedor {provider.nombre} (ID: {self.provider_id})")
+                else:
+                    logger.info(f"Encontrados {catalog_patterns.count()} patrones para {provider.nombre}")
+                
+            except Provider.DoesNotExist:
+                logger.error(f"Proveedor con ID {self.provider_id} no existe")
+                catalog_patterns = []
+        else:
+            # Sin proveedor específico, cargar todos los activos
+            catalog_patterns = query.order_by('prioridad')
         
-        # Ordenar por prioridad (mayor primero) y provider (específico primero)
-        self.patterns = list(query.order_by('-priority', 'provider_id'))
+        # Convertir cada patrón del catálogo a objetos tipo ProviderPattern
+        for catalog_pattern in catalog_patterns:
+            self._extract_patterns_from_catalog(catalog_pattern)
         
-        logger.info(f"Cargados {len(self.patterns)} patrones activos (proveedor={self.provider_id})")
+        logger.info(f"Total de patrones individuales cargados: {len(self.patterns)}")
+    
+    def _extract_patterns_from_catalog(self, catalog_pattern: InvoicePatternCatalog):
+        """
+        Extrae patrones individuales de un InvoicePatternCatalog y los convierte
+        a objetos similares a ProviderPattern para mantener compatibilidad.
+        """
+        # Mapeo de campos del catálogo a códigos de TargetField
+        field_mapping = {
+            'patron_numero_factura': ('invoice_number', 'Número de Factura'),
+            'patron_numero_control': ('control_number', 'Número de Control'),
+            'patron_fecha_emision': ('issue_date', 'Fecha de Emisión'),
+            'patron_nit_emisor': ('issuer_nit', 'NIT Emisor'),
+            'patron_nombre_emisor': ('issuer_name', 'Nombre Emisor'),
+            'patron_nit_cliente': ('client_nit', 'NIT Cliente'),
+            'patron_nombre_cliente': ('client_name', 'Nombre Cliente'),
+            'patron_subtotal': ('subtotal', 'Subtotal'),
+            'patron_subtotal_gravado': ('taxable_subtotal', 'Subtotal Gravado'),
+            'patron_subtotal_exento': ('exempt_subtotal', 'Subtotal Exento'),
+            'patron_iva': ('tax_amount', 'IVA'),
+            'patron_total': ('total_amount', 'Total'),
+            'patron_retencion': ('retention', 'Retención'),
+            'patron_retencion_iva': ('retention_vat', 'Retención IVA'),
+            'patron_retencion_renta': ('retention_income', 'Retención Renta'),
+            'patron_otros_montos': ('other_amounts', 'Otros Montos'),
+        }
+        
+        for field_attr, (field_code, field_name) in field_mapping.items():
+            pattern_text = getattr(catalog_pattern, field_attr, None)
+            
+            if pattern_text and pattern_text.strip():
+                # Crear un objeto mock que simula ProviderPattern
+                mock_pattern = type('MockPattern', (), {
+                    'id': f"{catalog_pattern.id}_{field_code}",
+                    'name': f"{catalog_pattern.nombre} - {field_name}",
+                    'pattern': pattern_text,
+                    'priority': catalog_pattern.prioridad,
+                    'case_sensitive': False,
+                    'provider': type('MockProvider', (), {
+                        'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
+                        'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
+                    })(),
+                    'target_field': type('MockField', (), {
+                        'code': field_code,
+                        'name': field_name,
+                        'data_type': self._get_data_type_for_field(field_code)
+                    })(),
+                    'test': lambda text, p=pattern_text: self._test_pattern(p, text, False)
+                })()
+                
+                self.patterns.append(mock_pattern)
+    
+    def _get_data_type_for_field(self, field_code: str) -> str:
+        """Determina el tipo de dato según el código del campo"""
+        if 'date' in field_code or 'fecha' in field_code:
+            return 'date'
+        elif any(x in field_code for x in ['amount', 'total', 'subtotal', 'iva', 'tax', 'retencion', 'retention']):
+            return 'decimal'
+        elif 'nit' in field_code or 'number' in field_code or 'numero' in field_code:
+            return 'text'
+        else:
+            return 'text'
+    
+    def _test_pattern(self, pattern_text: str, text: str, case_sensitive: bool) -> Dict:
+        """
+        Prueba un patrón regex contra un texto.
+        Simula el método test() de ProviderPattern.
+        """
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            compiled = re.compile(pattern_text, flags)
+            
+            all_matches = []
+            for idx, match in enumerate(compiled.finditer(text)):
+                captured_text = match.group(1) if match.groups() else match.group(0)
+                
+                match_info = {
+                    'text': captured_text,
+                    'full_match': match.group(0),
+                    'position': match.start(),
+                    'end': match.end(),
+                    'groups': {}
+                }
+                
+                if match.groupdict():
+                    match_info['groups'] = match.groupdict()
+                elif len(match.groups()) > 0:
+                    match_info['groups'] = {
+                        f'group_{i+1}': g 
+                        for i, g in enumerate(match.groups()) 
+                        if g is not None
+                    }
+                
+                all_matches.append(match_info)
+            
+            return {
+                'success': True,
+                'matches': all_matches,
+                'match_count': len(all_matches),
+                'error': None
+            }
+        except re.error as e:
+            return {
+                'success': False,
+                'matches': [],
+                'match_count': 0,
+                'error': f'Error de sintaxis en regex: {str(e)}'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'matches': [],
+                'match_count': 0,
+                'error': f'Error al probar patrón: {str(e)}'
+            }
     
     def apply_patterns(self, text: str) -> Dict[str, Any]:
         """
