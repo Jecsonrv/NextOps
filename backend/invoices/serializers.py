@@ -46,6 +46,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     ot_data = serializers.SerializerMethodField()
 
     confidence_level = serializers.SerializerMethodField()
+    tiene_archivo = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     tipo_costo_display = serializers.SerializerMethodField()
     tipo_proveedor_display = serializers.SerializerMethodField()
@@ -102,6 +103,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'confianza_match',
             'confidence_level',
             'assignment_method',
+            'tiene_archivo',
             'file_url',
             'created_at',
             'has_disputes',
@@ -153,10 +155,27 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         """Nivel de confianza legible"""
         return obj.get_confidence_level()
 
+    def get_tiene_archivo(self, obj):
+        """Indica si la factura tiene un archivo asociado"""
+        return bool(obj.uploaded_file)
+
     def get_file_url(self, obj):
-        """URL completa del archivo"""
+        """
+        URL del archivo usando endpoint proxy.
+        IMPORTANTE: Usa el endpoint /file/ que maneja autenticación con Cloudinary.
+        """
         if obj.uploaded_file:
-            return get_absolute_media_url(obj.uploaded_file.path)
+            request = self.context.get('request')
+            if request:
+                from django.urls import reverse
+                try:
+                    return request.build_absolute_uri(
+                        reverse('invoice-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                except Exception:
+                    return f"/api/invoices/{obj.pk}/file/"
+            else:
+                return f"/api/invoices/{obj.pk}/file/"
         return None
 
     def get_dias_hasta_vencimiento(self, obj):
@@ -230,6 +249,7 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     ot_data = serializers.SerializerMethodField()
     
     confidence_level = serializers.SerializerMethodField()
+    tiene_archivo = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     monto_anulado = serializers.SerializerMethodField()
 
@@ -273,7 +293,7 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
             'fecha_facturacion', 'estado_pago', 'monto_pagado', 'monto_pendiente',
             'uploaded_file', 'processed_at', 'processed_by', 'processing_source',
             'notas', 'uploaded_file_data', 'disputas', 'notas_credito',
-            'proveedor_data', 'ot_data', 'confidence_level', 'file_url',
+            'proveedor_data', 'ot_data', 'confidence_level', 'tiene_archivo', 'file_url',
             'monto_anulado', 'dias_hasta_vencimiento', 'esta_vencida',
             'esta_proxima_a_vencer', 'ot_id', 'proveedor_id', 'sales_invoices_data',
             'supplier_payment_links'
@@ -380,10 +400,27 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
         """Nivel de confianza legible"""
         return obj.get_confidence_level()
 
+    def get_tiene_archivo(self, obj):
+        """Indica si la factura tiene un archivo asociado"""
+        return bool(obj.uploaded_file)
+
     def get_file_url(self, obj):
-        """URL completa del archivo"""
+        """
+        URL del archivo usando endpoint proxy.
+        IMPORTANTE: Usa el endpoint /file/ que maneja autenticación con Cloudinary.
+        """
         if obj.uploaded_file:
-            return get_absolute_media_url(obj.uploaded_file.path)
+            request = self.context.get('request')
+            if request:
+                from django.urls import reverse
+                try:
+                    return request.build_absolute_uri(
+                        reverse('invoice-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                except Exception:
+                    return f"/api/invoices/{obj.pk}/file/"
+            else:
+                return f"/api/invoices/{obj.pk}/file/"
         return None
 
     def get_dias_hasta_vencimiento(self, obj):
@@ -1177,6 +1214,7 @@ class CreditNoteListSerializer(serializers.ModelSerializer):
     proveedor_data = serializers.SerializerMethodField()
     invoice_data = serializers.SerializerMethodField()
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    tiene_archivo = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -1185,13 +1223,30 @@ class CreditNoteListSerializer(serializers.ModelSerializer):
             'id', 'numero_nota', 'proveedor', 'proveedor_nombre', 'proveedor_data',
             'invoice_relacionada', 'invoice_data', 'fecha_emision', 'monto',
             'motivo', 'estado', 'estado_display', 'fecha_aplicacion',
-            'created_at', 'updated_at', 'file_url'
+            'created_at', 'updated_at', 'tiene_archivo', 'file_url'
         ]
 
+    def get_tiene_archivo(self, obj):
+        """Indica si la nota de crédito tiene un archivo asociado"""
+        return bool(obj.uploaded_file)
+
     def get_file_url(self, obj):
-        """URL completa del archivo de la nota de crédito"""
+        """
+        URL del archivo usando endpoint proxy.
+        IMPORTANTE: Usa el endpoint /file/ que maneja autenticación con Cloudinary.
+        """
         if obj.uploaded_file:
-            return get_absolute_media_url(obj.uploaded_file.path)
+            request = self.context.get('request')
+            if request:
+                from django.urls import reverse
+                try:
+                    return request.build_absolute_uri(
+                        reverse('creditnote-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                except Exception:
+                    return f"/api/credit-notes-cost/{obj.pk}/file/"
+            else:
+                return f"/api/credit-notes-cost/{obj.pk}/file/"
         return None
 
     def get_proveedor_data(self, obj):
@@ -1223,12 +1278,36 @@ class CreditNoteDetailSerializer(serializers.ModelSerializer):
     ot_data = serializers.SerializerMethodField()
     uploaded_file_data = UploadedFileSerializer(source='uploaded_file', read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    tiene_archivo = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CreditNote
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at', 'deleted_at', 'is_deleted']
+
+    def get_tiene_archivo(self, obj):
+        """Indica si la nota de crédito tiene un archivo asociado"""
+        return bool(obj.uploaded_file)
+
+    def get_file_url(self, obj):
+        """
+        URL del archivo usando endpoint proxy.
+        IMPORTANTE: Usa el endpoint /file/ que maneja autenticación con Cloudinary.
+        """
+        if obj.uploaded_file:
+            request = self.context.get('request')
+            if request:
+                from django.urls import reverse
+                try:
+                    return request.build_absolute_uri(
+                        reverse('creditnote-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                except Exception:
+                    return f"/api/credit-notes-cost/{obj.pk}/file/"
+            else:
+                return f"/api/credit-notes-cost/{obj.pk}/file/"
+        return None
 
     def get_proveedor_data(self, obj):
         """Datos completos del proveedor"""

@@ -60,6 +60,7 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
 
     # Archivo comprobante - NO devolver URL directa, solo usar archivo_comprobante_url
     archivo_comprobante = serializers.FileField(required=False, allow_null=True, write_only=True)
+    tiene_archivo_comprobante = serializers.SerializerMethodField()
 
     # URL del comprobante (proxy endpoint)
     archivo_comprobante_url = serializers.SerializerMethodField()
@@ -86,6 +87,7 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
             'monto_total',
             'referencia',
             'archivo_comprobante',
+            'tiene_archivo_comprobante',
             'archivo_comprobante_url',
             'notas',
             'registrado_por',
@@ -96,13 +98,17 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
             'updated_at',
             'is_deleted'
         ]
-        read_only_fields = ['registrado_por', 'created_at', 'updated_at', 'archivo_comprobante_url']
+        read_only_fields = ['registrado_por', 'created_at', 'updated_at', 'tiene_archivo_comprobante', 'archivo_comprobante_url']
 
     def get_registrado_por_nombre(self, obj):
         if obj.registrado_por:
             # El modelo User personalizado solo tiene username, no first_name/last_name
             return obj.registrado_por.username
         return None
+
+    def get_tiene_archivo_comprobante(self, obj):
+        """Indica si el pago tiene un comprobante asociado"""
+        return bool(obj.archivo_comprobante)
 
     def get_archivo_comprobante_url(self, obj):
         """

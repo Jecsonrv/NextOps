@@ -159,12 +159,17 @@ class PaymentListSerializer(serializers.ModelSerializer):
     factura_venta_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     cliente_nombre = serializers.CharField(source='sales_invoice.cliente.short_name', read_only=True)
     archivo_comprobante = serializers.FileField(required=False, allow_null=True, write_only=True)
+    tiene_archivo_comprobante = serializers.SerializerMethodField()
     archivo_comprobante_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at', 'factura_venta_numero', 'cliente_nombre', 'archivo_comprobante_url']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'factura_venta_numero', 'cliente_nombre', 'tiene_archivo_comprobante', 'archivo_comprobante_url']
+
+    def get_tiene_archivo_comprobante(self, obj):
+        """Indica si el pago tiene un comprobante asociado"""
+        return bool(obj.archivo_comprobante)
 
     def get_archivo_comprobante_url(self, obj):
         """
@@ -227,6 +232,7 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
     
     # Archivo PDF - NO devolver URL directa de Cloudinary, solo usar archivo_pdf_url
     archivo_pdf = serializers.FileField(required=False, allow_null=True, write_only=True)
+    tiene_archivo_pdf = serializers.SerializerMethodField()
     archivo_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -238,9 +244,13 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
             'margen_bruto', 'porcentaje_margen',
             'cliente_nombre', 'cliente_alias', 'ot_numero', 'ot_tipo_operacion',
             'cliente_tipo_contribuyente', 'cliente_nit', 'cliente_aplica_retencion_iva',
-            'cliente_aplica_retencion_renta', 'tipo_documento_display', 'archivo_pdf_url'
+            'cliente_aplica_retencion_renta', 'tipo_documento_display', 'tiene_archivo_pdf', 'archivo_pdf_url'
         ]
-    
+
+    def get_tiene_archivo_pdf(self, obj):
+        """Indica si la factura tiene un archivo PDF asociado"""
+        return bool(obj.archivo_pdf)
+
     def get_archivo_pdf_url(self, obj):
         """
         Obtener URL del archivo PDF.
@@ -357,6 +367,7 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
 class CreditNoteSerializer(serializers.ModelSerializer):
     """Serializer para Notas de Crédito"""
     archivo_pdf = serializers.FileField(required=False, allow_null=True, write_only=True)
+    tiene_archivo_pdf = serializers.SerializerMethodField()
     archivo_pdf_url = serializers.SerializerMethodField()
     sales_invoice_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     
@@ -366,11 +377,15 @@ class CreditNoteSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'sales_invoice', 'sales_invoice_numero',
             'numero_nota_credito', 'fecha_emision', 'monto', 'motivo',
-            'archivo_pdf', 'archivo_pdf_url', 'notas',
+            'archivo_pdf', 'tiene_archivo_pdf', 'archivo_pdf_url', 'notas',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'sales_invoice_numero', 'archivo_pdf_url']
-    
+        read_only_fields = ['id', 'created_at', 'updated_at', 'sales_invoice_numero', 'tiene_archivo_pdf', 'archivo_pdf_url']
+
+    def get_tiene_archivo_pdf(self, obj):
+        """Indica si la nota de crédito tiene un archivo PDF asociado"""
+        return bool(obj.archivo_pdf)
+
     def get_archivo_pdf_url(self, obj):
         """
         Obtener URL del archivo PDF.

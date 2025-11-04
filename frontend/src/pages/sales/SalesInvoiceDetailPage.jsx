@@ -648,9 +648,9 @@ export default function SalesInvoiceDetailPage() {
                             </Card>
                         )}
 
-                    {invoice.archivo_pdf && (
+                    {invoice.tiene_archivo_pdf && invoice.archivo_pdf_url && (
                         <FilePreview
-                            fileUrl={invoice.archivo_pdf}
+                            fileUrl={invoice.archivo_pdf_url}
                             fileName={invoice.numero_factura}
                             clientName={invoice.cliente_nombre}
                             contentType="application/pdf"
