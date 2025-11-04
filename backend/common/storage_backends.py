@@ -180,7 +180,14 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
             public_id = name.replace('\\', '/').rstrip('/')
             base_public_id, ext = os.path.splitext(public_id)
-            fmt = ext.lstrip('.') if ext else None
+            
+            # Si no hay extensión pero es un archivo en sales_invoices, asumir que es PDF
+            if not ext and 'sales_invoices' in public_id:
+                fmt = 'pdf'
+                # El public_id queda sin cambios porque no tiene extensión
+            else:
+                fmt = ext.lstrip('.') if ext else None
+                # Si hay extensión, usar el nombre sin extensión como public_id
 
             logger.info(f"Generando URL para: {name}, public_id: {public_id}, base: {base_public_id}, fmt: {fmt}")
 
@@ -191,7 +198,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
             # Intentar generar URL firmada para archivos authenticated
             try:
                 secure_url = private_download_url(
-                    base_public_id if fmt else public_id,
+                    base_public_id if ext else public_id,  # Usar base solo si había extensión
                     format=fmt,
                     resource_type='raw',
                     type='authenticated',
@@ -207,7 +214,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 # Intentar con tipo 'upload' (archivos públicos)
                 try:
                     secure_url = private_download_url(
-                        base_public_id if fmt else public_id,
+                        base_public_id if ext else public_id,
                         format=fmt,
                         resource_type='raw',
                         type='upload',
