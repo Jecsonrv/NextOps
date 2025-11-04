@@ -195,8 +195,16 @@ class CloudinaryMediaStorage(FileSystemStorage):
             logger.debug("Generated Cloudinary signed URL for %s", public_id)
             return secure_url
         except Exception as e:
-            logger.error("Failed to generate Cloudinary URL for %s: %s", name, e, exc_info=True)
-            raise IOError(f"Error generating Cloudinary URL: {e}")
+            # Si falla la generación de URL firmada, generar URL pública como fallback
+            # Esto permite que el frontend al menos intente descargar el archivo
+            logger.warning("Failed to generate signed Cloudinary URL for %s: %s. Using public URL as fallback.", name, e)
+            
+            cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
+            public_id = name.replace('\\', '/').rstrip('/')
+            
+            # Generar URL pública (puede no funcionar para archivos authenticated, pero es mejor que nada)
+            fallback_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
+            return fallback_url
 
     def delete(self, name):
         """
