@@ -2228,34 +2228,135 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='file')
     def retrieve_file(self, request, pk=None):
+        """
+        Permite descargar o previsualizar el archivo original de la nota de crédito.
+        Actúa como proxy para servir archivos desde Cloudinary.
+        """
         from django.shortcuts import redirect
         from django.conf import settings
 
         credit_note = self.get_object()
+
         if not credit_note.uploaded_file:
-            return Response({'detail': 'La nota de crédito no tiene archivo asociado.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'detail': 'La nota de crédito no tiene archivo asociado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         storage_path = credit_note.uploaded_file.path
 
-        # If using Cloudinary, redirect directly to Cloudinary URL (fast!)
+        # Si usamos Cloudinary, servir archivo como proxy (igual que facturas de costo)
         if getattr(settings, 'USE_CLOUDINARY', False):
             try:
-                storage = get_storage()
-                cloudinary_url = storage.url(storage_path)
-                return redirect(cloudinary_url)
-            except Exception as exc:
+                import cloudinary.utils
+                import requests
+
+                logger.info(f"Fetching credit note file from Cloudinary: {storage_path}")
+                logger.info(f"Credit Note ID: {credit_note.id}, Filename: {credit_note.uploaded_file.filename}")
+
+                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
+                # But we may have saved it WITH extension in older uploads
+                # Try both approaches
+
+                import os
+                base_name, ext = os.path.splitext(storage_path)
+                ext_clean = ext.lstrip('.')
+
+                # Try 1: Without extension (correct for raw files)
+                public_id_candidates = []
+                if ext:
+                    public_id_candidates.append(base_name)
+                public_id_candidates.append(storage_path)
+                unique_candidates = []
+                for candidate in public_id_candidates:
+                    if candidate and candidate not in unique_candidates:
+                        unique_candidates.append(candidate)
+
+                cloudinary_response = None
+                last_status = None
+
+                for public_id in unique_candidates:
+                    logger.info(f"Trying public_id: {public_id}")
+                    for cloudinary_type in ('authenticated', 'upload'):
+                        try:
+                            format_arg = None
+                            if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
+                                format_arg = ext_clean
+
+                            cloudinary_options = {
+                                'resource_type': 'raw',
+                                'type': cloudinary_type,
+                                'secure': True,
+                                'sign_url': True,
+                            }
+                            if format_arg:
+                                cloudinary_options['format'] = format_arg
+
+                            download_url, _ = cloudinary.utils.cloudinary_url(
+                                public_id,
+                                **cloudinary_options,
+                            )
+                            logger.info(f"Generated signed CDN URL ({cloudinary_type}): {download_url[:100]}...")
+                        except Exception as url_error:
+                            logger.error(f"Error generating signed URL ({cloudinary_type}): {url_error}")
+                            continue
+
+                        logger.info(f"Downloading from Cloudinary CDN...")
+                        response = requests.get(download_url, timeout=30)
+                        logger.info(f"Cloudinary response status: {response.status_code}")
+
+                        if response.status_code == 200:
+                            cloudinary_response = response
+                            logger.info(f"✅ SUCCESS: Downloaded {len(response.content)} bytes")
+                            break
+                        elif response.status_code == 404:
+                            logger.warning(f"404: File not found with public_id={public_id}, type={cloudinary_type}")
+                        else:
+                            logger.warning(f"Unexpected status {response.status_code} for {public_id}")
+
+                    if cloudinary_response:
+                        break
+
+                if cloudinary_response is None:
+                    logger.error(f"All download attempts failed for credit note {credit_note.id}")
+                    return Response(
+                        {'detail': 'No se pudo descargar el archivo desde Cloudinary después de múltiples intentos.'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                # Servir el archivo descargado
+                filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
+                content_type = credit_note.uploaded_file.content_type or 'application/pdf'
+
+                response_file = HttpResponse(cloudinary_response.content, content_type=content_type)
+                download_flag = str(request.query_params.get('download', '')).lower()
+                disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
+                response_file['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+                response_file['Content-Length'] = len(cloudinary_response.content)
+                response_file['Access-Control-Expose-Headers'] = 'Content-Disposition'
+
+                return response_file
+
+            except Exception as e:
+                logger.error(f"Error al obtener archivo de Cloudinary: {e}", exc_info=True)
                 return Response(
-                    {'detail': f'Error al obtener URL del archivo: {exc}'},
+                    {'detail': f'Error al obtener el archivo: {str(e)}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        # For local filesystem, serve file normally
+        # Para almacenamiento local, servir normalmente
         if not get_storage().exists(storage_path):
-            return Response({'detail': 'Archivo no encontrado en el almacenamiento.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'detail': 'Archivo no encontrado en el almacenamiento.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         try:
             file_handle = get_storage().open(storage_path, 'rb')
         except Exception as exc:
-            return Response({'detail': f'No se pudo abrir el archivo: {exc}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {'detail': f'No se pudo abrir el archivo: {exc}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
         content_type = credit_note.uploaded_file.content_type or 'application/octet-stream'
         response = FileResponse(file_handle, content_type=content_type)
