@@ -380,7 +380,7 @@ class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
         Admin y Jefe de Operaciones pueden hacer todo
         Otros roles solo pueden leer
         """
-        if self.action in ['list', 'retrieve', 'probar_regex', 'by_provider']:
+        if self.action in ['list', 'retrieve', 'probar_regex', 'by_provider', 'campos_objetivo']:
             permission_classes = [ReadOnly]
         else:
             permission_classes = [IsAdmin | IsJefeOperaciones]
@@ -464,6 +464,68 @@ class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    @action(detail=False, methods=['get'], url_path='campos-objetivo')
+    def campos_objetivo(self, request):
+        """
+        Obtener lista de campos objetivo disponibles.
+
+        GET /api/catalogs/invoice-pattern-catalog/campos-objetivo/
+
+        Response:
+        [
+            {"code": "numero_factura", "name": "Número de Factura", "data_type": "text", "count": 5},
+            ...
+        ]
+        """
+        # Mapeo de campos con nombre legible y tipo de dato
+        field_mapping = {
+            'numero_factura': ('Número de Factura', 'text', 'Identificación'),
+            'numero_control': ('Número de Control (UUID)', 'text', 'Identificación'),
+            'numero_ot': ('Número de OT', 'text', 'Identificación'),
+            'fecha_emision': ('Fecha de Emisión', 'date', 'Fechas'),
+            'fecha_vencimiento': ('Fecha de Vencimiento', 'date', 'Fechas'),
+            'monto_total': ('Total / Monto Total', 'decimal', 'Montos'),
+            'subtotal': ('Subtotal', 'decimal', 'Montos'),
+            'subtotal_gravado': ('Subtotal Gravado', 'decimal', 'Montos'),
+            'subtotal_exento': ('Subtotal Exento', 'decimal', 'Montos'),
+            'iva_total': ('IVA Total', 'decimal', 'Montos'),
+            'retencion_iva': ('Retención IVA', 'decimal', 'Montos'),
+            'retencion_renta': ('Retención Renta', 'decimal', 'Montos'),
+            'mbl': ('MBL / Master BL', 'text', 'Logística'),
+            'hbl': ('HBL / House BL', 'text', 'Logística'),
+            'numero_contenedor': ('Número de Contenedor', 'text', 'Logística'),
+            'nit_emisor': ('NIT Emisor', 'text', 'Emisor'),
+            'nombre_emisor': ('Nombre Emisor', 'text', 'Emisor'),
+        }
+
+        # Obtener campos objetivo únicos de patrones activos
+        campos_en_uso = self.get_queryset().filter(
+            activo=True
+        ).values_list('campo_objetivo', flat=True).distinct()
+
+        # Construir respuesta con todos los campos disponibles
+        campos_response = []
+        for code, (name, data_type, category) in field_mapping.items():
+            # Contar cuántos patrones usan este campo
+            count = self.get_queryset().filter(
+                campo_objetivo=code,
+                activo=True
+            ).count()
+
+            campos_response.append({
+                'code': code,
+                'name': name,
+                'data_type': data_type,
+                'category': category,
+                'count': count,
+                'in_use': code in campos_en_uso
+            })
+
+        # Ordenar por categoría y nombre
+        campos_response.sort(key=lambda x: (x['category'], x['name']))
+
+        return Response(campos_response)
 
     @action(detail=False, methods=['get'], url_path='by_provider/(?P<provider_id>[^/.]+)')
     def by_provider(self, request, provider_id=None):

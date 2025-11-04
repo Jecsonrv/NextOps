@@ -22,7 +22,7 @@ import apiClient from "../../lib/api";
 
 const CATALOG_URL = "/catalogs/invoice-pattern-catalog/";
 const PROVIDERS_URL = "/catalogs/providers/";
-const TARGET_FIELDS_URL = "/patterns/target-fields/";
+const CAMPOS_OBJETIVO_URL = "/catalogs/invoice-pattern-catalog/campos-objetivo/";
 
 const DOCUMENT_TYPES = [
     { value: "DTE", label: "DTE - Documento Tributario Electrónico" },
@@ -91,17 +91,16 @@ function InvoicePatternForm({
 
     const loadTargetFields = async () => {
         try {
-            console.log("Loading target fields from:", TARGET_FIELDS_URL);
+            console.log("Loading target fields from:", CAMPOS_OBJETIVO_URL);
             const response = await apiClient.get(
-                TARGET_FIELDS_URL,
+                CAMPOS_OBJETIVO_URL,
                 getAuthHeaders()
             );
             console.log("Target fields response:", response.data);
-            const allFields = response.data.results || response.data || [];
+            // El endpoint devuelve directamente un array de campos
+            const allFields = response.data || [];
             console.log("All fields:", allFields);
-            const activeFields = allFields.filter((f) => f.is_active);
-            console.log("Active fields:", activeFields);
-            setTargetFields(activeFields);
+            setTargetFields(allFields);
         } catch (error) {
             console.error("Error loading target fields:", error);
         }

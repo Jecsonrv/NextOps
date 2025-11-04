@@ -82,11 +82,6 @@ const navigation = [
                 icon: Regex,
             },
             {
-                name: "Campos Objetivo",
-                href: "/catalogs/target-fields",
-                icon: Target,
-            },
-            {
                 name: "Alias de Clientes",
                 href: "/catalogs/aliases",
                 icon: Link2,

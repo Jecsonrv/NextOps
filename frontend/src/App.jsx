@@ -26,8 +26,6 @@ import { CreditNoteDetailPage } from "./pages/CreditNoteDetailPage";
 import { InvoiceEditPage } from "./pages/InvoiceEditPage";
 import ClientsPage from "./pages/ClientsPage";
 import InvoicePatternCatalogPage from "./pages/InvoicePatternCatalogPage";
-import TargetFieldsPage from "./pages/TargetFieldsPage";
-import PatternDiagnosticsPage from "./pages/PatternDiagnosticsPage";
 
 // Catalog pages
 import { ProvidersPage } from "./pages/ProvidersPage";
@@ -383,26 +381,6 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <ProviderFormPage />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />{" "}
-                        <Route
-                            path="/catalogs/target-fields"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <TargetFieldsPage />
-                                    </Layout>
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/catalogs/pattern-diagnostics"
-                            element={
-                                <ProtectedRoute>
-                                    <Layout>
-                                        <PatternDiagnosticsPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }
