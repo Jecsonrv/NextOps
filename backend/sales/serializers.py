@@ -1,10 +1,14 @@
 from rest_framework import serializers
 from decimal import Decimal
+import logging
+
+import requests
+from django.conf import settings
+
 from .models import SalesInvoice, InvoiceSalesMapping, Payment
 from .models_items import SalesInvoiceItem
 from invoices.models import Invoice
 from invoices.utils import get_absolute_media_url
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +22,30 @@ class SafeFileField(serializers.FileField):
         if not value:
             return None
         try:
-            # Intentar obtener la URL del archivo
-            return value.url
+            url = value.url
         except Exception as e:
-            # Si hay error (archivo no existe en Cloudinary, etc.), retornar None
             logger.warning(f"Error obteniendo URL de archivo: {e}")
             return None
+
+        # Validar que el recurso exista únicamente cuando usamos Cloudinary
+        if getattr(settings, 'USE_CLOUDINARY', False):
+            try:
+                response = requests.head(url, timeout=5)
+                if response.status_code >= 400:
+                    logger.warning(
+                        "Archivo no encontrado en Cloudinary (status %s) para %s",
+                        response.status_code,
+                        getattr(value, 'name', 'desconocido'),
+                    )
+                    return None
+            except requests.RequestException as e:
+                logger.warning(
+                    "Error verificando existencia de archivo en Cloudinary: %s",
+                    e,
+                )
+                return None
+
+        return url
 
 
 from django.db.models import Sum
