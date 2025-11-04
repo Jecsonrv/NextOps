@@ -321,7 +321,11 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
         # Solo verificar lineas si el objeto ya existe en BD (tiene pk)
         tiene_lineas = False
         if self.pk:
-            tiene_lineas = self.lineas.exists()
+            try:
+                tiene_lineas = self.lineas.exists()
+            except Exception as e:
+                logger.warning(f"Error al verificar líneas de factura {self.pk}: {e}")
+                tiene_lineas = False
         
         if not tiene_lineas:
             # Si no hay IVA total, calcularlo automáticamente
@@ -337,9 +341,13 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
         # Calcular total de notas de crédito aplicadas (solo si ya existe en BD)
         total_notas_credito = Decimal('0.00')
         if self.pk:
-            total_notas_credito = self.credit_notes.aggregate(
-                total=models.Sum('monto')
-            )['total'] or Decimal('0.00')
+            try:
+                total_notas_credito = self.credit_notes.aggregate(
+                    total=models.Sum('monto')
+                )['total'] or Decimal('0.00')
+            except Exception as e:
+                logger.warning(f"Error al calcular notas de crédito para factura {self.pk}: {e}")
+                total_notas_credito = Decimal('0.00')
 
         # Calcular monto pendiente: monto_total - notas_crédito - monto_pagado
         monto_neto = self.monto_total - total_notas_credito
@@ -398,10 +406,14 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
         """Calcula el margen bruto (venta - costos asociados)"""
         if not self.pk:
             return Decimal('0.00')
-        total_costos = self.cost_mappings.aggregate(
-            total=models.Sum('monto_asignado')
-        )['total'] or Decimal('0.00')
-        return self.monto_total - total_costos
+        try:
+            total_costos = self.cost_mappings.aggregate(
+                total=models.Sum('monto_asignado')
+            )['total'] or Decimal('0.00')
+            return self.monto_total - total_costos
+        except Exception as e:
+            logger.warning(f"Error al calcular margen bruto para factura {self.pk}: {e}")
+            return Decimal('0.00')
 
     @property
     def porcentaje_margen(self):

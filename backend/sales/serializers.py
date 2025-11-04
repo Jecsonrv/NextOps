@@ -173,6 +173,7 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
     
     # Archivo PDF
     archivo_pdf = serializers.FileField(required=False, allow_null=True)
+    archivo_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SalesInvoice
@@ -183,8 +184,22 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
             'margen_bruto', 'porcentaje_margen',
             'cliente_nombre', 'cliente_alias', 'ot_numero', 'ot_tipo_operacion',
             'cliente_tipo_contribuyente', 'cliente_nit', 'cliente_aplica_retencion_iva',
-            'cliente_aplica_retencion_renta', 'tipo_documento_display'
+            'cliente_aplica_retencion_renta', 'tipo_documento_display', 'archivo_pdf_url'
         ]
+    
+    def get_archivo_pdf_url(self, obj):
+        """Obtener URL absoluta del archivo PDF"""
+        if obj.archivo_pdf:
+            try:
+                return obj.archivo_pdf.url
+            except Exception as e:
+                # Si hay error al generar la URL (archivo no existe en Cloudinary, etc.)
+                # retornar None en lugar de fallar toda la serialización
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error generando URL para archivo PDF de factura {obj.numero_factura}: {e}")
+                return None
+        return None
     
     def validate(self, attrs):
         """
@@ -293,7 +308,15 @@ class CreditNoteSerializer(serializers.ModelSerializer):
     def get_archivo_pdf_url(self, obj):
         """Obtener URL absoluta del archivo PDF"""
         if obj.archivo_pdf:
-            return obj.archivo_pdf.url
+            try:
+                return obj.archivo_pdf.url
+            except Exception as e:
+                # Si hay error al generar la URL (archivo no existe en Cloudinary, etc.)
+                # retornar None en lugar de fallar toda la serialización
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error generando URL para archivo PDF {obj.numero_factura}: {e}")
+                return None
         return None
 
 
