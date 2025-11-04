@@ -16,24 +16,23 @@ logger = logging.getLogger(__name__)
 class SafeFileField(serializers.FileField):
     """
     FileField personalizado que maneja errores al obtener la URL.
-    Retorna None en lugar de fallar si el archivo no existe.
-
-    IMPORTANTE: NO verifica existencia en Cloudinary para archivos RAW
-    porque requieren autenticación. En su lugar, usar los endpoints proxy (/file/).
+    Siempre devuelve la URL incluso si puede no funcionar.
     """
     def to_representation(self, value):
         if not value:
             return None
         try:
+            # Intentar obtener la URL
             url = value.url
+            return url
         except Exception as e:
+            # Si falla, intentar devolver al menos el nombre/path del archivo
             logger.warning(f"Error obteniendo URL de archivo: {e}")
-            return None
-
-        # NOTA: Removida validación HEAD para archivos en Cloudinary
-        # Los archivos RAW (PDFs) requieren autenticación y el HEAD falla con 404/401
-        # El frontend debe usar los endpoints proxy (/file/) en lugar de URLs directas
-        return url
+            try:
+                # Intentar devolver el nombre del archivo como último recurso
+                return str(value.name) if hasattr(value, 'name') else None
+            except:
+                return None
 
 
 from django.db.models import Sum
