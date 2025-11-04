@@ -88,7 +88,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 public_id=sanitized_base,
                 resource_type='raw',  # Use 'raw' for PDFs and non-image files
                 use_filename=False,  # We control the filename via public_id
-                unique_filename=True,  # Add hash to avoid collisions
+                unique_filename=False,  # NO agregar hash - mantener nombre exacto
                 timeout=120,  # 2 minutes timeout
                 chunk_size=6000000,  # 6MB chunks for efficient upload
                 type='authenticated',  # Use authenticated type to bypass untrusted restrictions
