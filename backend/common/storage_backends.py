@@ -197,15 +197,19 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
             # Intentar generar URL firmada para archivos authenticated
             try:
+                # Para archivos sin extensión en el nombre guardado, usar el public_id tal cual
+                # pero especificar explícitamente el formato
+                id_to_use = base_public_id if ext else public_id
+                
                 secure_url = private_download_url(
-                    base_public_id if ext else public_id,  # Usar base solo si había extensión
+                    id_to_use,
                     format=fmt,
                     resource_type='raw',
                     type='authenticated',
                     expires_at=expires_at,
                 )
                 
-                logger.info(f"✓ URL firmada generada exitosamente: {secure_url[:100]}...")
+                logger.info(f"✓ URL firmada generada exitosamente para {id_to_use} con formato {fmt}")
                 return secure_url
                 
             except Exception as auth_error:
@@ -213,8 +217,10 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 
                 # Intentar con tipo 'upload' (archivos públicos)
                 try:
+                    id_to_use = base_public_id if ext else public_id
+                    
                     secure_url = private_download_url(
-                        base_public_id if ext else public_id,
+                        id_to_use,
                         format=fmt,
                         resource_type='raw',
                         type='upload',
