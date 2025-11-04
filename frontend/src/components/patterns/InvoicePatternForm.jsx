@@ -349,6 +349,7 @@ function InvoicePatternForm({
             [
                 "numero_factura",
                 "numero_control",
+                "numero_ot",
                 "fecha_emision",
                 "monto_total",
             ].includes(f.code)
@@ -359,8 +360,8 @@ function InvoicePatternForm({
                 "mbl",
                 "hbl",
                 "numero_contenedor",
-                "nombre_proveedor",
-                "nit_proveedor",
+                "nit_emisor",
+                "nombre_emisor",
             ].includes(f.code)
         );
 
