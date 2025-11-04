@@ -17,6 +17,9 @@ class SafeFileField(serializers.FileField):
     """
     FileField personalizado que maneja errores al obtener la URL.
     Retorna None en lugar de fallar si el archivo no existe.
+
+    IMPORTANTE: NO verifica existencia en Cloudinary para archivos RAW
+    porque requieren autenticación. En su lugar, usar los endpoints proxy (/file/).
     """
     def to_representation(self, value):
         if not value:
@@ -27,24 +30,9 @@ class SafeFileField(serializers.FileField):
             logger.warning(f"Error obteniendo URL de archivo: {e}")
             return None
 
-        # Validar que el recurso exista únicamente cuando usamos Cloudinary
-        if getattr(settings, 'USE_CLOUDINARY', False):
-            try:
-                response = requests.head(url, timeout=5)
-                if response.status_code >= 400:
-                    logger.warning(
-                        "Archivo no encontrado en Cloudinary (status %s) para %s",
-                        response.status_code,
-                        getattr(value, 'name', 'desconocido'),
-                    )
-                    return None
-            except requests.RequestException as e:
-                logger.warning(
-                    "Error verificando existencia de archivo en Cloudinary: %s",
-                    e,
-                )
-                return None
-
+        # NOTA: Removida validación HEAD para archivos en Cloudinary
+        # Los archivos RAW (PDFs) requieren autenticación y el HEAD falla con 404/401
+        # El frontend debe usar los endpoints proxy (/file/) en lugar de URLs directas
         return url
 
 
@@ -170,11 +158,34 @@ class InvoiceSalesMappingSerializer(serializers.ModelSerializer):
 class PaymentListSerializer(serializers.ModelSerializer):
     factura_venta_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     cliente_nombre = serializers.CharField(source='sales_invoice.cliente.short_name', read_only=True)
+    archivo_comprobante_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at', 'factura_venta_numero', 'cliente_nombre']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'factura_venta_numero', 'cliente_nombre', 'archivo_comprobante_url']
+
+    def get_archivo_comprobante_url(self, obj):
+        """
+        Obtener URL del comprobante de pago.
+        Retorna la URL del endpoint proxy (/file/) para archivos en Cloudinary.
+        """
+        if obj.archivo_comprobante:
+            try:
+                request = self.context.get('request')
+                if request:
+                    from django.urls import reverse
+                    return request.build_absolute_uri(
+                        reverse('payment-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                else:
+                    return f"/api/payments/{obj.pk}/file/"
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error generando URL para comprobante de pago {obj.id}: {e}")
+                return None
+        return None
 
 
 class SalesInvoiceListSerializer(serializers.ModelSerializer):
@@ -230,13 +241,25 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
         ]
     
     def get_archivo_pdf_url(self, obj):
-        """Obtener URL absoluta del archivo PDF"""
+        """
+        Obtener URL del archivo PDF.
+        IMPORTANTE: Retorna la URL del endpoint proxy (/file/) que maneja
+        la descarga desde Cloudinary con autenticación.
+        """
         if obj.archivo_pdf:
             try:
-                return obj.archivo_pdf.url
+                # Usar el endpoint proxy en lugar de URL directa de Cloudinary
+                # Esto evita problemas con archivos RAW que requieren autenticación
+                request = self.context.get('request')
+                if request:
+                    from django.urls import reverse
+                    return request.build_absolute_uri(
+                        reverse('salesinvoice-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                else:
+                    # Fallback si no hay request en el contexto
+                    return f"/api/sales-invoices/{obj.pk}/file/"
             except Exception as e:
-                # Si hay error al generar la URL (archivo no existe en Cloudinary, etc.)
-                # retornar None en lugar de fallar toda la serialización
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Error generando URL para archivo PDF de factura {obj.numero_factura}: {e}")
@@ -348,16 +371,27 @@ class CreditNoteSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'sales_invoice_numero', 'archivo_pdf_url']
     
     def get_archivo_pdf_url(self, obj):
-        """Obtener URL absoluta del archivo PDF"""
+        """
+        Obtener URL del archivo PDF.
+        IMPORTANTE: Retorna la URL del endpoint proxy (/file/) que maneja
+        la descarga desde Cloudinary con autenticación.
+        """
         if obj.archivo_pdf:
             try:
-                return obj.archivo_pdf.url
+                # Usar el endpoint proxy en lugar de URL directa de Cloudinary
+                request = self.context.get('request')
+                if request:
+                    from django.urls import reverse
+                    return request.build_absolute_uri(
+                        reverse('creditnote-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                else:
+                    # Fallback si no hay request en el contexto
+                    return f"/api/credit-notes/{obj.pk}/file/"
             except Exception as e:
-                # Si hay error al generar la URL (archivo no existe en Cloudinary, etc.)
-                # retornar None en lugar de fallar toda la serialización
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.warning(f"Error generando URL para archivo PDF {obj.numero_factura}: {e}")
+                logger.warning(f"Error generando URL para archivo PDF de nota de crédito {obj.numero_nota_credito}: {e}")
                 return None
         return None
 

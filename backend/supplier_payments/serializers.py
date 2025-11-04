@@ -58,6 +58,9 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
     # Usuario que registró (read_only)
     registrado_por_nombre = serializers.SerializerMethodField()
 
+    # URL del comprobante (proxy endpoint)
+    archivo_comprobante_url = serializers.SerializerMethodField()
+
     # Links de facturas (nested)
     invoice_links = SupplierPaymentLinkSerializer(many=True, read_only=True)
 
@@ -80,6 +83,7 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
             'monto_total',
             'referencia',
             'archivo_comprobante',
+            'archivo_comprobante_url',
             'notas',
             'registrado_por',
             'registrado_por_nombre',
@@ -89,12 +93,34 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
             'updated_at',
             'is_deleted'
         ]
-        read_only_fields = ['registrado_por', 'created_at', 'updated_at']
+        read_only_fields = ['registrado_por', 'created_at', 'updated_at', 'archivo_comprobante_url']
 
     def get_registrado_por_nombre(self, obj):
         if obj.registrado_por:
             # El modelo User personalizado solo tiene username, no first_name/last_name
             return obj.registrado_por.username
+        return None
+
+    def get_archivo_comprobante_url(self, obj):
+        """
+        Obtener URL del comprobante de pago.
+        Retorna la URL del endpoint proxy (/file/) para archivos en Cloudinary.
+        """
+        if obj.archivo_comprobante:
+            try:
+                request = self.context.get('request')
+                if request:
+                    from django.urls import reverse
+                    return request.build_absolute_uri(
+                        reverse('supplierpayment-retrieve-file', kwargs={'pk': obj.pk})
+                    )
+                else:
+                    return f"/api/supplier-payments/{obj.pk}/file/"
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error generando URL para comprobante de pago a proveedor {obj.id}: {e}")
+                return None
         return None
 
     def validate_invoices_to_pay(self, value):
