@@ -229,9 +229,43 @@ class CloudinaryMediaStorage(FileSystemStorage):
                     raise upload_error
                     
         except Exception as e:
-            # Si falla todo, generar URL pública como último recurso
-            logger.warning(f"Todas las opciones fallaron para {name}: {e}. Generando URL pública simple.")
+            # Si falla todo, intentar buscar el archivo en Cloudinary con búsqueda
+            logger.warning(f"Todas las opciones fallaron para {name}: {e}. Intentando buscar en Cloudinary...")
             
+            try:
+                # Intentar buscar el recurso en Cloudinary por prefijo
+                search_prefix = public_id.split('/')[-1]  # Última parte del path
+                logger.info(f"Buscando recursos con prefijo: {search_prefix}")
+                
+                # Buscar recursos que coincidan
+                resources = cloudinary.api.resources(
+                    type='authenticated',
+                    resource_type='raw',
+                    prefix=os.path.dirname(public_id),  # Buscar en la carpeta
+                    max_results=100
+                )
+                
+                # Buscar coincidencia por nombre similar
+                for resource in resources.get('resources', []):
+                    resource_id = resource.get('public_id', '')
+                    if search_prefix in resource_id:
+                        logger.info(f"✓ Archivo encontrado: {resource_id}")
+                        # Generar URL para el recurso encontrado
+                        found_url = private_download_url(
+                            resource_id,
+                            format='pdf',
+                            resource_type='raw',
+                            type='authenticated',
+                            expires_at=expires_at,
+                        )
+                        return found_url
+                
+                logger.warning(f"No se encontró ningún recurso similar a {search_prefix}")
+                
+            except Exception as search_error:
+                logger.error(f"Error buscando en Cloudinary: {search_error}")
+            
+            # Como último recurso, generar URL pública simple
             cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
             public_id = name.replace('\\', '/').rstrip('/')
             
