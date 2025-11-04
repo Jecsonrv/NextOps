@@ -583,7 +583,17 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                                 extracted_data['confidence'] = pattern_results['numero_factura']['confidence']
                             
                             if 'monto_total' in pattern_results:
-                                extracted_data['monto'] = pattern_results['monto_total']['value']
+                                monto_value = pattern_results['monto_total']['value']
+                                # Asegurar que siempre sea Decimal
+                                if isinstance(monto_value, str):
+                                    # Limpiar y convertir
+                                    import re
+                                    cleaned = re.sub(r'[^\d.-]', '', monto_value.replace(',', ''))
+                                    extracted_data['monto'] = Decimal(cleaned) if cleaned else Decimal('0.00')
+                                elif isinstance(monto_value, Decimal):
+                                    extracted_data['monto'] = monto_value
+                                else:
+                                    extracted_data['monto'] = Decimal(str(monto_value))
                             
                             if 'fecha_emision' in pattern_results:
                                 fecha = pattern_results['fecha_emision']['value']
@@ -2066,7 +2076,17 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
                             if 'numero_nota_credito' in pattern_results:
                                 extracted_data['numero_nota'] = pattern_results['numero_nota_credito']['value']
                             if 'monto_total' in pattern_results:
-                                extracted_data['monto'] = pattern_results['monto_total']['value']
+                                monto_value = pattern_results['monto_total']['value']
+                                # Asegurar que siempre sea Decimal
+                                if isinstance(monto_value, str):
+                                    # Limpiar y convertir
+                                    import re
+                                    cleaned = re.sub(r'[^\d.-]', '', monto_value.replace(',', ''))
+                                    extracted_data['monto'] = Decimal(cleaned) if cleaned else Decimal('0.00')
+                                elif isinstance(monto_value, Decimal):
+                                    extracted_data['monto'] = monto_value
+                                else:
+                                    extracted_data['monto'] = Decimal(str(monto_value))
                             if 'fecha_emision' in pattern_results:
                                 fecha = pattern_results['fecha_emision']['value']
                                 if isinstance(fecha, datetime):

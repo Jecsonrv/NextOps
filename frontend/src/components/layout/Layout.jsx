@@ -42,7 +42,7 @@ const navigation = [
     },
     { name: "Clientes", href: "/clients", icon: Users },
     {
-        name: "CRM / Ventas",
+        name: "Finanzas",
         icon: TrendingUp,
         children: [
             {
@@ -77,14 +77,9 @@ const navigation = [
                 icon: Building2,
             },
             {
-                name: "Patrones (Beta)",
+                name: "Patrones",
                 href: "/patterns",
                 icon: Regex,
-            },
-            {
-                name: "Diagnóstico de Patrones",
-                href: "/catalogs/pattern-diagnostics",
-                icon: AlertCircle,
             },
             {
                 name: "Campos Objetivo",
@@ -177,7 +172,7 @@ export function Layout({ children }) {
                             // Handle parent items with children (Sales, Catalogs, etc.)
                             if (item.children) {
                                 const isSalesSection =
-                                    item.name === "CRM / Ventas";
+                                    item.name === "Finanzas";
                                 const isCatalogsSection =
                                     item.name === "Catálogos";
                                 const isOpen = isSalesSection

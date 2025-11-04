@@ -7,7 +7,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from catalogs.models import Provider, InvoicePatternCatalog
-from patterns.models import ProviderPattern, TargetField
 
 
 @api_view(['GET'])
@@ -120,24 +119,24 @@ def diagnosticar_patrones(request):
 def activar_patrones_proveedor(request, provider_id):
     """
     POST /api/patterns/diagnostics/activate/<provider_id>/
-    
-    Activa todos los patrones inactivos de un proveedor.
+
+    Activa todos los patrones inactivos de un proveedor en InvoicePatternCatalog.
     """
     try:
         provider = Provider.objects.get(id=provider_id, is_active=True, is_deleted=False)
     except Provider.DoesNotExist:
         return Response({'error': 'Proveedor no encontrado'}, status=404)
-    
-    # Activar patrones inactivos
-    inactive_patterns = ProviderPattern.objects.filter(
-        provider=provider,
-        is_active=False,
+
+    # Activar patrones inactivos en InvoicePatternCatalog
+    inactive_patterns = InvoicePatternCatalog.objects.filter(
+        proveedor=provider,
+        activo=False,
         is_deleted=False
     )
-    
+
     count = inactive_patterns.count()
-    inactive_patterns.update(is_active=True)
-    
+    inactive_patterns.update(activo=True)
+
     return Response({
         'provider': provider.nombre,
         'patterns_activated': count,

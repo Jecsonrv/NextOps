@@ -380,7 +380,7 @@ class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
         Admin y Jefe de Operaciones pueden hacer todo
         Otros roles solo pueden leer
         """
-        if self.action in ['list', 'retrieve', 'probar_regex']:
+        if self.action in ['list', 'retrieve', 'probar_regex', 'by_provider']:
             permission_classes = [ReadOnly]
         else:
             permission_classes = [IsAdmin | IsJefeOperaciones]
@@ -464,3 +464,79 @@ class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    @action(detail=False, methods=['get'], url_path='by_provider/(?P<provider_id>[^/.]+)')
+    def by_provider(self, request, provider_id=None):
+        """
+        Obtener patrones para un proveedor específico.
+
+        GET /api/catalogs/invoice-pattern-catalog/by_provider/{provider_id}/
+
+        Response:
+        {
+            "provider_id": 1,
+            "total": 5,
+            "specific_patterns": 3,
+            "generic_patterns": 2,
+            "patterns": [...],
+            "by_field": {...}
+        }
+        """
+        # Obtener patrones del proveedor
+        patterns = self.get_queryset().filter(
+            proveedor_id=provider_id,
+            activo=True,
+            tipo_patron='costo'
+        ).order_by('prioridad')
+
+        patterns_list = []
+        by_field = {}
+
+        # Mapeo de campos
+        field_name_mapping = {
+            'numero_factura': 'Número de Factura',
+            'fecha_emision': 'Fecha de Emisión',
+            'mbl': 'MBL',
+            'hbl': 'HBL',
+            'contenedor': 'Contenedor',
+            'total': 'Total',
+            'subtotal': 'Subtotal',
+            'iva': 'IVA',
+            'nit_emisor': 'NIT Emisor',
+            'nombre_emisor': 'Nombre Emisor',
+        }
+
+        for pattern in patterns:
+            if pattern.campo_objetivo and pattern.patron_regex:
+                # Formato nuevo: patrón individual
+                field_name = field_name_mapping.get(
+                    pattern.campo_objetivo,
+                    pattern.campo_objetivo.replace('_', ' ').title()
+                )
+
+                pattern_data = {
+                    'id': pattern.id,
+                    'name': pattern.nombre,
+                    'target_field_code': pattern.campo_objetivo,
+                    'target_field_name': field_name,
+                    'pattern': pattern.patron_regex[:100],
+                    'priority': pattern.prioridad,
+                    'is_generic': False,
+                    'provider_name': pattern.proveedor.nombre if pattern.proveedor else 'GENÉRICO',
+                }
+
+                patterns_list.append(pattern_data)
+
+                # Agrupar por campo
+                if pattern.campo_objetivo not in by_field:
+                    by_field[pattern.campo_objetivo] = []
+                by_field[pattern.campo_objetivo].append(pattern_data)
+
+        return Response({
+            'provider_id': int(provider_id),
+            'total': len(patterns_list),
+            'specific_patterns': len(patterns_list),
+            'generic_patterns': 0,
+            'patterns': patterns_list,
+            'by_field': by_field,
+        })

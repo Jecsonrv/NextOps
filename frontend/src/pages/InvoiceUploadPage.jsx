@@ -66,7 +66,7 @@ export function InvoiceUploadPage() {
         try {
             setLoadingPatterns(true);
             const token = localStorage.getItem("access_token");
-            const response = await apiClient.get(`/patterns/provider-patterns/by_provider/${providerId}/`, {
+            const response = await apiClient.get(`/catalogs/invoice-pattern-catalog/by_provider/${providerId}/`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

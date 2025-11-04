@@ -14,10 +14,39 @@ from datetime import datetime
 import re
 import logging
 
-from patterns.models import ProviderPattern, TargetField
 from catalogs.models import Provider, InvoicePatternCatalog
 
 logger = logging.getLogger(__name__)
+
+
+class MockPattern:
+    """Clase mock para simular ProviderPattern desde InvoicePatternCatalog"""
+    def __init__(self, id, name, pattern, priority, case_sensitive, provider_name, provider_id,
+                 field_code, field_name, data_type, test_fn):
+        self.id = id
+        self.name = name
+        self.pattern = pattern
+        self.priority = priority
+        self.case_sensitive = case_sensitive
+
+        # Mock provider
+        self.provider = type('MockProvider', (), {
+            'nombre': provider_name,
+            'id': provider_id
+        })()
+
+        # Mock target_field
+        self.target_field = type('MockField', (), {
+            'code': field_code,
+            'name': field_name,
+            'data_type': data_type
+        })()
+
+        # test function
+        self._test_fn = test_fn
+
+    def test(self, text):
+        return self._test_fn(text)
 
 
 class PatternApplicationService:
@@ -85,17 +114,18 @@ class PatternApplicationService:
         # CASO 1: Formato nuevo - patrón individual con campo_objetivo
         if catalog_pattern.campo_objetivo and catalog_pattern.patron_regex:
             # Mapeo de campo_objetivo a nombre legible y tipo de dato
+            # IMPORTANTE: field_code DEBE coincidir con lo que espera views.py
             field_info_mapping = {
-                'numero_factura': ('invoice_number', 'Número de Factura', 'text'),
-                'fecha_emision': ('issue_date', 'Fecha de Emisión', 'date'),
+                'numero_factura': ('numero_factura', 'Número de Factura', 'text'),
+                'fecha_emision': ('fecha_emision', 'Fecha de Emisión', 'date'),
                 'mbl': ('mbl', 'MBL', 'text'),
                 'hbl': ('hbl', 'HBL', 'text'),
-                'contenedor': ('container', 'Contenedor', 'text'),
-                'total': ('total_amount', 'Total', 'decimal'),
+                'contenedor': ('numero_contenedor', 'Contenedor', 'text'),
+                'total': ('monto_total', 'Total', 'decimal'),
                 'subtotal': ('subtotal', 'Subtotal', 'decimal'),
-                'iva': ('tax_amount', 'IVA', 'decimal'),
-                'nit_emisor': ('issuer_nit', 'NIT Emisor', 'text'),
-                'nombre_emisor': ('issuer_name', 'Nombre Emisor', 'text'),
+                'iva': ('iva', 'IVA', 'decimal'),
+                'nit_emisor': ('nit_emisor', 'NIT Emisor', 'text'),
+                'nombre_emisor': ('nombre_emisor', 'Nombre Emisor', 'text'),
             }
             
             # Obtener info del campo o usar el campo_objetivo como está
@@ -104,71 +134,75 @@ class PatternApplicationService:
                 (catalog_pattern.campo_objetivo, catalog_pattern.campo_objetivo.replace('_', ' ').title(), 'text')
             )
             
-            mock_pattern = type('MockPattern', (), {
-                'id': catalog_pattern.id,
-                'name': catalog_pattern.nombre,
-                'pattern': catalog_pattern.patron_regex,
-                'priority': catalog_pattern.prioridad,
-                'case_sensitive': catalog_pattern.case_sensitive,
-                'provider': type('MockProvider', (), {
-                    'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
-                    'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
-                })(),
-                'target_field': type('MockField', (), {
-                    'code': field_code,
-                    'name': field_name,
-                    'data_type': data_type
-                })(),
-                'test': lambda text, p=catalog_pattern.patron_regex, cs=catalog_pattern.case_sensitive: self._test_pattern(p, text, cs)
-            })()
+            # Crear función test
+            def make_test_fn(pattern_regex, case_sensitive):
+                def test_fn(text):
+                    return self._test_pattern(pattern_regex, text, case_sensitive)
+                return test_fn
+
+            mock_pattern = MockPattern(
+                id=catalog_pattern.id,
+                name=catalog_pattern.nombre,
+                pattern=catalog_pattern.patron_regex,
+                priority=catalog_pattern.prioridad,
+                case_sensitive=catalog_pattern.case_sensitive,
+                provider_name=catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
+                provider_id=catalog_pattern.proveedor.id if catalog_pattern.proveedor else None,
+                field_code=field_code,
+                field_name=field_name,
+                data_type=data_type,
+                test_fn=make_test_fn(catalog_pattern.patron_regex, catalog_pattern.case_sensitive)
+            )
             
             self.patterns.append(mock_pattern)
             logger.info(f"✓ Cargado patrón: {catalog_pattern.nombre} ({field_name})")
         
         # CASO 2: Formato legacy - múltiples campos patron_*
         else:
+            # IMPORTANTE: field_code DEBE coincidir con lo que espera views.py
             field_mapping = {
-                'patron_numero_factura': ('invoice_number', 'Número de Factura'),
-                'patron_numero_control': ('control_number', 'Número de Control'),
-                'patron_fecha_emision': ('issue_date', 'Fecha de Emisión'),
-                'patron_nit_emisor': ('issuer_nit', 'NIT Emisor'),
-                'patron_nombre_emisor': ('issuer_name', 'Nombre Emisor'),
-                'patron_nit_cliente': ('client_nit', 'NIT Cliente'),
-                'patron_nombre_cliente': ('client_name', 'Nombre Cliente'),
+                'patron_numero_factura': ('numero_factura', 'Número de Factura'),
+                'patron_numero_control': ('numero_control', 'Número de Control'),
+                'patron_fecha_emision': ('fecha_emision', 'Fecha de Emisión'),
+                'patron_nit_emisor': ('nit_emisor', 'NIT Emisor'),
+                'patron_nombre_emisor': ('nombre_emisor', 'Nombre Emisor'),
+                'patron_nit_cliente': ('nit_cliente', 'NIT Cliente'),
+                'patron_nombre_cliente': ('nombre_cliente', 'Nombre Cliente'),
                 'patron_subtotal': ('subtotal', 'Subtotal'),
-                'patron_subtotal_gravado': ('taxable_subtotal', 'Subtotal Gravado'),
-                'patron_subtotal_exento': ('exempt_subtotal', 'Subtotal Exento'),
-                'patron_iva': ('tax_amount', 'IVA'),
-                'patron_total': ('total_amount', 'Total'),
-                'patron_retencion': ('retention', 'Retención'),
-                'patron_retencion_iva': ('retention_vat', 'Retención IVA'),
-                'patron_retencion_renta': ('retention_income', 'Retención Renta'),
-                'patron_otros_montos': ('other_amounts', 'Otros Montos'),
+                'patron_subtotal_gravado': ('subtotal_gravado', 'Subtotal Gravado'),
+                'patron_subtotal_exento': ('subtotal_exento', 'Subtotal Exento'),
+                'patron_iva': ('iva', 'IVA'),
+                'patron_total': ('monto_total', 'Total'),
+                'patron_retencion': ('retencion', 'Retención'),
+                'patron_retencion_iva': ('retencion_iva', 'Retención IVA'),
+                'patron_retencion_renta': ('retencion_renta', 'Retención Renta'),
+                'patron_otros_montos': ('otros_montos', 'Otros Montos'),
             }
             
             for field_attr, (field_code, field_name) in field_mapping.items():
                 pattern_text = getattr(catalog_pattern, field_attr, None)
-                
+
                 if pattern_text and pattern_text.strip():
-                    # Crear un objeto mock que simula ProviderPattern
-                    mock_pattern = type('MockPattern', (), {
-                        'id': f"{catalog_pattern.id}_{field_code}",
-                        'name': f"{catalog_pattern.nombre} - {field_name}",
-                        'pattern': pattern_text,
-                        'priority': catalog_pattern.prioridad,
-                        'case_sensitive': catalog_pattern.case_sensitive,
-                        'provider': type('MockProvider', (), {
-                            'nombre': catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
-                            'id': catalog_pattern.proveedor.id if catalog_pattern.proveedor else None
-                        })(),
-                        'target_field': type('MockField', (), {
-                            'code': field_code,
-                            'name': field_name,
-                            'data_type': self._get_data_type_for_field(field_code)
-                        })(),
-                        'test': lambda text, p=pattern_text, cs=catalog_pattern.case_sensitive: self._test_pattern(p, text, cs)
-                    })()
-                    
+                    # Crear función test
+                    def make_test_fn_legacy(pattern_regex, case_sensitive):
+                        def test_fn(text):
+                            return self._test_pattern(pattern_regex, text, case_sensitive)
+                        return test_fn
+
+                    mock_pattern = MockPattern(
+                        id=f"{catalog_pattern.id}_{field_code}",
+                        name=f"{catalog_pattern.nombre} - {field_name}",
+                        pattern=pattern_text,
+                        priority=catalog_pattern.prioridad,
+                        case_sensitive=catalog_pattern.case_sensitive,
+                        provider_name=catalog_pattern.proveedor.nombre if catalog_pattern.proveedor else 'GENÉRICO',
+                        provider_id=catalog_pattern.proveedor.id if catalog_pattern.proveedor else None,
+                        field_code=field_code,
+                        field_name=field_name,
+                        data_type=self._get_data_type_for_field(field_code),
+                        test_fn=make_test_fn_legacy(pattern_text, catalog_pattern.case_sensitive)
+                    )
+
                     self.patterns.append(mock_pattern)
                     logger.info(f"✓ Cargado patrón legacy: {catalog_pattern.nombre} - {field_name}")
     
@@ -305,7 +339,7 @@ class PatternApplicationService:
         
         return results
     
-    def _apply_single_pattern(self, pattern_obj: ProviderPattern, text: str) -> Dict:
+    def _apply_single_pattern(self, pattern_obj, text: str) -> Dict:
         """
         Aplica un solo patrón al texto.
         
@@ -426,8 +460,8 @@ class PatternApplicationService:
         return None
     
     def _calculate_confidence(
-        self, 
-        pattern_obj: ProviderPattern, 
+        self,
+        pattern_obj,
         match_count: int,
         value_length: int
     ) -> float:

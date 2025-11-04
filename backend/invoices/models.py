@@ -398,9 +398,9 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=['numero_factura'],
+                fields=['numero_factura', 'proveedor'],
                 condition=models.Q(is_deleted=False),
-                name='unique_numero_factura_not_deleted'
+                name='unique_numero_factura_proveedor_not_deleted'
             )
         ]
         verbose_name = 'Factura'
