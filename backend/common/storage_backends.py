@@ -184,10 +184,12 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
             logger.info(f"Generando URL para: {name}, public_id: {public_id}, base: {base_public_id}, fmt: {fmt}")
 
+            # Calcular timestamp de expiración (Unix timestamp)
+            import time
+            expires_at = int(time.time()) + 3600  # 1 hora desde ahora
+
             # Intentar generar URL firmada para archivos authenticated
             try:
-                expires_at = datetime.utcnow() + timedelta(hours=1)
-                
                 secure_url = private_download_url(
                     base_public_id if fmt else public_id,
                     format=fmt,
@@ -209,7 +211,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                         format=fmt,
                         resource_type='raw',
                         type='upload',
-                        expires_at=datetime.utcnow() + timedelta(hours=1),
+                        expires_at=expires_at,
                     )
                     
                     logger.info(f"✓ URL firmada tipo 'upload' generada: {secure_url[:100]}...")
