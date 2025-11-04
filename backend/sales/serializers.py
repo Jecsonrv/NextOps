@@ -4,6 +4,26 @@ from .models import SalesInvoice, InvoiceSalesMapping, Payment
 from .models_items import SalesInvoiceItem
 from invoices.models import Invoice
 from invoices.utils import get_absolute_media_url
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class SafeFileField(serializers.FileField):
+    """
+    FileField personalizado que maneja errores al obtener la URL.
+    Retorna None en lugar de fallar si el archivo no existe.
+    """
+    def to_representation(self, value):
+        if not value:
+            return None
+        try:
+            # Intentar obtener la URL del archivo
+            return value.url
+        except Exception as e:
+            # Si hay error (archivo no existe en Cloudinary, etc.), retornar None
+            logger.warning(f"Error obteniendo URL de archivo: {e}")
+            return None
 
 
 from django.db.models import Sum
@@ -171,8 +191,8 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
     margen_bruto = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     porcentaje_margen = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
     
-    # Archivo PDF
-    archivo_pdf = serializers.FileField(required=False, allow_null=True)
+    # Archivo PDF - usar SafeFileField para manejar archivos faltantes
+    archivo_pdf = SafeFileField(required=False, allow_null=True)
     archivo_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -290,7 +310,7 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
 
 class CreditNoteSerializer(serializers.ModelSerializer):
     """Serializer para Notas de Crédito"""
-    archivo_pdf = serializers.FileField(required=False, allow_null=True)
+    archivo_pdf = SafeFileField(required=False, allow_null=True)
     archivo_pdf_url = serializers.SerializerMethodField()
     sales_invoice_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     
