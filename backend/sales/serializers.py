@@ -252,23 +252,12 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
 
     def get_archivo_pdf_url(self, obj):
         """
-        Obtener URL del archivo PDF.
-        IMPORTANTE: Retorna la URL del endpoint proxy (/file/) que maneja
-        la descarga desde Cloudinary con autenticación.
+        Obtener URL del archivo PDF desde Cloudinary.
         """
         if obj.archivo_pdf:
             try:
-                # Usar el endpoint proxy en lugar de URL directa de Cloudinary
-                # Esto evita problemas con archivos RAW que requieren autenticación
-                request = self.context.get('request')
-                if request:
-                    from django.urls import reverse
-                    return request.build_absolute_uri(
-                        reverse('salesinvoice-retrieve-file', kwargs={'pk': obj.pk})
-                    )
-                else:
-                    # Fallback si no hay request en el contexto
-                    return f"/api/sales-invoices/{obj.pk}/file/"
+                # Devolver la URL directamente desde el storage (Cloudinary)
+                return obj.archivo_pdf.url
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -387,22 +376,12 @@ class CreditNoteSerializer(serializers.ModelSerializer):
 
     def get_archivo_pdf_url(self, obj):
         """
-        Obtener URL del archivo PDF.
-        IMPORTANTE: Retorna la URL del endpoint proxy (/file/) que maneja
-        la descarga desde Cloudinary con autenticación.
+        Obtener URL del archivo PDF desde Cloudinary.
         """
         if obj.archivo_pdf:
             try:
-                # Usar el endpoint proxy en lugar de URL directa de Cloudinary
-                request = self.context.get('request')
-                if request:
-                    from django.urls import reverse
-                    return request.build_absolute_uri(
-                        reverse('creditnote-retrieve-file', kwargs={'pk': obj.pk})
-                    )
-                else:
-                    # Fallback si no hay request en el contexto
-                    return f"/api/credit-notes/{obj.pk}/file/"
+                # Devolver la URL directamente desde el storage (Cloudinary)
+                return obj.archivo_pdf.url
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)

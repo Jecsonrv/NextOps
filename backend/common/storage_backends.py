@@ -182,28 +182,53 @@ class CloudinaryMediaStorage(FileSystemStorage):
             base_public_id, ext = os.path.splitext(public_id)
             fmt = ext.lstrip('.') if ext else None
 
-            expires_at = datetime.utcnow() + timedelta(hours=1)
+            logger.info(f"Generando URL para: {name}, public_id: {public_id}, base: {base_public_id}, fmt: {fmt}")
 
-            secure_url = private_download_url(
-                base_public_id if fmt else public_id,
-                format=fmt,
-                resource_type='raw',
-                type='authenticated',
-                expires_at=expires_at,
-            )
-
-            logger.debug("Generated Cloudinary signed URL for %s", public_id)
-            return secure_url
+            # Intentar generar URL firmada para archivos authenticated
+            try:
+                expires_at = datetime.utcnow() + timedelta(hours=1)
+                
+                secure_url = private_download_url(
+                    base_public_id if fmt else public_id,
+                    format=fmt,
+                    resource_type='raw',
+                    type='authenticated',
+                    expires_at=expires_at,
+                )
+                
+                logger.info(f"✓ URL firmada generada exitosamente: {secure_url[:100]}...")
+                return secure_url
+                
+            except Exception as auth_error:
+                logger.warning(f"Falló URL authenticated para {name}: {auth_error}. Intentando con tipo 'upload'...")
+                
+                # Intentar con tipo 'upload' (archivos públicos)
+                try:
+                    secure_url = private_download_url(
+                        base_public_id if fmt else public_id,
+                        format=fmt,
+                        resource_type='raw',
+                        type='upload',
+                        expires_at=datetime.utcnow() + timedelta(hours=1),
+                    )
+                    
+                    logger.info(f"✓ URL firmada tipo 'upload' generada: {secure_url[:100]}...")
+                    return secure_url
+                    
+                except Exception as upload_error:
+                    logger.warning(f"Falló URL tipo upload: {upload_error}")
+                    raise upload_error
+                    
         except Exception as e:
-            # Si falla la generación de URL firmada, generar URL pública como fallback
-            # Esto permite que el frontend al menos intente descargar el archivo
-            logger.warning("Failed to generate signed Cloudinary URL for %s: %s. Using public URL as fallback.", name, e)
+            # Si falla todo, generar URL pública como último recurso
+            logger.warning(f"Todas las opciones fallaron para {name}: {e}. Generando URL pública simple.")
             
             cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
             public_id = name.replace('\\', '/').rstrip('/')
             
-            # Generar URL pública (puede no funcionar para archivos authenticated, pero es mejor que nada)
+            # URL pública simple - funcionará si el archivo fue subido como público
             fallback_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
+            logger.info(f"URL pública fallback: {fallback_url}")
             return fallback_url
 
     def delete(self, name):
