@@ -319,7 +319,11 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
         # If the invoice has no line items, allow direct modification of subtotals
         # and recalculate totals.
         # Solo verificar lineas si el objeto ya existe en BD (tiene pk)
-        if self.pk is None or not self.lineas.exists():
+        tiene_lineas = False
+        if self.pk:
+            tiene_lineas = self.lineas.exists()
+        
+        if not tiene_lineas:
             # Si no hay IVA total, calcularlo automáticamente
             if self.iva_total is None or self.iva_total == Decimal('0.00'):
                 self.iva_total = (self.subtotal_gravado * Decimal('0.13')).quantize(Decimal('0.01'))
@@ -330,10 +334,12 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
         if self.monto_total is None:
             self.monto_total = Decimal('0.00')
 
-        # Calcular total de notas de crédito aplicadas
-        total_notas_credito = self.credit_notes.aggregate(
-            total=models.Sum('monto')
-        )['total'] or Decimal('0.00')
+        # Calcular total de notas de crédito aplicadas (solo si ya existe en BD)
+        total_notas_credito = Decimal('0.00')
+        if self.pk:
+            total_notas_credito = self.credit_notes.aggregate(
+                total=models.Sum('monto')
+            )['total'] or Decimal('0.00')
 
         # Calcular monto pendiente: monto_total - notas_crédito - monto_pagado
         monto_neto = self.monto_total - total_notas_credito
@@ -390,6 +396,8 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
     @property
     def margen_bruto(self):
         """Calcula el margen bruto (venta - costos asociados)"""
+        if not self.pk:
+            return Decimal('0.00')
         total_costos = self.cost_mappings.aggregate(
             total=models.Sum('monto_asignado')
         )['total'] or Decimal('0.00')
@@ -418,6 +426,11 @@ class SalesInvoice(TimeStampedModel, SoftDeleteModel):
             dict: Diccionario con los totales calculados
         """
         from decimal import Decimal
+
+        # Validar que la instancia tenga pk antes de acceder a relaciones
+        if not self.pk:
+            logger.warning("No se puede recalcular totales de una factura sin ID")
+            return None
 
         # Obtener todas las líneas activas (no soft-deleted)
         lineas_activas = self.lineas.filter(deleted_at__isnull=True)
