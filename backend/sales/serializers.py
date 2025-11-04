@@ -158,6 +158,7 @@ class InvoiceSalesMappingSerializer(serializers.ModelSerializer):
 class PaymentListSerializer(serializers.ModelSerializer):
     factura_venta_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     cliente_nombre = serializers.CharField(source='sales_invoice.cliente.short_name', read_only=True)
+    archivo_comprobante = serializers.FileField(required=False, allow_null=True, write_only=True)
     archivo_comprobante_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -224,8 +225,8 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
     margen_bruto = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     porcentaje_margen = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
     
-    # Archivo PDF - usar SafeFileField para manejar archivos faltantes
-    archivo_pdf = SafeFileField(required=False, allow_null=True)
+    # Archivo PDF - NO devolver URL directa de Cloudinary, solo usar archivo_pdf_url
+    archivo_pdf = serializers.FileField(required=False, allow_null=True, write_only=True)
     archivo_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -355,7 +356,7 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
 
 class CreditNoteSerializer(serializers.ModelSerializer):
     """Serializer para Notas de Crédito"""
-    archivo_pdf = SafeFileField(required=False, allow_null=True)
+    archivo_pdf = serializers.FileField(required=False, allow_null=True, write_only=True)
     archivo_pdf_url = serializers.SerializerMethodField()
     sales_invoice_numero = serializers.CharField(source='sales_invoice.numero_factura', read_only=True)
     

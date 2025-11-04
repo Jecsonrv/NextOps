@@ -58,6 +58,9 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
     # Usuario que registró (read_only)
     registrado_por_nombre = serializers.SerializerMethodField()
 
+    # Archivo comprobante - NO devolver URL directa, solo usar archivo_comprobante_url
+    archivo_comprobante = serializers.FileField(required=False, allow_null=True, write_only=True)
+
     # URL del comprobante (proxy endpoint)
     archivo_comprobante_url = serializers.SerializerMethodField()
 
