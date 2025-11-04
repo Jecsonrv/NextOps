@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 import os
 import logging
+from datetime import datetime, timedelta
 
 try:
     import cloudinary
@@ -174,18 +175,28 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if cloudinary is None:
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
-        # For Cloudinary, we return a placeholder URL
-        # The actual file access is handled in views.py via private_download_url
-        # This is because raw files (PDFs) cannot be accessed with simple public URLs
+        try:
+            from cloudinary.utils import private_download_url
 
-        cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
+            public_id = name.replace('\\', '/').rstrip('/')
+            base_public_id, ext = os.path.splitext(public_id)
+            fmt = ext.lstrip('.') if ext else None
 
-        # Return a placeholder that indicates it's a Cloudinary file
-        # The view will intercept this and serve the file properly
-        url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{name}"
+            expires_at = datetime.utcnow() + timedelta(hours=1)
 
-        logger.debug(f"Generated Cloudinary URL (placeholder): {url}")
-        return url
+            secure_url = private_download_url(
+                base_public_id if fmt else public_id,
+                format=fmt,
+                resource_type='raw',
+                type='authenticated',
+                expires_at=expires_at,
+            )
+
+            logger.debug("Generated Cloudinary signed URL for %s", public_id)
+            return secure_url
+        except Exception as e:
+            logger.error("Failed to generate Cloudinary URL for %s: %s", name, e, exc_info=True)
+            raise IOError(f"Error generating Cloudinary URL: {e}")
 
     def delete(self, name):
         """
