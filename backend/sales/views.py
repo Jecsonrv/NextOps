@@ -451,7 +451,7 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
         Permite descargar o previsualizar el archivo PDF de la factura de venta.
         Actúa como proxy para servir archivos desde Cloudinary.
         """
-        from django.shortcuts import redirect
+        from django.http import HttpResponse
         from django.conf import settings
 
         sales_invoice = self.get_object()
@@ -467,32 +467,36 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
             try:
                 import cloudinary.utils
                 import requests
+                import os
 
-                # Obtener el nombre del archivo almacenado en Cloudinary
+                # Obtener el storage_path del archivo almacenado en Cloudinary
                 storage_path = sales_invoice.archivo_pdf.name
                 logger.info(f"Fetching sales invoice PDF from Cloudinary: {storage_path}")
 
-                # Eliminar la extensión del public_id si existe (Cloudinary raw files)
-                import os
+                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
+                # But we may have saved it WITH extension in older uploads
+                # Try both approaches
                 base_name, ext = os.path.splitext(storage_path)
                 ext_clean = ext.lstrip('.')
 
-                # Intentar con y sin extensión
+                # Try with and without extension
                 public_id_candidates = []
                 if ext:
-                    public_id_candidates.append(base_name)
-                public_id_candidates.append(storage_path)
+                    public_id_candidates.append(base_name)  # Without extension
+                public_id_candidates.append(storage_path)  # With extension
 
-                # Eliminar duplicados manteniendo orden
+                # Remove duplicates while preserving order
                 unique_candidates = []
                 for candidate in public_id_candidates:
                     if candidate and candidate not in unique_candidates:
                         unique_candidates.append(candidate)
 
                 cloudinary_response = None
+                last_status = None
 
                 for public_id in unique_candidates:
                     logger.info(f"Trying public_id: {public_id}")
+                    # Try both 'authenticated' and 'upload' types
                     for cloudinary_type in ('authenticated', 'upload'):
                         try:
                             format_arg = None
@@ -525,19 +529,28 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
                             cloudinary_response = response
                             logger.info(f"✅ SUCCESS: Downloaded {len(response.content)} bytes")
                             break
-                        elif response.status_code == 404:
+
+                        if response.status_code == 404:
                             logger.warning(f"404: File not found with public_id={public_id}, type={cloudinary_type}")
+                            last_status = 404
                         else:
                             logger.warning(f"Unexpected status {response.status_code} for {public_id}")
+                            last_status = response.status_code
 
                     if cloudinary_response:
                         break
 
-                if cloudinary_response is None:
-                    logger.error(f"All download attempts failed for sales invoice {sales_invoice.id}")
+                if not cloudinary_response:
+                    if last_status == 404:
+                        return Response(
+                            {'detail': 'Archivo no encontrado en Cloudinary. Por favor, suba la factura nuevamente.'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+
+                    detail_status = last_status or 'desconocido'
                     return Response(
-                        {'detail': 'No se pudo descargar el archivo desde Cloudinary después de múltiples intentos.'},
-                        status=status.HTTP_404_NOT_FOUND
+                        {'detail': f'Error al descargar archivo de Cloudinary: {detail_status}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
                 # Servir el archivo descargado
@@ -553,10 +566,22 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
 
                 return response_file
 
-            except Exception as e:
-                logger.error(f"Error al obtener archivo de Cloudinary: {e}", exc_info=True)
+            except requests.exceptions.Timeout:
+                logger.error('Timeout al descargar de Cloudinary')
                 return Response(
-                    {'detail': f'Error al obtener el archivo: {str(e)}'},
+                    {'detail': 'Timeout al descargar el archivo. Intente nuevamente.'},
+                    status=status.HTTP_504_GATEWAY_TIMEOUT
+                )
+            except requests.exceptions.RequestException as req_exc:
+                logger.error(f'Error de red al descargar de Cloudinary: {req_exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error de conexión con Cloudinary: {req_exc}'},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+            except Exception as exc:
+                logger.error(f'Error inesperado al servir archivo de Cloudinary: {exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error al obtener archivo: {str(exc)}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
@@ -613,7 +638,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         Permite descargar o previsualizar el comprobante de pago.
         Actúa como proxy para servir archivos desde Cloudinary.
         """
-        from django.shortcuts import redirect
+        from django.http import HttpResponse
         from django.conf import settings
 
         payment = self.get_object()
@@ -629,32 +654,36 @@ class PaymentViewSet(viewsets.ModelViewSet):
             try:
                 import cloudinary.utils
                 import requests
+                import os
 
-                # Obtener el nombre del archivo almacenado en Cloudinary
+                # Obtener el storage_path del archivo almacenado en Cloudinary
                 storage_path = payment.archivo_comprobante.name
                 logger.info(f"Fetching payment receipt from Cloudinary: {storage_path}")
 
-                # Eliminar la extensión del public_id si existe (Cloudinary raw files)
-                import os
+                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
+                # But we may have saved it WITH extension in older uploads
+                # Try both approaches
                 base_name, ext = os.path.splitext(storage_path)
                 ext_clean = ext.lstrip('.')
 
-                # Intentar con y sin extensión
+                # Try with and without extension
                 public_id_candidates = []
                 if ext:
-                    public_id_candidates.append(base_name)
-                public_id_candidates.append(storage_path)
+                    public_id_candidates.append(base_name)  # Without extension
+                public_id_candidates.append(storage_path)  # With extension
 
-                # Eliminar duplicados manteniendo orden
+                # Remove duplicates while preserving order
                 unique_candidates = []
                 for candidate in public_id_candidates:
                     if candidate and candidate not in unique_candidates:
                         unique_candidates.append(candidate)
 
                 cloudinary_response = None
+                last_status = None
 
                 for public_id in unique_candidates:
                     logger.info(f"Trying public_id: {public_id}")
+                    # Try both 'authenticated' and 'upload' types
                     for cloudinary_type in ('authenticated', 'upload'):
                         try:
                             format_arg = None
@@ -687,19 +716,28 @@ class PaymentViewSet(viewsets.ModelViewSet):
                             cloudinary_response = response
                             logger.info(f"✅ SUCCESS: Downloaded {len(response.content)} bytes")
                             break
-                        elif response.status_code == 404:
+
+                        if response.status_code == 404:
                             logger.warning(f"404: File not found with public_id={public_id}, type={cloudinary_type}")
+                            last_status = 404
                         else:
                             logger.warning(f"Unexpected status {response.status_code} for {public_id}")
+                            last_status = response.status_code
 
                     if cloudinary_response:
                         break
 
-                if cloudinary_response is None:
-                    logger.error(f"All download attempts failed for payment {payment.id}")
+                if not cloudinary_response:
+                    if last_status == 404:
+                        return Response(
+                            {'detail': 'Archivo no encontrado en Cloudinary. Por favor, suba el comprobante nuevamente.'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+
+                    detail_status = last_status or 'desconocido'
                     return Response(
-                        {'detail': 'No se pudo descargar el archivo desde Cloudinary después de múltiples intentos.'},
-                        status=status.HTTP_404_NOT_FOUND
+                        {'detail': f'Error al descargar archivo de Cloudinary: {detail_status}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
 
                 # Servir el archivo descargado
@@ -715,10 +753,22 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
                 return response_file
 
-            except Exception as e:
-                logger.error(f"Error al obtener archivo de Cloudinary: {e}", exc_info=True)
+            except requests.exceptions.Timeout:
+                logger.error('Timeout al descargar de Cloudinary')
                 return Response(
-                    {'detail': f'Error al obtener el archivo: {str(e)}'},
+                    {'detail': 'Timeout al descargar el archivo. Intente nuevamente.'},
+                    status=status.HTTP_504_GATEWAY_TIMEOUT
+                )
+            except requests.exceptions.RequestException as req_exc:
+                logger.error(f'Error de red al descargar de Cloudinary: {req_exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error de conexión con Cloudinary: {req_exc}'},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+            except Exception as exc:
+                logger.error(f'Error inesperado al servir archivo de Cloudinary: {exc}', exc_info=True)
+                return Response(
+                    {'detail': f'Error al obtener archivo: {str(exc)}'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
