@@ -13,8 +13,10 @@ try:
     import cloudinary
     import cloudinary.uploader
     import cloudinary.api
+    from cloudinary import CloudinaryResource
 except ImportError:
     cloudinary = None
+    CloudinaryResource = None
 
 logger = logging.getLogger(__name__)
 
@@ -172,17 +174,16 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().url(name)
 
-        if cloudinary is None:
+        if cloudinary is None or CloudinaryResource is None:
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
         try:
-            import cloudinary
             from cloudinary.utils import private_download_url
             import time
-            
+
             public_id = name.replace('\\', '/').rstrip('/')
             base_public_id, ext = os.path.splitext(public_id)
-            
+
             # Si no hay extensión pero es un archivo en sales_invoices, asumir que es PDF
             if not ext and 'sales_invoices' in public_id:
                 fmt = 'pdf'
@@ -199,17 +200,17 @@ class CloudinaryMediaStorage(FileSystemStorage):
 
             # Calcular timestamp de expiración (Unix timestamp)
             expires_at = int(time.time()) + 3600  # 1 hora desde ahora
-            
+
             # Para archivos raw authenticated, usar CloudinaryResource.build_url
             # que genera URLs del tipo: res.cloudinary.com/cloud/raw/authenticated/.../file.pdf
             try:
                 # Para archivos sin extensión en el nombre guardado, usar el public_id tal cual
                 id_to_use = base_public_id if ext else public_id
-                
+
                 logger.info(f"  Generando URL con CloudinaryResource para: id={id_to_use}, format={fmt}")
-                
+
                 # Construir URL firmada para archivo raw authenticated
-                secure_url = cloudinary.CloudinaryResource(
+                secure_url = CloudinaryResource(
                     public_id=id_to_use,
                     format=fmt,
                     resource_type='raw',
@@ -218,16 +219,16 @@ class CloudinaryMediaStorage(FileSystemStorage):
                     sign_url=True,
                     secure=True
                 )
-                
+
                 logger.info(f"✓ URL firmada generada exitosamente: {secure_url}")
                 return secure_url
-                
+
             except Exception as build_error:
                 logger.warning(f"Falló build_url: {build_error}. Intentando con tipo 'upload'...")
-                
+
                 # Intentar con tipo 'upload' (archivos públicos)
                 try:
-                    secure_url = cloudinary.CloudinaryResource(
+                    secure_url = CloudinaryResource(
                         public_id=id_to_use,
                         format=fmt,
                         resource_type='raw',
@@ -236,10 +237,10 @@ class CloudinaryMediaStorage(FileSystemStorage):
                         sign_url=True,
                         secure=True
                     )
-                    
+
                     logger.info(f"✓ URL tipo 'upload' generada: {secure_url[:100]}...")
                     return secure_url
-                    
+
                 except Exception as upload_error:
                     logger.warning(f"Falló URL tipo upload: {upload_error}")
                     raise upload_error
