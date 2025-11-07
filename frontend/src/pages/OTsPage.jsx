@@ -71,8 +71,6 @@ const arraysAreEqual = (a = [], b = []) => {
 const normalizeSingleValue = (value) =>
     typeof value === "string" ? value.trim() : "";
 
-
-
 const estadoColors = {
     almacenadora: "secondary",
     bodega: "default",
@@ -409,13 +407,6 @@ export function OTsPage() {
     const handleApplyBulkSearch = () => {
         const processedValues = processBulkSearchText(bulkSearchText);
 
-        console.log("🚀 Aplicando búsqueda masiva:", {
-            tipo: filters.bulk_search_type,
-            textoOriginal: bulkSearchText,
-            valoresProcesados: processedValues,
-            cantidad: processedValues.length,
-        });
-
         setFilters((prev) => ({
             ...prev,
             bulk_search_values: processedValues,
@@ -546,7 +537,9 @@ export function OTsPage() {
         queryKey: ["ots-filter-values", filtersKey, normalizedSearch],
         queryFn: async () => {
             const params = buildFilterParams(false); // Do not include pagination
-            const response = await apiClient.get(`/ots/filter-values/?${params}`);
+            const response = await apiClient.get(
+                `/ots/filter-values/?${params}`
+            );
             return response.data;
         },
         staleTime: 5 * 60 * 1000, // Cache por 5 minutos
@@ -556,24 +549,30 @@ export function OTsPage() {
         const toastId = toast.loading("Exportando datos...");
         try {
             const params = buildFilterParams(false); // false = no incluir paginación
-            const response = await apiClient.get(`/ots/export-excel/?${params}`, {
-                responseType: 'blob',
-            });
+            const response = await apiClient.get(
+                `/ots/export-excel/?${params}`,
+                {
+                    responseType: "blob",
+                }
+            );
 
-            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const blob = new Blob([response.data], {
+                type: response.headers["content-type"],
+            });
             const url = window.URL.createObjectURL(blob);
-            const contentDisposition = response.headers['content-disposition'];
-            let filename = 'OTs_Export.xlsx';
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = "OTs_Export.xlsx";
             if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
                 if (filenameMatch && filenameMatch[1]) {
                     filename = filenameMatch[1];
                 }
             }
 
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             link.href = url;
-            link.setAttribute('download', filename);
+            link.setAttribute("download", filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -721,10 +720,16 @@ export function OTsPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`flex-1 sm:flex-none ${showFilters ? "bg-blue-50 border-blue-300" : ""}`}
+                                className={`flex-1 sm:flex-none ${
+                                    showFilters
+                                        ? "bg-blue-50 border-blue-300"
+                                        : ""
+                                }`}
                             >
                                 <Filter className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Filtros</span>
+                                <span className="hidden sm:inline">
+                                    Filtros
+                                </span>
                                 {hasFilterSelections && (
                                     <Badge
                                         variant="default"
@@ -745,8 +750,14 @@ export function OTsPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setShowBulkSearch(!showBulkSearch)}
-                                className={`hidden md:inline-flex ${showBulkSearch ? "bg-blue-50 border-blue-300" : ""}`}
+                                onClick={() =>
+                                    setShowBulkSearch(!showBulkSearch)
+                                }
+                                className={`hidden md:inline-flex ${
+                                    showBulkSearch
+                                        ? "bg-blue-50 border-blue-300"
+                                        : ""
+                                }`}
                             >
                                 <Layers className="w-4 h-4 mr-2" />
                                 Búsqueda Masiva
@@ -758,7 +769,9 @@ export function OTsPage() {
                                 className="flex-1 sm:flex-none"
                             >
                                 <Upload className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Importar</span>
+                                <span className="hidden sm:inline">
+                                    Importar
+                                </span>
                             </Button>
                             <Button
                                 variant="outline"
@@ -777,7 +790,9 @@ export function OTsPage() {
                                 className="flex-1 sm:flex-none"
                             >
                                 <Download className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Exportar</span>
+                                <span className="hidden sm:inline">
+                                    Exportar
+                                </span>
                             </Button>
                         </div>
                     </div>
@@ -1314,7 +1329,8 @@ export function OTsPage() {
                                                             >
                                                                 {ot.numero_ot}
                                                             </Link>
-                                                            {ot.tipo_operacion === "exportacion" && (
+                                                            {ot.tipo_operacion ===
+                                                                "exportacion" && (
                                                                 <Badge
                                                                     variant="warning"
                                                                     className="text-xs"
@@ -1337,7 +1353,8 @@ export function OTsPage() {
                                                         </Badge>
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                                        {ot.cliente_nombre || "-"}
+                                                        {ot.cliente_nombre ||
+                                                            "-"}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                                                         {ot.operativo || "-"}
@@ -1346,22 +1363,30 @@ export function OTsPage() {
                                                         {ot.mbl || "-"}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                        {ot.contenedores_list || "-"}
+                                                        {ot.contenedores_list ||
+                                                            "-"}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                        {ot.proveedor_nombre || "-"}
+                                                        {ot.proveedor_nombre ||
+                                                            "-"}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                                                         {ot.barco || "-"}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                        {formatDate(ot.fecha_eta)}
+                                                        {formatDate(
+                                                            ot.fecha_eta
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                        {formatDate(ot.fecha_provision)}
+                                                        {formatDate(
+                                                            ot.fecha_provision
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                                        {formatDate(ot.fecha_recepcion_factura)}
+                                                        {formatDate(
+                                                            ot.fecha_recepcion_factura
+                                                        )}
                                                     </td>
                                                     <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
                                                         <div className="flex justify-end gap-1">
@@ -1395,7 +1420,9 @@ export function OTsPage() {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
-                                                                    handleDelete(ot)
+                                                                    handleDelete(
+                                                                        ot
+                                                                    )
                                                                 }
                                                                 title="Eliminar"
                                                                 disabled={
@@ -1419,16 +1446,23 @@ export function OTsPage() {
                                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <p className="text-sm text-gray-600">
                                         Mostrando {(page - 1) * pageSize + 1} -{" "}
-                                        {Math.min(page * pageSize, data.count)} de{" "}
-                                        {data.count} OTs
+                                        {Math.min(page * pageSize, data.count)}{" "}
+                                        de {data.count} OTs
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-2">
-                                            <label className="text-sm text-gray-600 hidden sm:inline">Mostrar:</label>
+                                            <label className="text-sm text-gray-600 hidden sm:inline">
+                                                Mostrar:
+                                            </label>
                                             <select
                                                 value={pageSize}
                                                 onChange={(e) => {
-                                                    setPageSize(parseInt(e.target.value, 10));
+                                                    setPageSize(
+                                                        parseInt(
+                                                            e.target.value,
+                                                            10
+                                                        )
+                                                    );
                                                     setPage(1);
                                                 }}
                                                 className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
@@ -1437,7 +1471,9 @@ export function OTsPage() {
                                                 <option value="50">50</option>
                                                 <option value="100">100</option>
                                             </select>
-                                            <span className="text-sm text-gray-600 hidden sm:inline">por página</span>
+                                            <span className="text-sm text-gray-600 hidden sm:inline">
+                                                por página
+                                            </span>
                                         </div>
                                         <div className="h-5 w-px bg-gray-300 mx-1"></div>
                                         <Button

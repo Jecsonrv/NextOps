@@ -172,8 +172,6 @@ export default function SalesInvoiceFormPage() {
     };
 
     const handleSelectOT = async (ot) => {
-        console.log("OT seleccionada completa:", ot);
-
         setSelectedOT(ot.id.toString());
         setOtSearchTerm(ot.numero_ot);
 
@@ -200,7 +198,6 @@ export default function SalesInvoiceFormPage() {
                     ...prev,
                     cliente_data: response.data,
                 }));
-                console.log("Cliente data cargado:", response.data);
             } catch (error) {
                 console.error("Error cargando cliente:", error);
             }
@@ -351,21 +348,11 @@ export default function SalesInvoiceFormPage() {
         // Validaciones
 
         if (!formData.cliente) {
-            toast.error(
-                "Debes seleccionar un cliente"
-            );
+            toast.error("Debes seleccionar un cliente");
             return;
         }
 
         const data = new FormData();
-
-        // 🔍 DEBUG: Ver valores antes de enviar
-        console.log("📤 Valores antes de enviar:", {
-            subtotal_gravado: formData.subtotal_gravado,
-            subtotal_exento: formData.subtotal_exento,
-            iva_total: formData.iva_total,
-            monto_total: formData.monto_total,
-        });
 
         // Agregar campos requeridos
         data.append("numero_factura", formData.numero_factura);

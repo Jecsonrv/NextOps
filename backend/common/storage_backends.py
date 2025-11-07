@@ -13,10 +13,8 @@ try:
     import cloudinary
     import cloudinary.uploader
     import cloudinary.api
-    from cloudinary import CloudinaryResource
 except ImportError:
     cloudinary = None
-    CloudinaryResource = None
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +36,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
         self.use_cloudinary = getattr(settings, 'USE_CLOUDINARY', False)
 
         if self.use_cloudinary:
-            logger.info("CloudinaryMediaStorage initialized (USE_CLOUDINARY=True)")
+            logger.debug("CloudinaryMediaStorage initialized (USE_CLOUDINARY=True)")
         else:
-            logger.info("CloudinaryMediaStorage initialized (USE_CLOUDINARY=False, using local filesystem)")
+            logger.debug("CloudinaryMediaStorage initialized (USE_CLOUDINARY=False, using local filesystem)")
 
     def _save(self, name, content):
         """
@@ -79,7 +77,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
             # Cloudinary public_id (without extension for raw files)
             public_id = f"{folder}/{sanitized_base}"
 
-            logger.info(f"Uploading to Cloudinary: {public_id} (original: {name})")
+            logger.debug(f"Uploading to Cloudinary: {public_id} (original: {name})")
 
             # Upload file to Cloudinary (streaming, not reading full content)
             # CRITICAL: Use 'authenticated' type to bypass "untrusted customer" restrictions
@@ -104,8 +102,8 @@ class CloudinaryMediaStorage(FileSystemStorage):
             # DO NOT add extension back - use the public_id exactly as Cloudinary returns it
             # This ensures consistency between what's saved in DB and what exists in Cloudinary
 
-            logger.info(f"✓ Upload successful: {cloudinary_path}")
-            logger.info(f"  Cloudinary URL: {upload_result.get('secure_url', 'N/A')}")
+            logger.debug(f"✓ Upload successful: {cloudinary_path}")
+            logger.debug(f"  Cloudinary URL: {upload_result.get('secure_url', 'N/A')}")
             return cloudinary_path
 
         except Exception as e:
@@ -174,16 +172,17 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if not self.use_cloudinary:
             return super().url(name)
 
-        if cloudinary is None or CloudinaryResource is None:
+        if cloudinary is None:
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
         try:
+            import cloudinary
             from cloudinary.utils import private_download_url
             import time
-
+            
             public_id = name.replace('\\', '/').rstrip('/')
             base_public_id, ext = os.path.splitext(public_id)
-
+            
             # Si no hay extensión pero es un archivo en sales_invoices, asumir que es PDF
             if not ext and 'sales_invoices' in public_id:
                 fmt = 'pdf'
@@ -192,25 +191,25 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 fmt = ext.lstrip('.') if ext else None
                 # Si hay extensión, usar el nombre sin extensión como public_id
 
-            logger.info(f"Generando URL para: name={name}")
-            logger.info(f"  public_id={public_id}")
-            logger.info(f"  base_public_id={base_public_id}")
-            logger.info(f"  ext={ext}")
-            logger.info(f"  fmt={fmt}")
+            logger.debug(f"Generando URL para: name={name}")
+            logger.debug(f"  public_id={public_id}")
+            logger.debug(f"  base_public_id={base_public_id}")
+            logger.debug(f"  ext={ext}")
+            logger.debug(f"  fmt={fmt}")
 
             # Calcular timestamp de expiración (Unix timestamp)
             expires_at = int(time.time()) + 3600  # 1 hora desde ahora
-
+            
             # Para archivos raw authenticated, usar CloudinaryResource.build_url
             # que genera URLs del tipo: res.cloudinary.com/cloud/raw/authenticated/.../file.pdf
             try:
                 # Para archivos sin extensión en el nombre guardado, usar el public_id tal cual
                 id_to_use = base_public_id if ext else public_id
 
-                logger.info(f"  Generando URL con CloudinaryResource para: id={id_to_use}, format={fmt}")
+                logger.debug(f"  Generando URL con CloudinaryResource para: id={id_to_use}, format={fmt}")
 
                 # Construir URL firmada para archivo raw authenticated
-                secure_url = CloudinaryResource(
+                secure_url = cloudinary.CloudinaryResource(
                     public_id=id_to_use,
                     format=fmt,
                     resource_type='raw',
@@ -220,15 +219,15 @@ class CloudinaryMediaStorage(FileSystemStorage):
                     secure=True
                 )
 
-                logger.info(f"✓ URL firmada generada exitosamente: {secure_url}")
+                logger.debug(f"✓ URL firmada generada exitosamente: {secure_url}")
                 return secure_url
-
+                
             except Exception as build_error:
                 logger.warning(f"Falló build_url: {build_error}. Intentando con tipo 'upload'...")
-
+                
                 # Intentar con tipo 'upload' (archivos públicos)
                 try:
-                    secure_url = CloudinaryResource(
+                    secure_url = cloudinary.CloudinaryResource(
                         public_id=id_to_use,
                         format=fmt,
                         resource_type='raw',
@@ -238,9 +237,9 @@ class CloudinaryMediaStorage(FileSystemStorage):
                         secure=True
                     )
 
-                    logger.info(f"✓ URL tipo 'upload' generada: {secure_url[:100]}...")
+                    logger.debug(f"✓ URL tipo 'upload' generada: {secure_url[:100]}...")
                     return secure_url
-
+                    
                 except Exception as upload_error:
                     logger.warning(f"Falló URL tipo upload: {upload_error}")
                     raise upload_error
@@ -252,7 +251,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
             try:
                 # Intentar buscar el recurso en Cloudinary por prefijo
                 search_prefix = public_id.split('/')[-1]  # Última parte del path
-                logger.info(f"Buscando recursos con prefijo: {search_prefix}")
+                logger.debug(f"Buscando recursos con prefijo: {search_prefix}")
                 
                 # Buscar recursos que coincidan
                 resources = cloudinary.api.resources(
@@ -266,7 +265,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
                 for resource in resources.get('resources', []):
                     resource_id = resource.get('public_id', '')
                     if search_prefix in resource_id:
-                        logger.info(f"✓ Archivo encontrado: {resource_id}")
+                        logger.debug(f"✓ Archivo encontrado: {resource_id}")
                         # Generar URL para el recurso encontrado
                         found_url = private_download_url(
                             resource_id,
@@ -285,10 +284,10 @@ class CloudinaryMediaStorage(FileSystemStorage):
             # Como último recurso, generar URL pública simple
             cloud_name = settings.CLOUDINARY_STORAGE.get('CLOUD_NAME', 'unknown')
             public_id = name.replace('\\', '/').rstrip('/')
-            
+
             # URL pública simple - funcionará si el archivo fue subido como público
             fallback_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
-            logger.info(f"URL pública fallback: {fallback_url}")
+            logger.debug(f"URL pública fallback: {fallback_url}")
             return fallback_url
 
     def delete(self, name):
@@ -302,7 +301,7 @@ class CloudinaryMediaStorage(FileSystemStorage):
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
         try:
-            logger.info(f"Deleting from Cloudinary: {name}")
+            logger.debug(f"Deleting from Cloudinary: {name}")
             cloudinary.uploader.destroy(name, resource_type='raw')
         except Exception as e:
             logger.warning(f"Failed to delete {name} from Cloudinary: {e}")

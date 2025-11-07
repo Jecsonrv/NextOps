@@ -4,6 +4,7 @@ import logging
 
 import requests
 from django.conf import settings
+from django.db import transaction
 
 from .models import SalesInvoice, InvoiceSalesMapping, Payment
 from .models_items import SalesInvoiceItem
@@ -11,6 +12,64 @@ from invoices.models import Invoice
 from invoices.utils import get_absolute_media_url
 
 logger = logging.getLogger(__name__)
+
+
+def actualizar_fechas_facturas_costo_asociadas(sales_invoice, cost_invoice_ids):
+    """
+    Actualiza las fechas de facturación de las facturas de costo asociadas a una factura de venta.
+
+    REGLAS:
+    1. Invoice.fecha_facturacion = SalesInvoice.fecha_emision (SIEMPRE)
+    2. Si Invoice.es_costo_vinculado_ot() == True (FLETE, CARGOS_NAVIERA, etc.):
+       - OT.fecha_solicitud_facturacion = SalesInvoice.fecha_emision
+       - OT.fecha_recepcion_factura = SalesInvoice.fecha_emision
+    3. NO tocar Invoice.fecha_provision (nunca se actualiza desde factura de venta)
+    4. EXCLUIR facturas anuladas, rechazadas o eliminadas
+
+    Args:
+        sales_invoice: Instancia de SalesInvoice
+        cost_invoice_ids: Lista de IDs de facturas de costo asociadas
+    """
+    if not cost_invoice_ids or not sales_invoice.fecha_emision:
+        return
+
+    fecha_emision_venta = sales_invoice.fecha_emision
+
+    # Obtener facturas de costo asociadas
+    # FIX 1: Excluir facturas anuladas, rechazadas y eliminadas
+    facturas_costo = Invoice.objects.filter(
+        id__in=cost_invoice_ids,
+        is_deleted=False
+    ).exclude(
+        estado_provision__in=['anulada', 'anulada_parcialmente', 'rechazada']
+    ).select_related('ot')
+
+    for factura_costo in facturas_costo:
+        # REGLA 1: Actualizar fecha_facturacion de la factura de costo
+        factura_costo.fecha_facturacion = fecha_emision_venta
+        factura_costo.save(update_fields=['fecha_facturacion', 'updated_at'])
+
+        logger.info(
+            f"Factura de costo {factura_costo.numero_factura}: "
+            f"fecha_facturacion actualizada a {fecha_emision_venta}"
+        )
+
+        # REGLA 2: Si es costo vinculado a OT, actualizar fechas de la OT
+        if factura_costo.es_costo_vinculado_ot() and factura_costo.ot:
+            ot = factura_costo.ot
+            ot.fecha_solicitud_facturacion = fecha_emision_venta
+            ot.fecha_recepcion_factura = fecha_emision_venta
+
+            # Actualizar estado_facturado si está pendiente
+            if ot.estado_facturado == 'pendiente':
+                ot.estado_facturado = 'facturado'
+
+            ot.save(update_fields=['fecha_solicitud_facturacion', 'fecha_recepcion_factura', 'estado_facturado', 'updated_at'])
+
+            logger.info(
+                f"OT {ot.numero_ot}: fechas de facturación y estado actualizados a {fecha_emision_venta} / facturado "
+                f"(por factura de costo vinculada {factura_costo.numero_factura})"
+            )
 
 
 class SafeFileField(serializers.FileField):
@@ -316,40 +375,82 @@ class SalesInvoiceListSerializer(serializers.ModelSerializer):
         
         return attrs
     
+    @transaction.atomic
     def create(self, validated_data):
         """
         Override create para:
         1. Remover porcentaje_iva (campo solo de validación)
         2. Asegurar valores correctos para facturas internacionales
+        3. Actualizar fechas de facturas de costo asociadas
         """
         # Remover porcentaje_iva si existe (es write_only, solo para validación)
         validated_data.pop('porcentaje_iva', None)
-        
+
         # Para facturas internacionales, forzar subtotales e IVA a 0.00
         if validated_data.get('tipo_operacion') == 'internacional':
             validated_data['subtotal_gravado'] = Decimal('0.00')
             validated_data['subtotal_exento'] = Decimal('0.00')
             validated_data['iva_total'] = Decimal('0.00')
             # monto_total viene del PDF o ingresado manualmente
-        
-        return super().create(validated_data)
+
+        # Extraer cost_invoices si están en validated_data (relación M2M)
+        cost_invoices = validated_data.pop('cost_invoices', None)
+
+        # Crear la factura de venta
+        sales_invoice = super().create(validated_data)
+
+        # Asociar facturas de costo si fueron proporcionadas
+        if cost_invoices is not None:
+            sales_invoice.cost_invoices.set(cost_invoices)
+
+            # Actualizar fechas de las facturas de costo asociadas
+            cost_invoice_ids = [ci.id for ci in cost_invoices]
+            actualizar_fechas_facturas_costo_asociadas(sales_invoice, cost_invoice_ids)
+
+        return sales_invoice
     
+    @transaction.atomic
     def update(self, instance, validated_data):
         """
         Override update para:
         1. Remover porcentaje_iva (campo solo de validación)
         2. Asegurar valores correctos para facturas internacionales
+        3. Actualizar fechas de facturas de costo asociadas (nuevas o existentes)
         """
         # Remover porcentaje_iva si existe
         validated_data.pop('porcentaje_iva', None)
-        
+
         # Para facturas internacionales, forzar subtotales e IVA a 0.00
         if validated_data.get('tipo_operacion', instance.tipo_operacion) == 'internacional':
             validated_data['subtotal_gravado'] = Decimal('0.00')
             validated_data['subtotal_exento'] = Decimal('0.00')
             validated_data['iva_total'] = Decimal('0.00')
-        
-        return super().update(instance, validated_data)
+
+        # Extraer cost_invoices si están en validated_data (relación M2M)
+        cost_invoices = validated_data.pop('cost_invoices', None)
+
+        # Actualizar la factura de venta
+        sales_invoice = super().update(instance, validated_data)
+
+        # Si se proporcionaron facturas de costo, actualizar la relación y las fechas
+        if cost_invoices is not None:
+            # Obtener IDs actuales antes del cambio
+            old_cost_invoice_ids = set(instance.cost_invoices.values_list('id', flat=True))
+
+            # Actualizar la relación M2M
+            sales_invoice.cost_invoices.set(cost_invoices)
+
+            # Obtener IDs nuevos después del cambio
+            new_cost_invoice_ids = set([ci.id for ci in cost_invoices])
+
+            # Actualizar fechas solo de las facturas NUEVAS o que cambiaron
+            # (para evitar sobrescribir innecesariamente si no hay cambios)
+            cost_invoice_ids_to_update = list(new_cost_invoice_ids)
+
+            if cost_invoice_ids_to_update:
+                actualizar_fechas_facturas_costo_asociadas(sales_invoice, cost_invoice_ids_to_update)
+
+        return sales_invoice
 
 
 class CreditNoteSerializer(serializers.ModelSerializer):

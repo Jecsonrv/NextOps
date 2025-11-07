@@ -199,27 +199,40 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
     def associate_costs(self, request, pk=None):
         """
         Asocia facturas de costo a una factura de venta.
-        
+
         Permite asociar costos independientemente de si son mayores o menores
         que el monto de la venta (escenario de ganancia o pérdida).
+
+        Además, actualiza las fechas de facturación de las facturas de costo asociadas.
         """
+        from .serializers import actualizar_fechas_facturas_costo_asociadas
+
         sales_invoice = self.get_object()
         cost_invoice_ids = request.data.get('invoice_ids', [])
-        
+
         # Obtener todas las facturas de costo
         cost_invoices = Invoice.objects.filter(id__in=cost_invoice_ids)
-        
+
         # Asociar cada factura de costo con su monto completo disponible
         for cost_invoice in cost_invoices:
             # Usar el monto aplicable completo de la factura de costo
             monto_a_asignar = cost_invoice.get_monto_aplicable()
-            
-            InvoiceSalesMapping.objects.create(
+
+            # Verificar si ya existe la asociación
+            mapping, created = InvoiceSalesMapping.objects.get_or_create(
                 sales_invoice=sales_invoice,
                 cost_invoice=cost_invoice,
-                monto_asignado=monto_a_asignar
+                defaults={'monto_asignado': monto_a_asignar}
             )
-        
+
+            # Si ya existía, actualizar el monto
+            if not created:
+                mapping.monto_asignado = monto_a_asignar
+                mapping.save()
+
+        # Actualizar fechas de las facturas de costo asociadas
+        actualizar_fechas_facturas_costo_asociadas(sales_invoice, cost_invoice_ids)
+
         serializer = self.get_serializer(sales_invoice)
         return Response(serializer.data)
     

@@ -22,7 +22,8 @@ import apiClient from "../../lib/api";
 
 const CATALOG_URL = "/catalogs/invoice-pattern-catalog/";
 const PROVIDERS_URL = "/catalogs/providers/";
-const CAMPOS_OBJETIVO_URL = "/catalogs/invoice-pattern-catalog/campos-objetivo/";
+const CAMPOS_OBJETIVO_URL =
+    "/catalogs/invoice-pattern-catalog/campos-objetivo/";
 
 const DOCUMENT_TYPES = [
     { value: "DTE", label: "DTE - Documento Tributario Electrónico" },
@@ -73,16 +74,12 @@ function InvoicePatternForm({
     // Cargar proveedores y campos objetivo
     const loadProviders = async () => {
         try {
-            console.log("Loading providers from:", PROVIDERS_URL);
             const response = await apiClient.get(
                 PROVIDERS_URL,
                 getAuthHeaders()
             );
-            console.log("Providers response:", response.data);
             const allProviders = response.data.results || response.data || [];
-            console.log("All providers:", allProviders);
             const activeProviders = allProviders.filter((p) => p.is_active);
-            console.log("Active providers:", activeProviders);
             setProviders(activeProviders);
         } catch (error) {
             console.error("Error loading providers:", error);
@@ -91,15 +88,12 @@ function InvoicePatternForm({
 
     const loadTargetFields = async () => {
         try {
-            console.log("Loading target fields from:", CAMPOS_OBJETIVO_URL);
             const response = await apiClient.get(
                 CAMPOS_OBJETIVO_URL,
                 getAuthHeaders()
             );
-            console.log("Target fields response:", response.data);
             // El endpoint devuelve directamente un array de campos
             const allFields = response.data || [];
-            console.log("All fields:", allFields);
             setTargetFields(allFields);
         } catch (error) {
             console.error("Error loading target fields:", error);
@@ -340,11 +334,6 @@ function InvoicePatternForm({
 
     // Filtrar campos objetivo según tipo de patrón
     const getFieldsByCategory = () => {
-        console.log(
-            "Getting fields by category, total targetFields:",
-            targetFields.length
-        );
-
         const commonFields = targetFields.filter((f) =>
             [
                 "numero_factura",
@@ -387,13 +376,6 @@ function InvoicePatternForm({
                 "moneda",
             ].includes(f.code)
         );
-
-        console.log("Field categories:", {
-            common: commonFields.length,
-            costo: costoFields.length,
-            venta: ventaFields.length,
-            additional: additionalFields.length,
-        });
 
         return {
             common: commonFields,

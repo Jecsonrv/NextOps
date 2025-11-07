@@ -109,11 +109,6 @@ export default function SalesInvoiceDetailPage() {
             if (err.response?.data) {
                 const data = err.response.data;
 
-                // DEBUG: Ver estructura completa
-                console.log("🔍 Error data:", data);
-                console.log("🔍 Error detail:", data.detail);
-                console.log("🔍 Type of detail:", typeof data.detail);
-
                 // Intentar extraer el mensaje del ErrorDetail
                 if (data.detail) {
                     // Si es string, usar directamente
@@ -144,7 +139,6 @@ export default function SalesInvoiceDetailPage() {
                 }
             }
 
-            console.log("✉️ Mensaje final:", errorMessage);
             showError(errorMessage);
         },
     });

@@ -116,11 +116,9 @@ export function InvoiceDetailPage() {
     useEffect(() => {
         setFileCache(null);
         setFileActions({ downloading: false, opening: false, error: null });
-        console.log("invoice.notas_credito", invoice?.notas_credito);
     }, [id, invoice]);
 
     const handleDownloadCreditNoteFile = async (creditNote) => {
-        console.log("handleDownloadCreditNoteFile", creditNote);
         if (!creditNote?.file_url) return;
 
         setCnFileActions({ downloading: true, opening: false, error: null });
@@ -161,7 +159,6 @@ export function InvoiceDetailPage() {
     };
 
     const handleOpenCreditNoteFile = async (creditNote) => {
-        console.log("handleOpenCreditNoteFile", creditNote);
         if (!creditNote?.file_url) return;
 
         setCnFileActions({ downloading: false, opening: true, error: null });

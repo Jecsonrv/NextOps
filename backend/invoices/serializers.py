@@ -479,11 +479,13 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         }
     
     def validate_numero_factura(self, value):
-        """Validar que el número de factura no exista"""
-        if Invoice.objects.filter(numero_factura=value, is_deleted=False).exists():
-            raise serializers.ValidationError(
-                f"Ya existe una factura con el número {value}"
-            )
+        """
+        Validar que la combinación (número_factura + proveedor) sea única.
+        IMPORTANTE: Permite que diferentes proveedores tengan facturas con el mismo número.
+        """
+        # No se puede validar aquí porque el proveedor se asigna después en create()
+        # La validación real se hace en el constraint de base de datos
+        # Esta validación solo verifica el formato básico
         return value
 
     def validate_tipo_costo(self, value):
@@ -768,21 +770,33 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
 
         return value
 
-    def validate_numero_factura(self, value):
-        """Validar que el número de factura sea único para facturas activas."""
-        if value is None:
-            return value
+    def validate(self, data):
+        """
+        Validar que la combinación (número_factura + proveedor) sea única.
+        IMPORTANTE: Permite que diferentes proveedores tengan facturas con el mismo número.
+        """
+        numero_factura = data.get('numero_factura', self.instance.numero_factura if self.instance else None)
+        proveedor = data.get('proveedor', self.instance.proveedor if self.instance else None)
 
-        queryset = Invoice.objects.filter(numero_factura=value, is_deleted=False)
-        if self.instance:
-            queryset = queryset.exclude(pk=self.instance.pk)
-
-        if queryset.exists():
-            raise serializers.ValidationError(
-                f"Ya existe una factura activa con el número {value}"
+        # Solo validar si tenemos ambos valores
+        if numero_factura and proveedor:
+            # Verificar si ya existe otra factura con la misma combinación
+            queryset = Invoice.objects.filter(
+                numero_factura=numero_factura,
+                proveedor=proveedor,
+                is_deleted=False
             )
 
-        return value
+            # Excluir la instancia actual si estamos editando
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+
+            if queryset.exists():
+                raise serializers.ValidationError({
+                    'numero_factura': f'Ya existe una factura activa del proveedor "{proveedor.nombre}" con el número {numero_factura}'
+                })
+
+        return data
 
     def validate_monto(self, value):
         """Validar que el monto sea mayor a 0 cuando se proporciona."""

@@ -114,10 +114,11 @@ def sync_invoice_to_ot_on_assignment(sender, instance, created, **kwargs):
     - Vinculación se determina por is_linked_to_ot del tipo de costo (hardcoded + dinámico)
     - Ignora facturas anuladas o sin OT asignada
     - Usa el método _sincronizar_estado_con_ot() del modelo Invoice
+    - FIX 2: También sincroniza fecha_facturacion hacia la OT (bidireccional completa)
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     # Evitar loops infinitos de sincronización
     if getattr(instance, '_skip_signal_sync', False):
         return
@@ -144,6 +145,24 @@ def sync_invoice_to_ot_on_assignment(sender, instance, created, **kwargs):
     # Marcar para evitar loop
     instance._skip_signal_sync = True
     try:
+        # FIX 2: Sincronizar fecha_facturacion hacia la OT (bidireccional)
+        if instance.fecha_facturacion and instance.ot.fecha_recepcion_factura != instance.fecha_facturacion:
+            instance.ot.fecha_recepcion_factura = instance.fecha_facturacion
+            instance.ot.fecha_solicitud_facturacion = instance.fecha_facturacion
+
+            # Actualizar estado_facturado si está pendiente
+            if instance.ot.estado_facturado == 'pendiente':
+                instance.ot.estado_facturado = 'facturado'
+
+            instance.ot._skip_invoice_sync = True
+            instance.ot.save(update_fields=['fecha_recepcion_factura', 'fecha_solicitud_facturacion', 'estado_facturado', 'updated_at'])
+            instance.ot._skip_invoice_sync = False
+            logger.info(
+                f"[SIGNAL INVOICE->OT] ✓ OT {instance.ot.numero_ot}: "
+                f"fecha_recepcion_factura actualizada a {instance.fecha_facturacion} y estado a facturado"
+            )
+
+        # Sincronización de estado Invoice -> OT
         instance._sincronizar_estado_con_ot()
         logger.info(f"[SIGNAL INVOICE->OT] ✓ Sincronización completada para factura {instance.numero_factura}")
     except Exception as e:
