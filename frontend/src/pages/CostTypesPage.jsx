@@ -99,54 +99,55 @@ export function CostTypesPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Total Tipos
-                                </p>
-                                <p className="text-2xl font-bold">
-                                    {costTypes?.count || 0}
-                                </p>
-                            </div>
-                            <DollarSign className="w-8 h-8 text-green-500" />
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Tipos
+                        </CardTitle>
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {costTypes?.count || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Tipos de costo
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Activos</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {costTypes?.results?.filter(
-                                        (t) => t.is_active
-                                    ).length || 0}
-                                </p>
-                            </div>
-                            <DollarSign className="w-8 h-8 text-green-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Activos
+                        </CardTitle>
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {costTypes?.results?.filter((t) => t.is_active).length || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Habilitados
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Inactivos
-                                </p>
-                                <p className="text-2xl font-bold text-gray-600">
-                                    {costTypes?.results?.filter(
-                                        (t) => !t.is_active
-                                    ).length || 0}
-                                </p>
-                            </div>
-                            <DollarSign className="w-8 h-8 text-gray-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Inactivos
+                        </CardTitle>
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-600">
+                            {costTypes?.results?.filter((t) => !t.is_active).length || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Deshabilitados
+                        </p>
                     </CardContent>
                 </Card>
             </div>

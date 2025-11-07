@@ -65,7 +65,8 @@ export default function InvoicePatternCatalogPage() {
     const loadPatterns = async () => {
         try {
             setLoading(true);
-            const response = await apiClient.get(CATALOG_URL, getAuthHeaders());
+            // Solicitar todos los patrones (sin límite de 25)
+            const response = await apiClient.get(`${CATALOG_URL}?page_size=1000`, getAuthHeaders());
             const allPatterns = response.data.results || response.data || [];
 
             // Filtrar en el frontend

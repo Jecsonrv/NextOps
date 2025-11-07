@@ -816,15 +816,23 @@ class OTViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def statistics(self, request):
         """
-        Estadísticas generales de OTs.
-        
+        Estadísticas generales de OTs del sistema (SIN FILTROS).
+
+        Para el Dashboard principal, muestra TODAS las OTs activas.
+        NO respeta filtros de query params - usa queryset base.
+
         Retorna:
         - Total de OTs por estado
         - Total de contenedores
         - Total de provisiones
         - OTs por proveedor
         """
-        qs = self.get_queryset()
+        # Usar queryset base SIN filtros para estadísticas generales del sistema
+        qs = OT.objects.filter(deleted_at__isnull=True).select_related(
+            'proveedor',
+            'cliente',
+            'modificado_por'
+        )
         
         # Por estado
         by_estado = {}
