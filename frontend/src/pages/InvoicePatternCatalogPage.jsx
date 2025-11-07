@@ -235,39 +235,72 @@ export default function InvoicePatternCatalogPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-gray-900">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Patrones
+                        </CardTitle>
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                             {stats.total}
                         </div>
-                        <div className="text-sm text-gray-500">
-                            Total Patrones
-                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-green-600">
+
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Activos
+                        </CardTitle>
+                        <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
                             {stats.active}
                         </div>
-                        <div className="text-sm text-gray-500">Activos</div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Patrones habilitados
+                        </p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-purple-600">
+
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Costo
+                        </CardTitle>
+                        <Package className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-purple-600">
                             {stats.costo}
                         </div>
-                        <div className="text-sm text-gray-500">Costo</div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Patrones de costo
+                        </p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-blue-600">
+
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Venta
+                        </CardTitle>
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
                             {stats.venta}
                         </div>
-                        <div className="text-sm text-gray-500">Venta</div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Patrones de venta
+                        </p>
                     </CardContent>
                 </Card>
             </div>

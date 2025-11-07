@@ -439,12 +439,14 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
         # Obtener el estado anterior ANTES de cualquier cambio
         old_estado_provision = None
         old_tipo_costo = None
+        old_monto = None
 
         if self.pk:
             try:
                 old_instance = Invoice.objects.get(pk=self.pk)
                 old_estado_provision = old_instance.estado_provision
                 old_tipo_costo = old_instance.tipo_costo
+                old_monto = old_instance.monto
             except Invoice.DoesNotExist:
                 pass  # Es una instancia nueva, no hay estado anterior
 
@@ -483,7 +485,26 @@ class Invoice(TimeStampedModel, SoftDeleteModel):
 
         if self.monto_aplicable is None:
             self.monto_aplicable = self.monto
-        
+
+        # SINCRONIZACIÓN AUTOMÁTICA: Si el monto cambió, actualizar monto_aplicable
+        # SOLO si no hay razones válidas para mantener la diferencia
+        if old_monto is not None and old_monto != self.monto:
+            # Verificar si hay razones válidas para mantener monto_aplicable diferente
+            tiene_nc_aplicadas = self.notas_credito.filter(
+                is_deleted=False,
+                estado='aplicada'
+            ).exists() if self.pk else False
+
+            tiene_disputas_aprobadas = self.disputas.filter(
+                is_deleted=False,
+                estado__in=['resuelta', 'cerrada'],
+                resultado__in=['aprobada_total', 'aprobada_parcial']
+            ).exists() if self.pk else False
+
+            # Si NO hay notas de crédito ni disputas, sincronizar monto_aplicable con el nuevo monto
+            if not tiene_nc_aplicadas and not tiene_disputas_aprobadas:
+                self.monto_aplicable = self.monto
+
         # VALIDACIÓN MEJORADA: Solo permitir monto_aplicable diferente de monto
         # si hay notas de crédito o disputas que justifiquen el cambio
         if self.monto_aplicable != self.monto:
