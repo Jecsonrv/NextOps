@@ -103,50 +103,55 @@ export function CostCategoriesPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Total Categorías
-                                </p>
-                                <p className="text-2xl font-bold">
-                                    {totalCount}
-                                </p>
-                            </div>
-                            <Tag className="w-10 h-10 text-blue-600 opacity-20" />
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Categorías
+                        </CardTitle>
+                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {totalCount}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Activas</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {activeCount}
-                                </p>
-                            </div>
-                            <Tag className="w-10 h-10 text-green-600 opacity-20" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Activas
+                        </CardTitle>
+                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {activeCount}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Habilitadas
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Inactivas
-                                </p>
-                                <p className="text-2xl font-bold text-gray-400">
-                                    {inactiveCount}
-                                </p>
-                            </div>
-                            <Tag className="w-10 h-10 text-gray-400 opacity-20" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Inactivas
+                        </CardTitle>
+                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-600">
+                            {inactiveCount}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Deshabilitadas
+                        </p>
                     </CardContent>
                 </Card>
             </div>
