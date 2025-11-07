@@ -108,7 +108,12 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         # Filtros
         estado_provision = self.request.query_params.get('estado_provision')
         if estado_provision:
-            queryset = queryset.filter(estado_provision=estado_provision)
+            # Soportar múltiples valores separados por coma
+            if ',' in estado_provision:
+                estados = [e.strip() for e in estado_provision.split(',')]
+                queryset = queryset.filter(estado_provision__in=estados)
+            else:
+                queryset = queryset.filter(estado_provision=estado_provision)
 
         estado_facturacion = self.request.query_params.get('estado_facturacion')
         if estado_facturacion:
