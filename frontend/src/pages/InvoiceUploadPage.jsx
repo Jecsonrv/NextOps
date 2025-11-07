@@ -39,7 +39,7 @@ export function InvoiceUploadPage() {
     const [loadingPatterns, setLoadingPatterns] = useState(false);
 
     const uploadMutation = useInvoiceUpload();
-    const { data: providersData, isLoading: loadingProviders } = useProviders();
+    const { data: providersData, isLoading: loadingProviders } = useProviders({ page_size: 1000 });
     const { data: activeCostTypes } = useActiveCostTypes();
 
     const costTypeOptions = activeCostTypes?.map((type) => ({
