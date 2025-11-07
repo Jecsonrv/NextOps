@@ -36,7 +36,7 @@ export function InvoiceEditPage() {
     const navigate = useNavigate();
 
     const { data: invoice, isLoading, error } = useInvoiceDetail(id);
-    const { data: providers, isLoading: providersLoading } = useProviders();
+    const { data: providers, isLoading: providersLoading } = useProviders({ page_size: 1000 });
     const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
     const { data: providerTypes, isLoading: providerTypesLoading } = useProviderTypes();
     const updateMutation = useInvoiceUpdate(id);

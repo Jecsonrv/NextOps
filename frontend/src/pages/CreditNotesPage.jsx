@@ -42,7 +42,7 @@ export function CreditNotesPage() {
         fecha_hasta: "",
     });
 
-    const { data: providersData } = useProviders();
+    const { data: providersData } = useProviders({ page_size: 1000 });
 
     // Obtener notas de crédito
     const { data, isLoading, error } = useQuery({

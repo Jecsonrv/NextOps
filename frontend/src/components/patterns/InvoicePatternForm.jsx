@@ -74,8 +74,10 @@ function InvoicePatternForm({
     // Cargar proveedores y campos objetivo
     const loadProviders = async () => {
         try {
+            // Solicitar un page_size grande para obtener todos los proveedores
+            // El max_page_size es 10000 según StandardResultsSetPagination
             const response = await apiClient.get(
-                PROVIDERS_URL,
+                `${PROVIDERS_URL}?page_size=1000`,
                 getAuthHeaders()
             );
             const allProviders = response.data.results || response.data || [];

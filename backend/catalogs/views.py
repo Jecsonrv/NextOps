@@ -225,11 +225,11 @@ class CostTypeViewSet(viewsets.ModelViewSet):
 class ProviderViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de proveedores (CRUD completo)
-    
+
     Permisos:
     - Admin y Jefe de Operaciones: CRUD completo
     - Otros roles: Solo lectura
-    
+
     Filtros:
     - tipo: Filtrar por tipo de proveedor
     - categoria: Filtrar por categoría
@@ -238,7 +238,10 @@ class ProviderViewSet(viewsets.ModelViewSet):
     """
     queryset = Provider.objects.all()
     serializer_class = ProviderSerializer
-    pagination_class = StandardResultsSetPagination
+    # Usar LargeResultsSetPagination (100 items) para evitar que solo
+    # se muestren 25 proveedores en interfaces como el selector de
+    # Patrones de Factura. Con 100 items se cubren la mayoría de casos.
+    pagination_class = LargeResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['tipo', 'categoria', 'is_active']
     search_fields = ['nombre', 'nit', 'email', 'contacto']
