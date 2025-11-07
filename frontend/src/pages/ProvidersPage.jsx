@@ -158,75 +158,72 @@ export function ProvidersPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Total</p>
-                                <p className="text-2xl font-bold">
-                                    {providersData?.count || 0}
-                                </p>
-                            </div>
-                            <Building2 className="w-8 h-8 text-blue-500" />
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Total Proveedores
+                        </CardTitle>
+                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {providersData?.count || 0}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            En el sistema
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">Activos</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {
-                                        providers.filter((p) => p.is_active)
-                                            .length
-                                    }
-                                </p>
-                            </div>
-                            <CheckCircle className="w-8 h-8 text-green-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Activos
+                        </CardTitle>
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {providers.filter((p) => p.is_active).length}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Proveedores habilitados
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Navieras
-                                </p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                    {
-                                        providers.filter(
-                                            (p) => p.tipo === "naviera"
-                                        ).length
-                                    }
-                                </p>
-                            </div>
-                            <Building2 className="w-8 h-8 text-blue-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Navieras
+                        </CardTitle>
+                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+                            {providers.filter((p) => p.tipo === "naviera").length}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Líneas navieras
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Transportistas
-                                </p>
-                                <p className="text-2xl font-bold text-purple-600">
-                                    {
-                                        providers.filter(
-                                            (p) => p.tipo === "transportista"
-                                        ).length
-                                    }
-                                </p>
-                            </div>
-                            <Building2 className="w-8 h-8 text-purple-500" />
+                <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
+                            Transportistas
+                        </CardTitle>
+                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-purple-600">
+                            {providers.filter((p) => p.tipo === "transportista").length}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Empresas de transporte
+                        </p>
                     </CardContent>
                 </Card>
             </div>
