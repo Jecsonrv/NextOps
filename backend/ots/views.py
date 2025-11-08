@@ -22,10 +22,11 @@ from .serializers import (
     ExcelUploadSerializer,
     ExcelImportResultSerializer
 )
-from common.permissions import IsJefeOperaciones
+from common.permissions import IsAdminOrJefeOps, IsAdminOrFinanzas, CanImportData
+from common.mixins import RoleBasedFieldValidationMixin
 
 
-class OTViewSet(viewsets.ModelViewSet):
+class OTViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestión de Órdenes de Trabajo.
     
@@ -48,20 +49,59 @@ class OTViewSet(viewsets.ModelViewSet):
     - statistics: GET /ots/statistics/ - Estadísticas generales
     """
     
-    permission_classes = [IsAuthenticated]  # Cambiado: permitir a todos los usuarios autenticados
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]  # Removed SearchFilter - we handle search in get_queryset
-    filterset_fields = ['puerto_destino']  # Solo campos simples que no necesitan multi-select
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['puerto_destino']
     ordering_fields = ['numero_ot', 'fecha_eta', 'fecha_llegada', 'estado', 'created_at']
     ordering = ['-created_at']
-    
+
+    # Define editable fields by role for RoleBasedFieldValidationMixin
+    role_editable_fields = {
+        'admin': '__all__',
+        'jefe_operaciones': '__all__',
+        'finanzas': {
+            'estado', 'estado_provision', 'estado_facturado', 'fecha_provision',
+            'fecha_recepcion_factura', 'provision_hierarchy', 'comentarios'
+        },
+        'operativo': set()  # No puede editar nada
+    }
+
     def get_permissions(self):
         """
-        Permitir listar/retrieve a cualquier usuario autenticado.
-        Otras acciones requieren IsJefeOperaciones.
+        Permissions by action:
+        - Read-only actions (list, retrieve, search, stats, export): All authenticated users
+        - Import actions (import_excel, import_provision_acajutla, resolve_conflicts): Admin or Jefe Ops
+        - Create/Delete: Admin or Jefe Ops
+        - Update provision: Admin or Finanzas
+        - Update OT: Admin, Jefe Ops (full), or Finanzas (limited fields)
         """
-        if self.action in ['list', 'retrieve']:
+        # Read-only actions - all authenticated users
+        read_only_actions = [
+            'list', 'retrieve', 'search', 'search_by_container', 'search_by_bl',
+            'statistics', 'cards_stats', 'filter_values', 'export_excel'
+        ]
+        if self.action in read_only_actions:
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsJefeOperaciones()]
+
+        # Import actions - Admin or Jefe de Operaciones only
+        import_actions = ['import_excel', 'import_provision_acajutla', 'resolve_conflicts']
+        if self.action in import_actions:
+            return [CanImportData()]
+
+        # Create/Delete - Admin or Jefe de Operaciones
+        if self.action in ['create', 'destroy']:
+            return [IsAdminOrJefeOps()]
+
+        # Update provision - Admin or Finanzas
+        if self.action == 'update_provision':
+            return [IsAdminOrFinanzas()]
+
+        # Update/Patch - Admin, Jefe Ops, or Finanzas (field validation handled by mixin)
+        if self.action in ['update', 'partial_update', 'add_container', 'remove_container']:
+            return [IsAuthenticated()]  # Mixin will validate editable fields
+
+        # Default: authenticated users
+        return [IsAuthenticated()]
     
     def get_queryset(self):
         """Queryset base con optimizaciones"""

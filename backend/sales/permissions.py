@@ -1,5 +1,11 @@
 """
 Permisos personalizados para el módulo de ventas.
+
+Según la matriz de permisos del sistema:
+- Admin: Acceso total a todo
+- Finanzas: Acceso a Facturas de Venta, Dashboard Financiero, Pagos a Proveedores
+- Jefe de Operaciones: NO tiene acceso a módulo de ventas
+- Operativo: NO tiene acceso a módulo de ventas
 """
 from rest_framework import permissions
 
@@ -7,6 +13,7 @@ from rest_framework import permissions
 class IsFinanzasOrAdmin(permissions.BasePermission):
     """
     Permiso para usuarios de finanzas o admin.
+    Usado para Facturas de Venta, Dashboard Financiero.
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
@@ -14,34 +21,42 @@ class IsFinanzasOrAdmin(permissions.BasePermission):
         return request.user.role in ['finanzas', 'admin']
 
 
-class CanValidatePayments(permissions.BasePermission):
+class IsAdminOnly(permissions.BasePermission):
     """
-    Solo finanzas/admin pueden validar o rechazar pagos.
+    Solo Admin puede acceder.
+    Usado para Pagos Recibidos (módulo oculto).
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        
-        # Para acciones de validación/rechazo, solo finanzas/admin
-        if view.action in ['validate', 'reject']:
-            return request.user.role in ['finanzas', 'admin']
-        
-        # Para otras acciones, todos los autenticados pueden
-        return True
+        return request.user.role == 'admin'
+
+
+class CanValidatePayments(permissions.BasePermission):
+    """
+    Solo Admin puede gestionar Pagos Recibidos.
+    Este módulo está oculto para todos excepto Admin.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        # Solo Admin puede acceder al módulo de Pagos Recibidos
+        return request.user.role == 'admin'
 
 
 class CanManageSalesInvoices(permissions.BasePermission):
     """
-    Operaciones puede crear/editar facturas de venta.
-    Finanzas solo puede ver.
+    Admin y Finanzas pueden gestionar Facturas de Venta.
+
+    Permisos:
+    - Admin: CRUD completo
+    - Finanzas: CRUD completo
+    - Otros roles: Sin acceso
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        
-        # GET: todos pueden ver
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        
-        # POST/PUT/DELETE: solo operaciones y admin
-        return request.user.role in ['jefe_operaciones', 'operativo', 'admin']
+
+        # Solo Admin y Finanzas pueden acceder
+        return request.user.role in ['admin', 'finanzas']

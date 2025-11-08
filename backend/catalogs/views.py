@@ -21,11 +21,11 @@ from common.pagination import StandardResultsSetPagination, LargeResultsSetPagin
 class CostCategoryViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de categorías de tipos de costo (CRUD completo)
-    
+
     Permisos:
-    - Admin y Jefe de Operaciones: CRUD completo
+    - Admin: CRUD completo
     - Otros roles: Solo lectura
-    
+
     Filtros:
     - is_active: Filtrar por estado activo/inactivo
     - search: Búsqueda por código, nombre, descripción
@@ -43,16 +43,16 @@ class CostCategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['code', 'name', 'description']
     ordering_fields = ['code', 'name', 'display_order', 'created_at']
     ordering = ['display_order', 'name']
-    
+
     def get_permissions(self):
         """
-        Admin y Jefe de Operaciones pueden hacer todo
-        Otros roles solo pueden leer
+        Solo Admin puede crear/editar/eliminar
+        Todos los usuarios autenticados pueden leer
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'activas']:
             permission_classes = [ReadOnly]
         else:
-            permission_classes = [IsAdmin | IsJefeOperaciones]
+            permission_classes = [IsAdmin]
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
@@ -127,11 +127,11 @@ class CostCategoryViewSet(viewsets.ModelViewSet):
 class CostTypeViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de tipos de costo (CRUD completo)
-    
+
     Permisos:
-    - Admin y Jefe de Operaciones: CRUD completo
+    - Admin: CRUD completo
     - Otros roles: Solo lectura
-    
+
     Filtros:
     - category: Filtrar por categoría de costo
     - is_active: Filtrar por estado activo/inactivo
@@ -145,16 +145,16 @@ class CostTypeViewSet(viewsets.ModelViewSet):
     search_fields = ['code', 'name', 'description']
     ordering_fields = ['code', 'name', 'category', 'display_order', 'created_at']
     ordering = ['display_order', 'name']
-    
+
     def get_permissions(self):
         """
-        Admin y Jefe de Operaciones pueden hacer todo
-        Otros roles solo pueden leer
+        Solo Admin puede crear/editar/eliminar
+        Todos los usuarios autenticados pueden leer
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'categorias', 'activos']:
             permission_classes = [ReadOnly]
         else:
-            permission_classes = [IsAdmin | IsJefeOperaciones]
+            permission_classes = [IsAdmin]
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
@@ -227,7 +227,7 @@ class ProviderViewSet(viewsets.ModelViewSet):
     ViewSet para gestión de proveedores (CRUD completo)
 
     Permisos:
-    - Admin y Jefe de Operaciones: CRUD completo
+    - Admin: CRUD completo
     - Otros roles: Solo lectura
 
     Filtros:
@@ -247,16 +247,16 @@ class ProviderViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'nit', 'email', 'contacto']
     ordering_fields = ['nombre', 'tipo', 'categoria', 'created_at']
     ordering = ['nombre']
-    
+
     def get_permissions(self):
         """
-        Admin y Jefe de Operaciones pueden hacer todo
-        Otros roles solo pueden leer
+        Solo Admin puede crear/editar/eliminar
+        Todos los usuarios autenticados pueden leer
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'tipos', 'categorias', 'navieras', 'agentes']:
             permission_classes = [ReadOnly]
         else:
-            permission_classes = [IsAdmin | IsJefeOperaciones]
+            permission_classes = [IsAdmin]
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
@@ -351,16 +351,16 @@ class ProviderViewSet(viewsets.ModelViewSet):
 class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
     """
     ViewSet simplificado para el Catálogo de Patrones de Facturas
-    
+
     Cada patrón extrae un campo específico (número factura, MBL, total, IVA, etc.)
     Los patrones se agrupan visualmente en el frontend por:
     - COSTO: proveedor
     - VENTA: tipo_documento
-    
+
     Permisos:
-    - Admin y Jefe de Operaciones: CRUD completo
+    - Admin: CRUD completo
     - Otros roles: Solo lectura
-    
+
     Filtros:
     - activo: true/false
     - tipo_patron: 'costo' o 'venta'
@@ -377,16 +377,16 @@ class InvoicePatternCatalogViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'notas', 'campo_objetivo', 'tipo_documento']
     ordering_fields = ['nombre', 'prioridad', 'created_at', 'uso_count', 'tasa_exito']
     ordering = ['proveedor__nombre', 'tipo_documento', 'campo_objetivo', 'prioridad']
-    
+
     def get_permissions(self):
         """
-        Admin y Jefe de Operaciones pueden hacer todo
-        Otros roles solo pueden leer
+        Solo Admin puede crear/editar/eliminar
+        Todos los usuarios autenticados pueden leer
         """
         if self.action in ['list', 'retrieve', 'probar_regex', 'by_provider', 'campos_objetivo']:
             permission_classes = [ReadOnly]
         else:
-            permission_classes = [IsAdmin | IsJefeOperaciones]
+            permission_classes = [IsAdmin]
         return [permission() for permission in permission_classes]
     
     @action(detail=True, methods=['post'], url_path='probar')
