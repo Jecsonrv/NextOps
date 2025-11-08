@@ -175,14 +175,17 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if cloudinary is None:
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
+        # Importaciones al inicio para que estén disponibles en todos los bloques
+        import cloudinary
+        from cloudinary.utils import private_download_url
+        import time
+
+        # Variables que se usarán en todos los bloques
+        public_id = name.replace('\\', '/').rstrip('/')
+        base_public_id, ext = os.path.splitext(public_id)
+        expires_at = int(time.time()) + 3600  # 1 hora desde ahora
+
         try:
-            import cloudinary
-            from cloudinary.utils import private_download_url
-            import time
-            
-            public_id = name.replace('\\', '/').rstrip('/')
-            base_public_id, ext = os.path.splitext(public_id)
-            
             # Si no hay extensión pero es un archivo en sales_invoices, asumir que es PDF
             if not ext and 'sales_invoices' in public_id:
                 fmt = 'pdf'
@@ -196,9 +199,6 @@ class CloudinaryMediaStorage(FileSystemStorage):
             logger.debug(f"  base_public_id={base_public_id}")
             logger.debug(f"  ext={ext}")
             logger.debug(f"  fmt={fmt}")
-
-            # Calcular timestamp de expiración (Unix timestamp)
-            expires_at = int(time.time()) + 3600  # 1 hora desde ahora
             
             # Para archivos raw authenticated, usar CloudinaryResource.build_url
             # que genera URLs del tipo: res.cloudinary.com/cloud/raw/authenticated/.../file.pdf
