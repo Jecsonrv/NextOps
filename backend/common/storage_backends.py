@@ -175,8 +175,8 @@ class CloudinaryMediaStorage(FileSystemStorage):
         if cloudinary is None:
             raise ImproperlyConfigured("Cloudinary package is required when USE_CLOUDINARY=True")
 
-        # Importaciones al inicio para que estén disponibles en todos los bloques
-        import cloudinary
+        # NOTE: No reimportar cloudinary aquí - ya está importado al inicio del módulo
+        # Importar solo las utilidades que necesitamos
         from cloudinary.utils import private_download_url
         import time
 
