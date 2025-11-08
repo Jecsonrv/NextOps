@@ -280,7 +280,8 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         # PASO 2: Obtener aliases sin fusionar y activos
         aliases = self.get_queryset().filter(
             merged_into__isnull=True,
-            deleted_at__isnull=True
+            deleted_at__isnull=True,
+            usage_count__gt=0
         ).order_by('id')
 
         suggestions_created = 0
@@ -347,6 +348,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         Returns:
             int: Cantidad de sugerencias eliminadas/rechazadas
         """
+        obsolete_count = 0
         # PASO 1: Rechazar sugerencias donde algún alias ya está fusionado
         merged_suggestions = SimilarityMatch.objects.filter(
             status='pending'
@@ -354,10 +356,33 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             Q(alias_1__merged_into__isnull=False) | Q(alias_2__merged_into__isnull=False)
         )
 
-        if merged_suggestions.exists():
-            count = merged_suggestions.update(
+        merged_ids = list(merged_suggestions.values_list('id', flat=True))
+
+        if merged_ids:
+            count = SimilarityMatch.objects.filter(id__in=merged_ids).update(
                 status='rejected',
                 review_notes='Auto-rechazado: uno o ambos clientes ya fueron fusionados/normalizados',
+                reviewed_by=user,
+                reviewed_at=timezone.now()
+            )
+            obsolete_count += count
+
+        # Rechazar sugerencias sin actividad (aliases eliminados o sin OTs)
+        inactive_suggestions = SimilarityMatch.objects.filter(
+            status='pending'
+        ).filter(
+            Q(alias_1__deleted_at__isnull=False) |
+            Q(alias_2__deleted_at__isnull=False) |
+            Q(alias_1__usage_count__lte=0) |
+            Q(alias_2__usage_count__lte=0)
+        ).exclude(id__in=merged_ids)
+
+        inactive_ids = list(inactive_suggestions.values_list('id', flat=True))
+
+        if inactive_ids:
+            count = SimilarityMatch.objects.filter(id__in=inactive_ids).update(
+                status='rejected',
+                review_notes='Auto-rechazado: alias sin actividad vigente (0 OTs o eliminado)',
                 reviewed_by=user,
                 reviewed_at=timezone.now()
             )
@@ -369,7 +394,9 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
             alias_1__deleted_at__isnull=True,
             alias_2__deleted_at__isnull=True,
             alias_1__merged_into__isnull=True,
-            alias_2__merged_into__isnull=True
+            alias_2__merged_into__isnull=True,
+            alias_1__usage_count__gt=0,
+            alias_2__usage_count__gt=0
         ).select_related('alias_1', 'alias_2')
 
         # Preparar IDs para rechazo por score bajo
@@ -1140,6 +1167,14 @@ class SimilarityMatchViewSet(viewsets.ReadOnlyModelViewSet):
         """Filtros adicionales"""
         queryset = super().get_queryset()
         
+        # Excluir aliases eliminados o sin actividad (evita duplicados obsoletos)
+        queryset = queryset.filter(
+            alias_1__deleted_at__isnull=True,
+            alias_2__deleted_at__isnull=True,
+            alias_1__usage_count__gt=0,
+            alias_2__usage_count__gt=0
+        )
+
         # Filtrar por score mínimo
         min_score = self.request.query_params.get('min_score')
         if min_score:

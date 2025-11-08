@@ -317,13 +317,13 @@ export function Layout({ children }) {
                     <div className="flex-1 min-w-0">
                         <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                             {(() => {
-                                // Find navigation item for current page
+                                // Find navigation item for current page (exact match)
                                 const currentNav = navigationItems.find(
                                     (item) => item.href === location.pathname
                                 );
                                 if (currentNav) return currentNav.name;
 
-                                // Check in navigation children (CRM, Catálogos)
+                                // Check in navigation children (exact match)
                                 for (const item of navigation) {
                                     if (item.children) {
                                         const child = item.children.find(
@@ -333,7 +333,17 @@ export function Layout({ children }) {
                                     }
                                 }
 
-                                // Check if in catalogs section
+                                // Check in navigation children (startsWith match)
+                                for (const item of navigation) {
+                                    if (item.children) {
+                                        const child = item.children.find(
+                                            (c) => location.pathname.startsWith(`${c.href}/`)
+                                        );
+                                        if (child) return child.name;
+                                    }
+                                }
+
+                                // Check if in specific sections with startsWith
                                 if (location.pathname.startsWith("/catalogs")) {
                                     const catalogNav = navigation.find(
                                         (item) => item.name === "Catálogos"
@@ -353,6 +363,12 @@ export function Layout({ children }) {
                                     }
                                     return "Catálogos";
                                 }
+
+                                // Check top-level navigation with startsWith
+                                const navStartsWith = navigationItems.find(
+                                    (item) => item.href !== "/" && location.pathname.startsWith(item.href)
+                                );
+                                if (navStartsWith) return navStartsWith.name;
 
                                 return "Dashboard";
                             })()}

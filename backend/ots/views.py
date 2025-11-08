@@ -828,39 +828,39 @@ class OTViewSet(viewsets.ModelViewSet):
         - OTs por proveedor
         """
         # Usar queryset base SIN filtros para estadísticas generales del sistema
-        qs = OT.objects.filter(deleted_at__isnull=True).select_related(
-            'proveedor',
-            'cliente',
-            'modificado_por'
-        )
-        
+        qs_base = OT.objects.filter(deleted_at__isnull=True)
+
         # Por estado
         by_estado = {}
         for estado_code, estado_label in OT.STATUS_CHOICES:
-            count = qs.filter(estado=estado_code).count()
+            count = qs_base.filter(estado=estado_code).count()
             by_estado[estado_code] = {
                 'label': estado_label,
                 'count': count
             }
-        
-        from django.db.models.functions import Cast, Coalesce, JsonbArrayLength
-        from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
         # Total de OTs
-        total_ots = qs.count()
+        total_ots = qs_base.count()
 
-        # Total de contenedores usando agregación de base de datos
-        total_contenedores = qs.aggregate(
-            total=Coalesce(Sum(JsonbArrayLength('contenedores')), 0)
-        )['total']
+        # Total de contenedores - calcular manualmente (más compatible)
+        total_contenedores = 0
+        for ot in qs_base.only('id', 'contenedores'):
+            if ot.contenedores and isinstance(ot.contenedores, list):
+                total_contenedores += len(ot.contenedores)
 
-        # Total de provisiones usando agregación de base de datos
-        total_provision = qs.aggregate(
-            total=Coalesce(Sum(Cast(KeyTextTransform('total', 'provision_hierarchy'), models.FloatField())), 0.0)
-        )['total']
-        
+        # Total de provisiones - calcular manualmente (más compatible)
+        total_provision = 0.0
+        for ot in qs_base.only('id', 'provision_hierarchy'):
+            if ot.provision_hierarchy and isinstance(ot.provision_hierarchy, dict):
+                total = ot.provision_hierarchy.get('total', 0)
+                if total:
+                    try:
+                        total_provision += float(total)
+                    except (ValueError, TypeError):
+                        pass
+
         # Por proveedor (top 10)
-        by_proveedor = qs.values(
+        by_proveedor = qs_base.values(
             'proveedor__nombre'
         ).annotate(
             count=Count('id')

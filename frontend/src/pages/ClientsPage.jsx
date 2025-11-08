@@ -24,6 +24,7 @@ import {
     CardContent,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { Input } from "../components/ui/Input";
 import { NormalizationModal } from "../components/NormalizationModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { showConfirm } from "../utils/toast";
@@ -32,13 +33,558 @@ import {
     useSuggestAllMatches,
     useApplyNormalization,
     useSimilarityMatches,
+    useClientAliases,
     useClientAliasStats,
     useRejectMerge,
     useRenameClient,
 } from "../hooks/useCatalogs";
 
-import { useQuery } from "@tanstack/react-query";
-import apiClient from "../lib/api";
+// ============================================
+// COMPONENTES DE TABS
+// ============================================
+
+function OverviewTab({
+    aliases,
+    pendingMatches,
+    approvedMatches,
+    stats,
+    onNavigate,
+}) {
+    const topAliases = useMemo(() => {
+        return [...aliases]
+            .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
+            .slice(0, 8);
+    }, [aliases]);
+
+    const totalAliases = stats?.total_aliases || aliases.length;
+    const normalizedRatio = totalAliases
+        ? Math.round(
+              ((stats?.approved_matches || approvedMatches.length) /
+                  totalAliases) *
+                  100
+          )
+        : 0;
+    const pendingRatio = totalAliases
+        ? Math.round(
+              ((stats?.pending_matches || pendingMatches.length) /
+                  totalAliases) *
+                  100
+          )
+        : 0;
+
+    return (
+        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">
+                            Sugerencias Pendientes
+                        </CardTitle>
+                        {pendingMatches.length > 0 && (
+                            <Button size="sm" onClick={onNavigate}>
+                                Ver todas
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {pendingMatches.length === 0 ? (
+                            <div className="py-10 text-center text-sm text-gray-500">
+                                No hay sugerencias en espera.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {pendingMatches.slice(0, 5).map((match) => {
+                                    const alias1Name =
+                                        match.alias_1?.original_name ||
+                                        "Cliente";
+                                    const alias2Name =
+                                        match.alias_2?.original_name ||
+                                        "Cliente";
+                                    const similarity = Math.round(
+                                        match.similarity_score || 0
+                                    );
+
+                                    return (
+                                        <div
+                                            key={match.id}
+                                            className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-3"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {alias1Name}
+                                                    </p>
+                                                    <p className="mt-1 text-sm text-gray-600">
+                                                        ≈ {alias2Name}
+                                                    </p>
+                                                </div>
+                                                <Badge variant="warning">
+                                                    {similarity}%
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">
+                            Normalizaciones recientes
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {approvedMatches.length === 0 ? (
+                            <div className="py-10 text-center text-sm text-gray-500">
+                                Todavía no hay fusiones aprobadas.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {approvedMatches.slice(0, 5).map((match) => {
+                                    const originAlias =
+                                        match.alias_1?.original_name ||
+                                        "Cliente";
+                                    const targetAlias =
+                                        match.alias_2?.original_name ||
+                                        "Cliente";
+
+                                    return (
+                                        <div
+                                            key={match.id}
+                                            className="rounded-lg border border-green-200 bg-green-50 px-3 py-3"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                                <div className="flex-1 text-sm text-gray-700">
+                                                    <p className="font-semibold text-gray-900">
+                                                        {originAlias}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600">
+                                                        -&gt; {targetAlias}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">
+                            Clientes Principales
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {topAliases.length === 0 ? (
+                            <div className="py-10 text-center text-sm text-gray-500">
+                                Sin actividad registrada aún.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {topAliases.map((alias) => (
+                                    <div
+                                        key={alias.id}
+                                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-3 transition-colors hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Globe className="h-5 w-5 text-gray-400" />
+                                            <div>
+                                                <p className="font-medium text-gray-900">
+                                                    {alias.original_name}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {alias.usage_count?.toLocaleString(
+                                                        "es-MX"
+                                                    ) || 0}{" "}
+                                                    OTs
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Badge variant="secondary">
+                                            {alias.usage_count?.toLocaleString(
+                                                "es-MX"
+                                            ) || 0}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Indicadores</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3 text-sm text-gray-700">
+                            <div className="flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2">
+                                <span>Total de clientes</span>
+                                <span className="font-semibold text-blue-700">
+                                    {totalAliases.toLocaleString("es-MX")}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
+                                <span>% normalizados</span>
+                                <span className="font-semibold text-green-700">
+                                    {normalizedRatio}%
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg bg-yellow-50 px-3 py-2">
+                                <span>% pendientes</span>
+                                <span className="font-semibold text-yellow-700">
+                                    {pendingRatio}%
+                                </span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+OverviewTab.propTypes = {
+    aliases: PropTypes.array.isRequired,
+    pendingMatches: PropTypes.array.isRequired,
+    approvedMatches: PropTypes.array.isRequired,
+    stats: PropTypes.object,
+    onNavigate: PropTypes.func.isRequired,
+};
+
+function PendingTab({ matches, onApprove, onReject, isLoading }) {
+    if (matches.length === 0) {
+        return (
+            <Card>
+                <CardContent className="py-12">
+                    <div className="text-center">
+                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            ¡Todo al día!
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-600">
+                            No hay sugerencias de duplicados pendientes de
+                            revisión.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {matches.map((match) => {
+                const alias1Name = match.alias_1?.original_name || "Cliente";
+                const alias2Name = match.alias_2?.original_name || "Cliente";
+                const alias1Count = match.alias_1?.usage_count || 0;
+                const alias2Count = match.alias_2?.usage_count || 0;
+                const similarity = Math.round(match.similarity_score || 0);
+
+                return (
+                    <Card
+                        key={match.id}
+                        className="border-yellow-200 bg-yellow-50/30"
+                    >
+                        <CardContent className="pt-6">
+                            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-gray-900">
+                                                {alias1Name}
+                                            </p>
+                                            <p className="text-sm text-gray-600">
+                                                {alias1Count.toLocaleString(
+                                                    "es-MX"
+                                                )}{" "}
+                                                OTs
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="pl-8 text-sm text-gray-500">
+                                        ≈ Similar a
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Package className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-gray-900">
+                                                {alias2Name}
+                                            </p>
+                                            <p className="text-sm text-gray-600">
+                                                {alias2Count.toLocaleString(
+                                                    "es-MX"
+                                                )}{" "}
+                                                OTs
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="pl-8">
+                                        <Badge
+                                            variant="warning"
+                                            className="text-sm"
+                                        >
+                                            Similitud: {similarity}%
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
+                                    <Button
+                                        size="sm"
+                                        onClick={() => onApprove(match)}
+                                        disabled={isLoading}
+                                        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                                    >
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Aprobar
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => onReject(match)}
+                                        disabled={isLoading}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Rechazar
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            })}
+        </div>
+    );
+}
+
+PendingTab.propTypes = {
+    matches: PropTypes.array.isRequired,
+    onApprove: PropTypes.func.isRequired,
+    onReject: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool,
+};
+
+function ApprovedTab({ matches, isLoading }) {
+    if (isLoading) {
+        return (
+            <Card>
+                <CardContent className="py-12">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Cargando...
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (matches.length === 0) {
+        return (
+            <Card>
+                <CardContent className="py-12">
+                    <div className="text-center">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Sin normalizaciones
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Aún no hay clientes normalizados.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {matches.map((match) => {
+                const originAlias = match.alias_1?.original_name || "Cliente";
+                const targetAlias = match.alias_2?.original_name || "Cliente";
+
+                return (
+                    <Card
+                        key={match.id}
+                        className="border-green-200 bg-green-50/30"
+                    >
+                        <CardContent className="pt-6">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="text-sm text-gray-700">
+                                        <p className="font-semibold text-gray-900">
+                                            {originAlias}
+                                        </p>
+                                        <p className="text-xs text-gray-600">
+                                            -&gt; {targetAlias}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge
+                                            variant="success"
+                                            className="text-xs"
+                                        >
+                                            Aprobado
+                                        </Badge>
+                                        {match.notes && (
+                                            <p className="text-xs text-gray-500">
+                                                {match.notes}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            })}
+        </div>
+    );
+}
+
+ApprovedTab.propTypes = {
+    matches: PropTypes.array.isRequired,
+    isLoading: PropTypes.bool,
+};
+
+function AllAliasesTab({
+    aliases,
+    searchTerm,
+    setSearchTerm,
+    isLoading,
+    onRename,
+}) {
+    const filteredAliases = useMemo(() => {
+        return [...aliases]
+            .filter((alias) =>
+                alias.original_name
+                    ?.toLowerCase()
+                    .includes(searchTerm.toLowerCase())
+            )
+            .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0));
+    }, [aliases, searchTerm]);
+
+    return (
+        <div className="space-y-4">
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Input
+                            placeholder="Buscar cliente..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                    {searchTerm && (
+                        <p className="mt-2 text-xs text-gray-500">
+                            Mostrando resultados para: {searchTerm}
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        Todos los Clientes ({filteredAliases.length})
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="py-12 text-center text-sm text-gray-600">
+                            <div className="mx-auto mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                            Cargando clientes...
+                        </div>
+                    ) : filteredAliases.length === 0 ? (
+                        <div className="py-12 text-center text-sm text-gray-600">
+                            <Users className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                            {searchTerm
+                                ? "No encontramos coincidencias para tu búsqueda."
+                                : "Aún no hay clientes en el sistema."}
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            Cliente
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            OTs
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            Acciones
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {filteredAliases.map((alias) => (
+                                        <tr
+                                            key={alias.id}
+                                            className="transition-colors hover:bg-gray-50"
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Globe className="h-5 w-5 text-gray-400" />
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {alias.original_name}
+                                                    </p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <Badge variant="secondary">
+                                                    {alias.usage_count?.toLocaleString(
+                                                        "es-MX"
+                                                    ) || 0}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        onRename(alias)
+                                                    }
+                                                >
+                                                    <Edit className="mr-2 h-4 w-4" />
+                                                    Renombrar
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+AllAliasesTab.propTypes = {
+    aliases: PropTypes.array.isRequired,
+    searchTerm: PropTypes.string.isRequired,
+    setSearchTerm: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool,
+    onRename: PropTypes.func.isRequired,
+};
 
 // ============================================
 // COMPONENTES DE TABS
@@ -474,14 +1020,14 @@ export default function ClientsPage() {
     // Estados
     const [activeTab, setActiveTab] = useState("overview");
     const [searchTerm, setSearchTerm] = useState("");
-    const [filters, setFilters] = useState({
-        country: "",
-        verified: "",
-        merged: "false", // Solo activos por defecto
-        page: 1,
-        page_size: 20,
-        has_ots: "",
-    });
+    const aliasFilters = useMemo(
+        () => ({
+            merged: "false",
+            has_ots: "true",
+            page_size: 10000,
+        }),
+        []
+    );
     const [normalizationModal, setNormalizationModal] = useState({
         isOpen: false,
         sourceAlias: null,
@@ -511,38 +1057,7 @@ export default function ClientsPage() {
         data: aliasesData,
         isLoading: loadingAliases,
         refetch: refetchAliases,
-    } = useQuery({
-        queryKey: ["clients-from-ots", filters, searchTerm],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            params.append("page_size", "10000"); // Fetch all OTs to get all clients
-            if (searchTerm) {
-                params.append("search", searchTerm);
-            }
-            if (filters.merged) {
-                params.append("merged", filters.merged);
-            }
-            if (filters.has_ots) {
-                params.append("has_ots", filters.has_ots);
-            }
-
-            const response = await apiClient.get(`/ots/?${params}`);
-            const clients = [
-                ...new Set(
-                    response.data.results
-                        .map((ot) => ot.cliente_nombre)
-                        .filter(Boolean)
-                ),
-            ].map((clientName) => ({
-                id: clientName, // Using clientName as id, since we don't have a client id from this endpoint
-                original_name: clientName,
-                usage_count: response.data.results.filter(
-                    (ot) => ot.cliente_nombre === clientName
-                ).length,
-            }));
-            return { results: clients, count: clients.length };
-        },
-    });
+    } = useClientAliases(aliasFilters);
 
     const {
         data: matchesData,
@@ -562,7 +1077,10 @@ export default function ClientsPage() {
     const renameClient = useRenameClient();
 
     // Datos procesados
-    const aliases = useMemo(() => aliasesData?.results || [], [aliasesData]);
+    const aliases = useMemo(() => {
+        const list = aliasesData?.results || [];
+        return list.filter((alias) => (alias.usage_count || 0) > 0);
+    }, [aliasesData]);
     const matches = matchesData?.results || [];
 
     // Filtrar pendientes: solo mostrar si AMBOS clientes NO están fusionados
@@ -979,11 +1497,7 @@ export default function ClientsPage() {
                     aliases={aliases}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
-                    filters={filters}
-                    setFilters={setFilters}
                     isLoading={loadingAliases}
-                    matches={matches}
-                    aliasesData={aliasesData}
                     onRename={handleRename}
                 />
             )}

@@ -317,112 +317,115 @@ export function CreditNotesPage() {
                     ) : (
                         <>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
+                                <table className="w-full text-sm border-separate border-spacing-0">
                                     <thead>
-                                        <tr className="border-b border-gray-200 bg-gray-50">
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                        <tr className="bg-gray-50">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Número NC
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Proveedor
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Factura / OT
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                                Fecha Emisión
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                                Fecha
                                             </th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Monto
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Estado
                                             </th>
-                                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
                                                 Acciones
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                    <tbody className="bg-white">
                                         {data?.results?.map((cn) => (
-                                            <tr key={cn.id} className="hover:bg-blue-50 transition-colors">
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <FileText className="w-4 h-4 text-gray-400" />
-                                                        <Link
-                                                            to={`/invoices/credit-notes/${cn.id}`}
-                                                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                                                        >
-                                                            {cn.numero_nota}
-                                                        </Link>
-                                                    </div>
+                                            <tr
+                                                key={cn.id}
+                                                className="hover:bg-blue-50 transition-colors cursor-pointer"
+                                                onClick={() => handleViewDetail(cn.id)}
+                                            >
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                    <Link
+                                                        to={`/invoices/credit-notes/${cn.id}`}
+                                                        className="font-semibold text-sm text-blue-600 hover:text-blue-800"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {cn.numero_nota}
+                                                    </Link>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
                                                     <div className="text-sm">
                                                         <p className="font-medium text-gray-900">{cn.proveedor_nombre}</p>
                                                         {cn.motivo && (
-                                                            <p className="text-xs text-gray-500 truncate max-w-xs" title={cn.motivo}>
+                                                            <p className="text-xs text-gray-500 truncate max-w-xs mt-1" title={cn.motivo}>
                                                                 {cn.motivo}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
                                                     <div className="text-sm space-y-1">
                                                         {cn.invoice_data?.numero_factura ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs text-gray-500">Fact:</span>
-                                                                <Link
-                                                                    to={`/invoices/${cn.invoice_data.id}`}
-                                                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                                                                >
-                                                                    {cn.invoice_data.numero_factura}
-                                                                </Link>
-                                                            </div>
+                                                            <Link
+                                                                to={`/invoices/${cn.invoice_data.id}`}
+                                                                className="text-blue-600 hover:text-blue-800 font-medium block"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {cn.invoice_data.numero_factura}
+                                                            </Link>
                                                         ) : (
                                                             <span className="text-gray-400">-</span>
                                                         )}
                                                         {cn.ot_data?.numero_ot && (
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs text-gray-500">OT:</span>
-                                                                <Link
-                                                                    to={`/ots/${cn.ot_data.id}`}
-                                                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                                                                >
-                                                                    {cn.ot_data.numero_ot}
-                                                                </Link>
-                                                            </div>
+                                                            <Link
+                                                                to={`/ots/${cn.ot_data.id}`}
+                                                                className="text-gray-600 hover:text-gray-800 text-xs block"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                OT: {cn.ot_data.numero_ot}
+                                                            </Link>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50 text-sm text-gray-600">
                                                     {formatDate(cn.fecha_emision)}
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <span className="font-bold text-red-600 text-base">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50 text-right">
+                                                    <span className="font-semibold text-red-600 text-sm">
                                                         -${Math.abs(parseFloat(cn.monto || 0)).toLocaleString('es-MX', {
                                                             minimumFractionDigits: 2,
                                                             maximumFractionDigits: 2
                                                         })}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
                                                         cn.estado === 'aplicada'
                                                             ? 'bg-green-100 text-green-800'
                                                             : cn.estado === 'pendiente'
                                                             ? 'bg-yellow-100 text-yellow-800'
                                                             : 'bg-red-100 text-red-800'
                                                     }`}>
+                                                        {cn.estado === 'aplicada' && <CheckCircle className="w-3 h-3" />}
+                                                        {cn.estado === 'pendiente' && <Clock className="w-3 h-3" />}
                                                         {cn.estado_display || cn.estado}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center justify-center gap-1">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            onClick={() => handleViewDetail(cn.id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleViewDetail(cn.id);
+                                                            }}
                                                             title="Ver detalles"
                                                             className="h-8 w-8"
                                                         >
@@ -432,9 +435,12 @@ export function CreditNotesPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                onClick={() => handleDownloadPDF(cn)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDownloadPDF(cn);
+                                                                }}
                                                                 title="Descargar PDF"
-                                                                className="h-8 w-8 hidden sm:inline-flex"
+                                                                className="h-8 w-8"
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </Button>

@@ -930,7 +930,7 @@ class DisputeListSerializer(serializers.ModelSerializer):
             'tipo_disputa', 'tipo_disputa_display', 'detalle',
             'estado', 'estado_display', 'resultado', 'resultado_display',
             'monto_disputa', 'monto_recuperado',
-            'fecha_resolucion', 'created_at', 'updated_at'
+            'fecha_disputa', 'fecha_resolucion', 'created_at', 'updated_at'
         ]
 
     def get_invoice_data(self, obj):
@@ -1016,7 +1016,8 @@ class DisputeCreateSerializer(serializers.ModelSerializer):
         model = Dispute
         fields = [
             'invoice_id', 'ot_id', 'tipo_disputa', 'detalle',
-            'monto_disputa', 'monto_recuperado', 'numero_caso', 'operativo'
+            'monto_disputa', 'monto_recuperado', 'numero_caso', 'operativo',
+            'fecha_disputa'
         ]
 
     def validate_monto_disputa(self, value):
@@ -1167,6 +1168,7 @@ class DisputeResolveSerializer(serializers.Serializer):
         min_value=Decimal('0.00')
     )
     resolucion = serializers.CharField(required=False, allow_blank=True)
+    fecha_resolucion = serializers.DateField(required=False, allow_null=True)
 
     # Campos para nota de crédito (opcionales)
     tiene_nota_credito = serializers.BooleanField(default=False, required=False)

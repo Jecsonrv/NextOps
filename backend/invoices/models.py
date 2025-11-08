@@ -871,10 +871,10 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
 
     TIPO_DISPUTA_CHOICES = [
         ('servicio_no_prestado', 'Servicio No Prestado'),
+        ('monto_incorrecto', 'Monto Incorrecto / Error de Facturación'),
         ('almacenaje_no_aplica', 'Almacenaje No Aplica'),
-        ('dias_libres_incorrectos', 'No Se Están Aplicando Correctamente Los Días Libres'),
-        ('cargo_no_aplica', 'Cargo No Aplica'),
         ('demoras_no_aplican', 'Demoras No Aplican'),
+        ('dias_libres_incorrectos', 'Días Libres No Aplicados Correctamente'),
         ('otro', 'Otro'),
     ]
 
@@ -897,6 +897,12 @@ class Dispute(TimeStampedModel, SoftDeleteModel):
         max_length=64,
         db_index=True,
         help_text="Número de caso externo (ej: caso con proveedor, naviera, etc.)"
+    )
+
+    fecha_disputa = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha en que se reportó/aperturó la disputa (puede ser diferente a la fecha de creación del registro)"
     )
 
     operativo = models.CharField(

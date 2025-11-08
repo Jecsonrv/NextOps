@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import {
     useDisputes,
@@ -13,6 +13,7 @@ import {
     useDisputeFilterValues,
 } from "../hooks/useDisputes";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
+import { DisputesTableResponsive } from "../components/disputes/DisputesTableResponsive";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 import {
@@ -30,31 +31,12 @@ import {
     Plus,
     CheckCircle,
     XCircle,
-    Clock,
     ChevronDown,
     ChevronUp,
-    Edit,
-    Trash2,
     DollarSign,
-    Eye,
     X,
+    Loader2,
 } from "lucide-react";
-
-const estadoBadgeVariant = {
-    abierta: "destructive",
-    en_revision: "warning",
-    resuelta: "success",
-    cerrada: "secondary",
-};
-
-const tipoDisputaBadgeVariant = {
-    servicio_no_prestado: "destructive",
-    almacenaje_no_aplica: "warning",
-    dias_libres_incorrectos: "warning",
-    cargo_no_aplica: "warning",
-    demoras_no_aplican: "warning",
-    otro: "secondary",
-};
 
 export function DisputesPage() {
     const navigate = useNavigate();
@@ -100,6 +82,11 @@ export function DisputesPage() {
         setPage(1);
     };
 
+    const handleEdit = (dispute) => {
+        setSelectedDispute(dispute);
+        setIsModalOpen(true);
+    };
+
     const handleDeleteClick = (dispute) => {
         setDeleteDialog({ isOpen: true, dispute });
     };
@@ -114,10 +101,6 @@ export function DisputesPage() {
         } catch (error) {
             toast.error("Error al eliminar la disputa");
         }
-    };
-
-    const handleRowClick = (disputeId) => {
-        navigate(`/disputes/${disputeId}`, { state: { from: '/disputes' } });
     };
 
     if (disputesError) {
@@ -317,10 +300,10 @@ export function DisputesPage() {
                                     {filterValues?.tipos_disputa?.map((tipo) => (
                                         <option key={tipo} value={tipo}>
                                             {tipo === 'servicio_no_prestado' ? 'Servicio No Prestado' :
+                                             tipo === 'monto_incorrecto' ? 'Monto Incorrecto / Error de Facturación' :
                                              tipo === 'almacenaje_no_aplica' ? 'Almacenaje No Aplica' :
-                                             tipo === 'dias_libres_incorrectos' ? 'No Se Están Aplicando Correctamente Los Días Libres' :
-                                             tipo === 'cargo_no_aplica' ? 'Cargo No Aplica' :
                                              tipo === 'demoras_no_aplican' ? 'Demoras No Aplican' :
+                                             tipo === 'dias_libres_incorrectos' ? 'Días Libres No Aplicados Correctamente' :
                                              tipo === 'otro' ? 'Otro' : tipo}
                                         </option>
                                     ))}
@@ -396,13 +379,20 @@ export function DisputesPage() {
             {/* Disputes Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Disputas</CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Disputas</CardTitle>
+                        {data?.count > 0 && (
+                            <p className="text-sm text-gray-600">
+                                {data.count} {data.count === 1 ? "disputa" : "disputas"}
+                            </p>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="text-gray-600 mt-4">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                            <p className="text-gray-600">
                                 Cargando disputas...
                             </p>
                         </div>
@@ -413,8 +403,7 @@ export function DisputesPage() {
                                 No hay disputas
                             </h3>
                             <p className="text-gray-600 mb-4">
-                                No se encontraron disputas con los filtros
-                                aplicados
+                                No se encontraron disputas con los filtros aplicados
                             </p>
                             <Button onClick={() => {
                                 setSelectedDispute(null);
@@ -426,164 +415,16 @@ export function DisputesPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-gray-200">
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Disputa
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Factura / OT
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Operativo / Proveedor
-                                            </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Monto
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Estado
-                                            </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                Acciones
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {data?.results?.map((dispute) => (
-                                            <tr
-                                                key={dispute.id}
-                                                className="hover:bg-gray-50 transition-colors"
-                                            >
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Link
-                                                            to={`/disputes/${dispute.id}`}
-                                                            className="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                                                        >
-                                                            {dispute.numero_caso}
-                                                        </Link>
-                                                        <Badge
-                                                            variant={tipoDisputaBadgeVariant[dispute.tipo_disputa]}
-                                                            className="text-xs"
-                                                        >
-                                                            {dispute.tipo_disputa_display}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        {new Date(dispute.created_at).toLocaleDateString("es-MX")}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="space-y-1">
-                                                        {dispute.invoice_data ? (
-                                                            <Link
-                                                                to={`/invoices/${dispute.invoice_data.id}`}
-                                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm block"
-                                                            >
-                                                                {dispute.invoice_data.numero_factura}
-                                                            </Link>
-                                                        ) : (
-                                                            <span className="text-gray-400 text-sm">-</span>
-                                                        )}
-                                                        {dispute.ot_data && (
-                                                            <Link
-                                                                to={`/ots/${dispute.ot_data.id}`}
-                                                                className="text-gray-600 hover:text-gray-800 text-xs block"
-                                                            >
-                                                                OT: {dispute.ot_data.numero_ot}
-                                                            </Link>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900">
-                                                    {dispute.operativo || dispute.ot_data?.operativo || "-"}
-                                                    {dispute.invoice_data?.proveedor_nombre && (
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            {dispute.invoice_data.proveedor_nombre}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="text-sm font-semibold text-red-600">
-                                                        ${dispute.monto_disputa?.toLocaleString("es-MX", {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        })}
-                                                    </div>
-                                                    {dispute.invoice_data?.monto && (
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            de ${dispute.invoice_data.monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge
-                                                            variant={estadoBadgeVariant[dispute.estado]}
-                                                            className="text-xs w-fit"
-                                                        >
-                                                            {dispute.estado_display}
-                                                        </Badge>
-                                                        {dispute.resultado && dispute.resultado !== 'pendiente' && (
-                                                            <Badge
-                                                                variant={
-                                                                    dispute.resultado === 'aprobada_total' ? 'success' :
-                                                                    dispute.resultado === 'aprobada_parcial' ? 'default' :
-                                                                    dispute.resultado === 'rechazada' ? 'destructive' :
-                                                                    'secondary'
-                                                                }
-                                                                className="text-xs w-fit"
-                                                            >
-                                                                {dispute.resultado_display}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => navigate(`/disputes/${dispute.id}`)}
-                                                            title="Ver detalle"
-                                                            className="h-8 w-8"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => {
-                                                                setSelectedDispute(dispute);
-                                                                setIsModalOpen(true);
-                                                            }}
-                                                            title="Editar"
-                                                            className="h-8 w-8 hidden sm:inline-flex"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDeleteClick(dispute)}
-                                                            title="Eliminar"
-                                                            className="h-8 w-8 hidden md:inline-flex"
-                                                        >
-                                                            <Trash2 className="w-4 h-4 text-red-600" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <DisputesTableResponsive
+                                disputes={data.results}
+                                onEdit={handleEdit}
+                                onDelete={handleDeleteClick}
+                                deletingId={deleteMutation.isPending ? deleteDialog.dispute?.id : null}
+                            />
 
                             {/* Pagination */}
                             {data?.count > pageSize && (
-                                <div className="mt-6 flex items-center justify-between">
+                                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <p className="text-sm text-gray-600">
                                         Mostrando {(page - 1) * pageSize + 1} -{" "}
                                         {Math.min(page * pageSize, data.count)} de{" "}

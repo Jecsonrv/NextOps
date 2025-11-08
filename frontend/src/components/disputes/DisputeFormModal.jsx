@@ -12,10 +12,10 @@ import { InvoiceSelector } from "./InvoiceSelector";
 
 const TIPO_DISPUTA_CHOICES = [
     { value: "servicio_no_prestado", label: "Servicio No Prestado" },
+    { value: "monto_incorrecto", label: "Monto Incorrecto / Error de Facturación" },
     { value: "almacenaje_no_aplica", label: "Almacenaje No Aplica" },
-    { value: "dias_libres_incorrectos", label: "No Se Están Aplicando Correctamente Los Días Libres" },
-    { value: "cargo_no_aplica", label: "Cargo No Aplica" },
     { value: "demoras_no_aplican", label: "Demoras No Aplican" },
+    { value: "dias_libres_incorrectos", label: "Días Libres No Aplicados Correctamente" },
     { value: "otro", label: "Otro" },
 ];
 
@@ -28,6 +28,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
         monto_disputa: "",
         numero_caso: "",
         operativo: "",
+        fecha_disputa: new Date().toISOString().split('T')[0], // Fecha actual por defecto
     });
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [errors, setErrors] = useState({});
@@ -89,6 +90,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     monto_disputa: dispute.monto_disputa || "",
                     numero_caso: dispute.numero_caso || "",
                     operativo: dispute.operativo || "",
+                    fecha_disputa: dispute.fecha_disputa || new Date().toISOString().split('T')[0],
                 });
                 setSelectedInvoice(dispute.invoice_data || null);
             } else if (invoice) {
@@ -100,6 +102,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     monto_disputa: invoice.monto || "",
                     numero_caso: "",
                     operativo: invoice.ot_data?.operativo || "",
+                    fecha_disputa: new Date().toISOString().split('T')[0],
                 });
                 setSelectedInvoice(invoice);
             } else {
@@ -111,6 +114,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     monto_disputa: "",
                     numero_caso: "",
                     operativo: "",
+                    fecha_disputa: new Date().toISOString().split('T')[0],
                 });
                 setSelectedInvoice(null);
             }
@@ -345,6 +349,28 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                         </p>
                         {errors.numero_caso && (
                             <p className="mt-1 text-sm text-red-600">{errors.numero_caso[0]}</p>
+                        )}
+                    </div>
+
+                    {/* Fecha de Disputa */}
+                    <div>
+                        <label htmlFor="fecha_disputa" className="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha de la Disputa <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                            type="date"
+                            id="fecha_disputa"
+                            name="fecha_disputa"
+                            value={formData.fecha_disputa}
+                            onChange={handleChange}
+                            max={new Date().toISOString().split('T')[0]}
+                            className={errors.fecha_disputa ? "border-red-500" : ""}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            Fecha en que se reportó o aperturó la disputa con el proveedor
+                        </p>
+                        {errors.fecha_disputa && (
+                            <p className="mt-1 text-sm text-red-600">{errors.fecha_disputa[0]}</p>
                         )}
                     </div>
 

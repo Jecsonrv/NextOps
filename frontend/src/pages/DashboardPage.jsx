@@ -81,15 +81,15 @@ export function DashboardPage() {
         {
             name: "Provisionadas",
             value: invoicesStats?.provisionadas || 0,
-            subtitle: "Listas para facturar",
+            subtitle: "Facturas Provisionadas",
             icon: CheckCircle,
             iconColor: "text-green-600",
             valueColor: "text-green-600",
         },
         {
             name: "Pendientes",
-            value: invoicesStats?.pendientes_revision || 0,
-            subtitle: "Requieren revisión",
+            value: invoicesStats?.pendientes_provision || 0,
+            subtitle: "Facturas Pendientes",
             icon: AlertCircle,
             iconColor: "text-yellow-600",
             valueColor: "text-yellow-600",

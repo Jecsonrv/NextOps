@@ -147,6 +147,27 @@ const DisputeResultForm = ({ dispute, formData, setFormData }) => {
         helperText="Describe cómo se resolvió la disputa, acuerdos alcanzados, etc."
       />
 
+      {/* Campo de Fecha de Resolución */}
+      <TextField
+        fullWidth
+        type="date"
+        label="Fecha de Resolución"
+        name="fecha_resolucion"
+        value={formData.fecha_resolucion || new Date().toISOString().split('T')[0]}
+        onChange={(e) => setFormData({
+          ...formData,
+          fecha_resolucion: e.target.value
+        })}
+        margin="normal"
+        InputLabelProps={{
+          shrink: true,
+        }}
+        inputProps={{
+          max: new Date().toISOString().split('T')[0]
+        }}
+        helperText="Fecha en que se resolvió la disputa con el proveedor"
+      />
+
       {/* Información adicional */}
       {formData.resultado !== 'pendiente' && (
         <Alert severity="warning" sx={{ mt: 2 }}>
@@ -199,6 +220,7 @@ DisputeResultForm.propTypes = {
     resultado: PropTypes.string,
     monto_recuperado: PropTypes.number,
     resolucion: PropTypes.string,
+    fecha_resolucion: PropTypes.string,
   }).isRequired,
   setFormData: PropTypes.func.isRequired,
 };
