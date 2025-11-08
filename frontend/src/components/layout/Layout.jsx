@@ -29,8 +29,16 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { useState } from "react";
+import { filterMenuItems } from "../../utils/permissions";
 
+/**
+ * Navegación principal del sistema con control de acceso por roles.
+ *
+ * - Sin 'roles': visible para todos los usuarios autenticados
+ * - Con 'roles': visible solo para los roles especificados
+ */
 const navigation = [
+    // Todos los usuarios pueden acceder (sin 'roles')
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "OTs", href: "/ots", icon: Ship },
     { name: "Facturas", href: "/invoices", icon: FileText },
@@ -41,32 +49,42 @@ const navigation = [
         icon: FileMinus,
     },
     { name: "Clientes", href: "/clients", icon: Users },
+
+    // Módulo de Finanzas - Solo Admin y Finanzas
     {
         name: "Finanzas",
         icon: TrendingUp,
+        roles: ["admin", "finanzas"],
         children: [
             {
                 name: "Dashboard Finanzas",
                 href: "/sales/dashboard",
                 icon: LayoutDashboard,
+                roles: ["admin", "finanzas"],
             },
             {
                 name: "Facturas de Venta",
                 href: "/sales/invoices",
                 icon: Receipt,
+                roles: ["admin", "finanzas"],
             },
             {
                 name: "Pagos Recibidos",
                 href: "/sales/payments",
                 icon: Wallet,
+                roles: ["admin"], // MÓDULO OCULTO: Solo Admin
             },
             {
                 name: "Pagos a Proveedores",
                 href: "/supplier-payments",
                 icon: DollarSign,
+                roles: ["admin", "finanzas"],
             },
         ],
     },
+
+    // Catálogos - Todos pueden ver (sin restricciones de roles en el menú)
+    // La edición está protegida a nivel de componente y backend
     {
         name: "Catálogos",
         icon: FolderOpen,
@@ -98,7 +116,14 @@ const navigation = [
             },
         ],
     },
-    { name: "Automatización", href: "/automation", icon: Mail },
+
+    // Automatización - Solo Admin
+    {
+        name: "Automatización",
+        href: "/automation",
+        icon: Mail,
+        roles: ["admin"],
+    },
 ];
 
 export function Layout({ children }) {
@@ -112,14 +137,19 @@ export function Layout({ children }) {
         location.pathname.startsWith("/catalogs")
     );
 
+    // Filtrar items del menú según el rol del usuario
+    const filteredNavigation = filterMenuItems(user, navigation);
+
+    // Agregar Gestión de Usuarios solo para Admin
     const navigationItems = [
-        ...navigation,
+        ...filteredNavigation,
         ...(user?.role === "admin"
             ? [
                   {
                       name: "Usuarios",
                       href: "/admin/users",
                       icon: UserCog,
+                      roles: ["admin"],
                   },
               ]
             : []),
