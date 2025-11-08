@@ -45,8 +45,8 @@ import {
     AlertTriangle,
     FileMinus,
     Ship,
-    Truck,
     DollarSign,
+    Loader2,
 } from "lucide-react";
 import { Trash2 } from "lucide-react";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
@@ -67,6 +67,7 @@ export function InvoicesPage() {
     const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+    const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
     const [filters, setFilters] = useState({
         estado_provision: "",
         estado_facturacion: "",
@@ -130,6 +131,7 @@ export function InvoicesPage() {
             queryClient.invalidateQueries(["invoices-stats"]);
         },
         onError: (error) => {
+            console.error("Error al asignar OT:", error);
             toast.error("Error al asignar OT");
         },
     });
@@ -336,6 +338,7 @@ export function InvoicesPage() {
                 `${selectedInvoices.length} facturas exportadas en PDF`
             );
         } catch (error) {
+            console.error("Error al exportar PDFs:", error);
             toast.error(
                 "Error al exportar PDFs. Por favor intenta nuevamente."
             );
@@ -388,7 +391,54 @@ export function InvoicesPage() {
                 `ZIP estructurado con ${selectedInvoices.length} facturas`
             );
         } catch (error) {
+            console.error("Error al exportar ZIP:", error);
             toast.error("Error al exportar ZIP. Por favor intenta nuevamente.");
+        }
+    };
+
+    const handleInvoiceDownload = async (invoice) => {
+        if (!invoice?.id) {
+            toast.error("No se pudo identificar la factura a descargar");
+            return;
+        }
+
+        setDownloadingInvoiceId(invoice.id);
+        try {
+            const response = await apiClient.get(
+                `/invoices/${invoice.id}/file/?download=true`,
+                {
+                    responseType: "blob",
+                }
+            );
+
+            const blob = new Blob([response.data]);
+            const url = window.URL.createObjectURL(blob);
+
+            const contentDisposition = response.headers["content-disposition"];
+            let filename = invoice.numero_factura
+                ? `${invoice.numero_factura}.pdf`
+                : `factura-${invoice.id}.pdf`;
+
+            if (contentDisposition) {
+                const filenameMatch =
+                    contentDisposition.match(/filename="([^"]+)"/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (downloadError) {
+            console.error("Error al descargar la factura:", downloadError);
+            toast.error("No se pudo descargar la factura. Intenta nuevamente.");
+        } finally {
+            setDownloadingInvoiceId(null);
         }
     };
 
@@ -697,20 +747,23 @@ export function InvoicesPage() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() =>
-                                                        window.open(
-                                                            `${
-                                                                import.meta.env
-                                                                    .VITE_BASE_URL
-                                                            }${
-                                                                invoice.file_url
-                                                            }`,
-                                                            "_blank"
+                                                        handleInvoiceDownload(
+                                                            invoice
                                                         )
                                                     }
                                                     title="Descargar archivo"
+                                                    disabled={
+                                                        downloadingInvoiceId ===
+                                                        invoice.id
+                                                    }
                                                     className="h-8 w-8 hidden lg:inline-flex"
                                                 >
-                                                    <Download className="w-4 h-4" />
+                                                    {downloadingInvoiceId ===
+                                                    invoice.id ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <Download className="w-4 h-4" />
+                                                    )}
                                                 </Button>
                                             )}
                                         </div>
