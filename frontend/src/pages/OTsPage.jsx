@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../lib/api";
+import { usePermissions } from "../components/common/PermissionGate";
 
 import { formatDate } from "../lib/dateUtils";
 import {
@@ -293,6 +294,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
 export function OTsPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { canImport, isAdmin } = usePermissions();
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState(() => createInitialFilters());
     const [showFilters, setShowFilters] = useState(false);
@@ -762,26 +764,32 @@ export function OTsPage() {
                                 <Layers className="w-4 h-4 mr-2" />
                                 Búsqueda Masiva
                             </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate("/ots/import")}
-                                className="flex-1 sm:flex-none"
-                            >
-                                <Upload className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">
-                                    Importar
-                                </span>
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowProvisionModal(true)}
-                                className="hidden lg:inline-flex border-blue-600 text-blue-600 hover:bg-blue-50"
-                            >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Provisión
-                            </Button>
+                            {/* Solo Admin y Jefe Ops pueden importar */}
+                            {canImport && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate("/ots/import")}
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    <Upload className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">
+                                        Importar
+                                    </span>
+                                </Button>
+                            )}
+                            {/* Solo Admin y Jefe Ops pueden importar provisión */}
+                            {canImport && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowProvisionModal(true)}
+                                    className="hidden lg:inline-flex border-blue-600 text-blue-600 hover:bg-blue-50"
+                                >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Provisión
+                                </Button>
+                            )}
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -1416,22 +1424,25 @@ export function OTsPage() {
                                                             >
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        ot
-                                                                    )
-                                                                }
-                                                                title="Eliminar"
-                                                                disabled={
-                                                                    deleteMutation.isPending
-                                                                }
-                                                                className="h-8 w-8 hidden md:inline-flex"
-                                                            >
-                                                                <Trash2 className="w-4 h-4 text-red-600" />
-                                                            </Button>
+                                                            {/* Solo Admin y Jefe Ops pueden eliminar */}
+                                                            {canImport && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            ot
+                                                                        )
+                                                                    }
+                                                                    title="Eliminar"
+                                                                    disabled={
+                                                                        deleteMutation.isPending
+                                                                    }
+                                                                    className="h-8 w-8 hidden md:inline-flex"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>

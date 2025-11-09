@@ -23,7 +23,7 @@ from .serializers import (
     CostInvoiceBasicSerializer,
 )
 
-from .permissions import CanValidatePayments, CanManageSalesInvoices, IsFinanzasOrAdmin
+from .permissions import CanValidatePayments, CanManageSalesInvoices, IsFinanzasOrAdmin, IsAdminOnly
 from .utils.pdf_extractor import SalesInvoicePDFExtractor
 from .filters import SalesInvoiceFilter, PaymentFilter
 
@@ -620,7 +620,15 @@ class SalesInvoiceViewSet(viewsets.ModelViewSet):
             )
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, CanValidatePayments]
+    """
+    ViewSet para Pagos Recibidos (Sales Payments).
+
+    MÓDULO OCULTO - Solo Admin puede acceder.
+
+    Este módulo está restringido exclusivamente al rol Admin.
+    Otros roles (incluido Finanzas) NO tienen acceso.
+    """
+    permission_classes = [IsAdminOnly]
     queryset = Payment.objects.filter(deleted_at__isnull=True)
     serializer_class = PaymentListSerializer
     filterset_class = PaymentFilter

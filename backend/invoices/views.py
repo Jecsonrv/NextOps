@@ -49,10 +49,11 @@ from .serializers import (
     CreditNoteCreateSerializer,
     CreditNoteUpdateSerializer,
 )
-from common.permissions import IsJefeOperaciones
+from common.permissions import IsAdminOrJefeOps, IsAdminOrFinanzas, CanImportData
+from common.mixins import RoleBasedFieldValidationMixin
 
 
-class InvoiceViewSet(viewsets.ModelViewSet):
+class InvoiceViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestión de facturas.
     
@@ -73,7 +74,18 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         'ot', 'proveedor', 'uploaded_file'
     )
     lookup_value_regex = r'[0-9]+'
-    
+
+    # Define editable fields by role for RoleBasedFieldValidationMixin
+    role_editable_fields = {
+        'admin': '__all__',
+        'jefe_operaciones': '__all__',
+        'finanzas': {
+            'estado_provision', 'estado_facturacion', 'estado_pago',
+            'monto_pagado', 'fecha_pago', 'notas'
+        },
+        'operativo': set()  # No puede editar nada
+    }
+
     def get_serializer_class(self):
         if self.action == 'list':
             return InvoiceListSerializer
@@ -84,7 +96,42 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         elif self.action == 'stats':
             return InvoiceStatsSerializer
         return InvoiceDetailSerializer
-    
+
+    def get_permissions(self):
+        """
+        Permissions by action:
+        - Read-only actions (list, retrieve, stats, filter_values, retrieve_file, bulk_pdf, bulk_zip): All authenticated users
+        - Upload actions (upload): Admin or Jefe Ops
+        - Create/Delete: Admin or Jefe Ops
+        - Update: Admin, Jefe Ops (full), or Finanzas (limited fields)
+        """
+        # Read-only actions - all authenticated users
+        read_only_actions = [
+            'list', 'retrieve', 'stats', 'filter_values',
+            'retrieve_file', 'bulk_pdf', 'bulk_zip', 'export_excel'
+        ]
+        if self.action in read_only_actions:
+            return [IsAuthenticated()]
+
+        # Upload actions - Admin or Jefe de Operaciones only
+        if self.action == 'upload':
+            return [CanImportData()]
+
+        # Create/Delete - Admin or Jefe de Operaciones
+        if self.action in ['create', 'destroy', 'bulk_delete']:
+            return [IsAdminOrJefeOps()]
+
+        # Update/Patch - Admin, Jefe Ops, or Finanzas (field validation handled by mixin)
+        if self.action in ['update', 'partial_update', 'assign_ot', 'unassign_ot']:
+            return [IsAuthenticated()]  # Mixin will validate editable fields
+
+        # Pending - all authenticated users
+        if self.action == 'pending':
+            return [IsAuthenticated()]
+
+        # Default: authenticated users
+        return [IsAuthenticated()]
+
     def get_queryset(self):
         """
         Filtrado avanzado de facturas.

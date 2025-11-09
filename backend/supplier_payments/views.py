@@ -1,11 +1,14 @@
 """
 Views para el módulo de Pagos a Proveedores (Cuentas por Pagar).
+
+Permisos:
+- Admin y Finanzas: CRUD completo
+- Otros roles: Sin acceso
 """
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Sum, Count
 from decimal import Decimal
 
@@ -16,17 +19,22 @@ from .serializers import (
 )
 from invoices.models import Invoice
 from catalogs.models import Provider
+from common.permissions import IsAdminOrFinanzas
 
 
 class SupplierPaymentViewSet(viewsets.ModelViewSet):
     """
-    API para gestionar pagos a proveedores.
-    Permite crear pagos en lote, ver historial, etc.
+    API para gestionar pagos a proveedores (Cuentas por Pagar).
+
+    Permisos:
+    - Admin: CRUD completo
+    - Finanzas: CRUD completo
+    - Otros roles: Sin acceso
     """
 
     queryset = SupplierPayment.objects.filter(is_deleted=False)
     serializer_class = SupplierPaymentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrFinanzas]
 
     def get_queryset(self):
         """Filtros opcionales"""
