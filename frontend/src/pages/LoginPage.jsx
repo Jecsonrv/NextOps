@@ -52,7 +52,7 @@ export function LoginPage() {
                         />
                     </div>
                     <CardDescription>
-                        Ingresa tus credenciales para acceder al sistema
+                        Sistema de Gestión de Operaciones y Facturación
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -68,20 +68,18 @@ export function LoginPage() {
                                 htmlFor="email"
                                 className="text-sm font-medium text-gray-700"
                             >
-                                Email / Usuario
+                                Usuario o Email
                             </label>
                             <Input
                                 id="email"
                                 type="text"
-                                placeholder="admin@nextops.com"
+                                placeholder="Ingresa tu usuario o email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 disabled={loading}
+                                autoComplete="username"
                             />
-                            <p className="text-xs text-gray-500">
-                                Usa tu email o nombre de usuario
-                            </p>
                         </div>
 
                         <div className="space-y-2">
@@ -94,11 +92,12 @@ export function LoginPage() {
                             <Input
                                 id="password"
                                 type="password"
-                                placeholder="••••••••"
+                                placeholder="Ingresa tu contraseña"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 disabled={loading}
+                                autoComplete="current-password"
                             />
                         </div>
 
