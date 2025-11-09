@@ -29,11 +29,40 @@ export function LoginPage() {
             navigate("/");
         } catch (err) {
             console.error("Login error:", err);
-            const errorMsg =
-                err.response?.data?.detail ||
-                err.response?.data?.message ||
-                err.message ||
-                "Error al iniciar sesión. Verifica tus credenciales.";
+
+            // Manejar diferentes tipos de errores con mensajes amigables
+            let errorMsg = "Error al iniciar sesión. Por favor, intenta nuevamente.";
+
+            if (err.response) {
+                const status = err.response.status;
+                const data = err.response.data;
+
+                if (status === 401) {
+                    // Credenciales incorrectas
+                    errorMsg = "Usuario o contraseña incorrectos. Por favor, verifica tus credenciales.";
+                } else if (status === 400) {
+                    // Error de validación
+                    if (data.detail) {
+                        errorMsg = data.detail;
+                    } else if (data.non_field_errors) {
+                        errorMsg = Array.isArray(data.non_field_errors)
+                            ? data.non_field_errors[0]
+                            : data.non_field_errors;
+                    } else {
+                        errorMsg = "Datos de inicio de sesión inválidos.";
+                    }
+                } else if (status >= 500) {
+                    // Error del servidor
+                    errorMsg = "Error en el servidor. Por favor, contacta al administrador del sistema.";
+                } else if (status === 403) {
+                    // Usuario inactivo o sin permisos
+                    errorMsg = "Tu cuenta está inactiva. Contacta al administrador.";
+                }
+            } else if (err.request) {
+                // No se recibió respuesta del servidor
+                errorMsg = "No se pudo conectar con el servidor. Verifica tu conexión a internet.";
+            }
+
             setError(errorMsg);
         } finally {
             setLoading(false);
