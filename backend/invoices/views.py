@@ -1666,13 +1666,24 @@ class DisputeViewSet(viewsets.ModelViewSet):
     - PUT/PATCH /disputes/{id}/ - Actualizar disputa
     - DELETE /disputes/{id}/ - Eliminar (soft delete) disputa
     - GET /disputes/stats/ - Estadísticas
+
+    Permisos:
+    - Lectura y crear disputas: Todos los usuarios autenticados
+    - Resolver disputas: Solo Admin y Finanzas
     """
 
     queryset = Dispute.objects.filter(is_deleted=False).select_related(
         'invoice', 'ot', 'invoice__proveedor', 'ot__cliente'
     )
-    permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+
+    def get_permissions(self):
+        """Permisos diferenciados por acción"""
+        if self.action == 'resolve':
+            # Solo Admin y Finanzas pueden resolver disputas
+            return [IsAdminOrFinanzas()]
+        # Otros: todos los usuarios autenticados
+        return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -1948,12 +1959,23 @@ def create_dispute(request):
 class CreditNoteViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestión de notas de crédito.
+
+    Permisos:
+    - Lectura: Todos los usuarios autenticados
+    - Escritura (crear/editar/eliminar): Solo Admin y Finanzas
     """
 
-    permission_classes = [IsAuthenticated]
     queryset = CreditNote.objects.filter(is_deleted=False).select_related(
         'proveedor', 'invoice_relacionada', 'uploaded_file'
     )
+
+    def get_permissions(self):
+        """Permisos diferenciados por acción"""
+        if self.action in ['list', 'retrieve', 'stats', 'retrieve_file']:
+            # Lectura: todos los usuarios autenticados
+            return [IsAuthenticated()]
+        # Escritura: solo Admin y Finanzas
+        return [IsAdminOrFinanzas()]
 
     def get_serializer_class(self):
         if self.action == 'list':

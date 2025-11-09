@@ -28,11 +28,22 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // NO intentar refresh token si:
+        // 1. La request original es al endpoint de login (/token/)
+        // 2. Ya se intentó una vez (_retry flag)
+        // 3. No hay refresh_token en localStorage
+        const isLoginRequest = originalRequest.url?.includes("/token/");
+        const refreshToken = localStorage.getItem("refresh_token");
+
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !isLoginRequest &&
+            refreshToken
+        ) {
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem("refresh_token");
                 const response = await axios.post(
                     `${API_BASE_URL}/token/refresh/`,
                     {
@@ -45,6 +56,7 @@ api.interceptors.response.use(
 
                 return api(originalRequest);
             } catch (refreshError) {
+                // Si el refresh falla, limpiar tokens y redirigir a login
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("refresh_token");
                 window.location.href = "/login";

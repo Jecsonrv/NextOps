@@ -69,6 +69,9 @@ export function usePermissions() {
         canAccessFinance: hasAnyRole(user, ["admin", "finanzas"]),
         canAccessPayments: user?.role === "admin", // Pagos Recibidos - solo admin
         canManageUsers: user?.role === "admin",
+        canManageCreditNotes: hasAnyRole(user, ["admin", "finanzas"]), // Notas de Crédito
+        canResolveDisputes: hasAnyRole(user, ["admin", "finanzas"]), // Resolver Disputas
+        canEditAutomation: user?.role === "admin", // Configuración de Automatización
 
         // Función helper para verificación personalizada
         hasRole: (roles) => hasAnyRole(user, roles),

@@ -32,7 +32,9 @@
       "WebFetch(domain:www.aufaitux.com)",
       "Bash(rm:*)",
       "Bash(npm run dev:*)",
-      "Bash(python update_supplier_payments.py:*)"
+      "Bash(python update_supplier_payments.py:*)",
+      "Bash(git log:*)",
+      "Bash(python manage.py:*)"
     ],
     "deny": [],
     "ask": []

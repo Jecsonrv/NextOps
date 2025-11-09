@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
+from common.permissions import IsAdmin
 from automation.models import EmailProcessingLog, EmailAutoProcessingConfig
 from automation.serializers import (
     EmailProcessingLogSerializer,
@@ -149,19 +150,30 @@ class EmailAutoProcessingConfigViewSet(mixins.RetrieveModelMixin,
                                        viewsets.GenericViewSet):
     """
     ViewSet for EmailAutoProcessingConfig.
-    
+
     Singleton configuration - only one instance exists.
-    
+
     list: Get current configuration
     retrieve: Get configuration details
     update: Update configuration (PUT)
     partial_update: Partially update configuration (PATCH)
     trigger_processing: Manually trigger email processing
     test_connection: Test MS Graph API connection
+
+    Permisos:
+    - Lectura (list, retrieve, status): Todos los usuarios autenticados
+    - Escritura y acciones críticas: Solo Admin
     """
     queryset = EmailAutoProcessingConfig.objects.all()
     serializer_class = EmailAutoProcessingConfigSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        """Permisos diferenciados por acción"""
+        if self.action in ['list', 'retrieve', 'status']:
+            # Lectura: todos los usuarios autenticados
+            return [IsAuthenticated()]
+        # Modificación y acciones críticas: solo Admin
+        return [IsAdmin()]
     
     def list(self, request, *args, **kwargs):
         """Return the singleton config"""

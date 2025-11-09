@@ -42,12 +42,19 @@ const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "OTs", href: "/ots", icon: Ship },
     { name: "Facturas", href: "/invoices", icon: FileText },
+
+    // Disputas - Todos pueden ver/crear, solo Admin/Finanzas pueden resolver
+    // Se muestra para todos, la restricción está en las acciones dentro de la página
     { name: "Disputas", href: "/disputes", icon: AlertCircle },
+
+    // Notas de Crédito - Solo Admin y Finanzas pueden crear/modificar
     {
         name: "Notas de Crédito",
         href: "/invoices/credit-notes",
         icon: FileMinus,
+        roles: ["admin", "finanzas"], // Ocultar para operativos y jefe_operaciones
     },
+
     { name: "Clientes", href: "/clients", icon: Users },
 
     // Módulo de Finanzas - Solo Admin y Finanzas
