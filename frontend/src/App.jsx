@@ -145,7 +145,7 @@ function App() {
                         <Route
                             path="/ots/import"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "jefe_operaciones"]}>
                                     <Layout>
                                         <OTImportPage />
                                     </Layout>
@@ -185,7 +185,7 @@ function App() {
                         <Route
                             path="/invoices/new"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "jefe_operaciones"]}>
                                     <Layout>
                                         <InvoiceUploadPage />
                                     </Layout>
@@ -232,11 +232,11 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        {/* Sales/CRM Routes */}
+                        {/* Sales/CRM Routes - Admin + Finanzas */}
                         <Route
                             path="/sales/invoices"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <SalesInvoicesPage />
                                     </Layout>
@@ -246,7 +246,7 @@ function App() {
                         <Route
                             path="/sales/invoices/new"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <SalesInvoiceFormPage />
                                     </Layout>
@@ -256,7 +256,7 @@ function App() {
                         <Route
                             path="/sales/invoices/:id"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <SalesInvoiceDetailPage />
                                     </Layout>
@@ -266,17 +266,18 @@ function App() {
                         <Route
                             path="/sales/invoices/:id/edit"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <SalesInvoiceFormPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }
                         />
+                        {/* Pagos Recibidos - MÓDULO OCULTO: Solo Admin */}
                         <Route
                             path="/sales/payments"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <PaymentsPage />
                                     </Layout>
@@ -286,7 +287,7 @@ function App() {
                         <Route
                             path="/sales/payments/new"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <PaymentFormPage />
                                     </Layout>
@@ -296,18 +297,18 @@ function App() {
                         <Route
                             path="/sales/dashboard"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <FinanceDashboardPage />
                                     </Layout>
                                 </ProtectedRoute>
                             }
                         />
-                        {/* Supplier Payments (CxP) Routes */}
+                        {/* Supplier Payments (CxP) Routes - Admin + Finanzas */}
                         <Route
                             path="/supplier-payments"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin", "finanzas"]}>
                                     <Layout>
                                         <SupplierPaymentsPage />
                                     </Layout>
@@ -354,7 +355,7 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        {/* Catalog Routes */}
+                        {/* Catalog Routes - Ver: Todos, Crear/Editar: Solo Admin */}
                         <Route
                             path="/catalogs/providers"
                             element={
@@ -368,7 +369,7 @@ function App() {
                         <Route
                             path="/catalogs/providers/create"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <ProviderFormPage />
                                     </Layout>
@@ -378,7 +379,7 @@ function App() {
                         <Route
                             path="/catalogs/providers/:id/edit"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <ProviderFormPage />
                                     </Layout>
@@ -398,7 +399,7 @@ function App() {
                         <Route
                             path="/catalogs/aliases/create"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <ClientAliasFormPage />
                                     </Layout>
@@ -408,7 +409,7 @@ function App() {
                         <Route
                             path="/catalogs/aliases/:id/edit"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <ClientAliasFormPage />
                                     </Layout>
@@ -428,7 +429,7 @@ function App() {
                         <Route
                             path="/catalogs/cost-types/create"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <CostTypeFormPage />
                                     </Layout>
@@ -438,7 +439,7 @@ function App() {
                         <Route
                             path="/catalogs/cost-types/:id/edit"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <CostTypeFormPage />
                                     </Layout>
@@ -458,7 +459,7 @@ function App() {
                         <Route
                             path="/catalogs/cost-categories/create"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <CostCategoryFormPage />
                                     </Layout>
@@ -468,7 +469,7 @@ function App() {
                         <Route
                             path="/catalogs/cost-categories/:id/edit"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <CostCategoryFormPage />
                                     </Layout>
@@ -513,10 +514,11 @@ function App() {
                                 <Navigate to="/catalogs/providers" replace />
                             }
                         />
+                        {/* Automatización - Solo Admin */}
                         <Route
                             path="/automation"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={["admin"]}>
                                     <Layout>
                                         <AutomationPage />
                                     </Layout>
