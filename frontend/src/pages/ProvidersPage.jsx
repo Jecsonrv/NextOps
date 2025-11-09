@@ -33,9 +33,11 @@ import {
     CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { usePermissions } from "../components/common/PermissionGate";
 
 export function ProvidersPage() {
     const navigate = useNavigate();
+    const { canEditCatalogs } = usePermissions();
 
     // Estados para filtros y búsqueda
     const [filters, setFilters] = useState({
@@ -129,15 +131,27 @@ export function ProvidersPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleImport}
-                        className="flex items-center gap-2"
-                    >
-                        <Upload className="w-4 h-4" />
-                        Importar
-                    </Button>
+                    {/* Solo Admin puede importar/crear proveedores */}
+                    {canEditCatalogs && (
+                        <>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleImport}
+                                className="flex items-center gap-2"
+                            >
+                                <Upload className="w-4 h-4" />
+                                Importar
+                            </Button>
+                            <Button
+                                onClick={() => navigate("/catalogs/providers/create")}
+                                className="flex items-center gap-2"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Nuevo Proveedor
+                            </Button>
+                        </>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"
@@ -146,13 +160,6 @@ export function ProvidersPage() {
                     >
                         <Download className="w-4 h-4" />
                         Exportar
-                    </Button>
-                    <Button
-                        onClick={() => navigate("/catalogs/providers/create")}
-                        className="flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nuevo Proveedor
                     </Button>
                 </div>
             </div>
@@ -513,31 +520,34 @@ export function ProvidersPage() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/catalogs/providers/${provider.id}/edit`
-                                                            )
-                                                        }
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            handleDelete(
-                                                                provider.id,
-                                                                provider.nombre
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
+                                                {/* Solo Admin puede editar/eliminar proveedores */}
+                                                {canEditCatalogs && (
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    `/catalogs/providers/${provider.id}/edit`
+                                                                )
+                                                            }
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={() =>
+                                                                handleDelete(
+                                                                    provider.id,
+                                                                    provider.nombre
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

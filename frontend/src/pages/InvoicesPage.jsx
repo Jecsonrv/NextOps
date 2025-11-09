@@ -10,6 +10,7 @@ import {
 import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
+import { usePermissions } from "../components/common/PermissionGate";
 import InvoiceStatusBadge, {
     CostTypeBadge,
     ExcludedFromStatsBadge,
@@ -54,6 +55,7 @@ import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteMo
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 export function InvoicesPage() {
+    const { canImport } = usePermissions();
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
@@ -945,16 +947,19 @@ export function InvoicesPage() {
                                 <Download className="w-4 h-4 sm:mr-2" />
                                 <span className="hidden sm:inline">Excel</span>
                             </Button>
-                            <Button
-                                size="sm"
-                                onClick={() =>
-                                    (window.location.href = "/invoices/new")
-                                }
-                                className="flex-1 sm:flex-none"
-                            >
-                                <Upload className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Subir</span>
-                            </Button>
+                            {/* Solo Admin y Jefe Ops pueden subir facturas */}
+                            {canImport && (
+                                <Button
+                                    size="sm"
+                                    onClick={() =>
+                                        (window.location.href = "/invoices/new")
+                                    }
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    <Upload className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Subir</span>
+                                </Button>
+                            )}
                             <Button
                                 size="sm"
                                 variant="outline"
