@@ -6,10 +6,12 @@ import apiClient from "../lib/api";
 import {
     useInvoiceFilterValues,
     useBulkDeleteInvoices,
+    useInvoiceDetail,
 } from "../hooks/useInvoices";
 import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
+import { InvoiceQuickView } from "../components/invoices/InvoiceQuickView";
 import { usePermissions } from "../components/common/PermissionGate";
 import InvoiceStatusBadge, {
     CostTypeBadge,
@@ -48,6 +50,8 @@ import {
     Ship,
     DollarSign,
     Loader2,
+    ClipboardCheck,
+    Filter,
 } from "lucide-react";
 import { Trash2 } from "lucide-react";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
@@ -58,7 +62,7 @@ export function InvoicesPage() {
     const { canImport } = usePermissions();
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize, setPageSize] = useState(25);
     const [showFilters, setShowFilters] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
     const [selectedInvoiceForOT, setSelectedInvoiceForOT] = useState(null);
@@ -70,6 +74,11 @@ export function InvoicesPage() {
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [isDeletingBulk, setIsDeletingBulk] = useState(false);
     const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
+    // QuickView state
+    const [quickViewInvoice, setQuickViewInvoice] = useState(null);
+    const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+    // Provisionar rápido
+    const [provisioningId, setProvisioningId] = useState(null);
     const [filters, setFilters] = useState({
         estado_provision: "",
         estado_facturacion: "",
@@ -113,6 +122,40 @@ export function InvoicesPage() {
     const queryClient = useQueryClient();
 
     const bulkDeleteMutation = useBulkDeleteInvoices();
+
+    // Fetch detalle para QuickView
+    const { data: quickViewDetail } = useInvoiceDetail(
+        quickViewInvoice?.id,
+        { enabled: !!quickViewInvoice?.id && isQuickViewOpen }
+    );
+
+    // Mutation para provisionar rápido
+    const quickProvisionMutation = useMutation({
+        mutationFn: async (invoiceId) => {
+            const today = new Date().toISOString().split("T")[0];
+            const response = await apiClient.patch(`/invoices/${invoiceId}/`, {
+                estado_provision: "provisionada",
+                fecha_provision: today,
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["invoices"]);
+            queryClient.invalidateQueries(["invoices-stats"]);
+            toast.success("Factura provisionada exitosamente");
+            setProvisioningId(null);
+        },
+        onError: () => {
+            toast.error("Error al provisionar la factura");
+            setProvisioningId(null);
+        },
+    });
+
+    const handleQuickProvision = async (invoice) => {
+        if (invoice.estado_provision !== "pendiente") return;
+        setProvisioningId(invoice.id);
+        await quickProvisionMutation.mutateAsync(invoice.id);
+    };
 
     // Mutation para asignar OT
     const assignOTMutation = useMutation({
@@ -492,289 +535,175 @@ export function InvoicesPage() {
         );
     }
 
-    // Componente reutilizable para renderizar la tabla
+    // Componente reutilizable para renderizar la tabla - DISEÑO COMPACTO ERP
     const InvoiceTableContent = () => (
         <>
-            {/* Indicador de scroll en móviles */}
-            <div className="block sm:hidden mb-2 text-xs text-gray-500 text-center">
-                ← Desliza para ver más columnas →
-            </div>
-
-            <div className="overflow-x-auto -mx-4 sm:mx-0 border-x sm:border-x-0">
-                <div className="inline-block min-w-full align-middle">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="sticky left-0 z-10 bg-gray-50 px-3 py-3 text-center whitespace-nowrap">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            selectedInvoices.length ===
-                                                data?.results?.length &&
-                                            data?.results?.length > 0
-                                        }
-                                        onChange={handleSelectAll}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Operativo
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    OT
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Cliente
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    MBL
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Naviera
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Proveedor
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Barco
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Tipo Prov.
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Tipo Costo
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Estado
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Factura
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    F. Emisión
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    F. Provisión
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    F. Facturación
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Monto
-                                </th>
-                                <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                            {data?.results?.map((invoice) => (
+            <div className="overflow-x-auto">
+                <table className="erp-table w-full">
+                    <thead>
+                        <tr>
+                            <th className="w-8 px-2 py-2 text-center">
+                                <input
+                                    type="checkbox"
+                                    checked={
+                                        selectedInvoices.length ===
+                                            data?.results?.length &&
+                                        data?.results?.length > 0
+                                    }
+                                    onChange={handleSelectAll}
+                                    className="rounded border-slate-300 text-slate-700 focus:ring-slate-500"
+                                />
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                Estado
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                Factura
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                Proveedor
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                OT / Cliente
+                            </th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                Fecha
+                            </th>
+                            <th className="px-2 py-2 text-right text-xs font-medium text-slate-500 uppercase">
+                                Monto
+                            </th>
+                            <th className="px-2 py-2 text-center text-xs font-medium text-slate-500 uppercase w-32">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data?.results?.map((invoice) => {
+                            const estadoClass = {
+                                pendiente: "pending",
+                                provisionada: "success",
+                                disputada: "error",
+                                anulada: "info",
+                                anulada_parcialmente: "info",
+                            };
+                            return (
                                 <tr
                                     key={invoice.id}
-                                    className="hover:bg-gray-50 transition-colors"
+                                    className={`hover:bg-slate-50 cursor-pointer transition-colors ${
+                                        selectedInvoices.includes(invoice.id) ? "bg-slate-100" : ""
+                                    }`}
+                                    onClick={() => {
+                                        setQuickViewInvoice(invoice);
+                                        setIsQuickViewOpen(true);
+                                    }}
                                 >
-                                    <td className="sticky left-0 z-10 bg-white px-3 py-3 text-center">
+                                    <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                         <input
                                             type="checkbox"
-                                            checked={selectedInvoices.includes(
-                                                invoice.id
-                                            )}
-                                            onChange={() =>
-                                                handleSelectOne(invoice.id)
-                                            }
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            checked={selectedInvoices.includes(invoice.id)}
+                                            onChange={() => handleSelectOne(invoice.id)}
+                                            className="rounded border-slate-300 text-slate-700 focus:ring-slate-500"
                                         />
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                        {invoice.ot_data?.operativo || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        {invoice.ot_data ? (
-                                            <Link
-                                                to={`/ots/${invoice.ot_data.id}`}
-                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
-                                            >
-                                                <Link2 className="w-3.5 h-3.5" />
-                                                {invoice.ot_data.numero_ot}
-                                            </Link>
-                                        ) : (
-                                            <span className="text-gray-400 text-sm italic">
-                                                Sin asignar
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                        {invoice.ot_data?.cliente || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                        {invoice.ot_data?.mbl || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                        {invoice.ot_data?.naviera || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                        {invoice.proveedor_data?.nombre || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                                        {invoice.ot_data?.barco || "-"}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                                            <Ship className="w-3.5 h-3.5" />
-                                            {invoice.proveedor_data
-                                                ?.tipo_display || "-"}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <DollarSign className="w-3.5 h-3.5" />
-                                            {invoice.tipo_costo_display || "-"}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <div className="flex flex-col gap-1">
-                                            <InvoiceStatusBadge
-                                                invoice={invoice}
-                                            />
-                                            <div className="flex gap-1">
-                                                <CostTypeBadge
-                                                    invoice={invoice}
-                                                />
-                                                <ExcludedFromStatsBadge
-                                                    invoice={invoice}
-                                                />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
+                                    <td className="px-2 py-2">
                                         <div className="flex items-center gap-1.5">
-                                            <Link
-                                                to={`/invoices/${invoice.id}`}
-                                                className="font-medium text-sm text-blue-600 hover:text-blue-800"
-                                            >
-                                                {invoice.numero_factura ||
-                                                    "SIN-NUM"}
-                                            </Link>
-                                            {invoice.requiere_revision && (
-                                                <AlertCircle
-                                                    className="w-3.5 h-3.5 text-red-500 flex-shrink-0"
-                                                    title="Requiere Revisión"
-                                                />
-                                            )}
-                                            {invoice.has_disputes &&
-                                                invoice.dispute_id && (
-                                                    <Link
-                                                        to={`/invoices/disputes/${invoice.dispute_id}`}
-                                                        onClick={(e) =>
-                                                            e.stopPropagation()
-                                                        }
-                                                        title="Ver Disputa"
-                                                    >
-                                                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
-                                                    </Link>
-                                                )}
-                                            {invoice.has_credit_notes && (
-                                                <FileMinus
-                                                    className="w-3.5 h-3.5 text-purple-500 flex-shrink-0"
-                                                    title="Tiene Notas de Crédito"
-                                                />
+                                            <span className={`status-dot ${estadoClass[invoice.estado_provision] || "info"}`}></span>
+                                            <span className="text-xs text-slate-600">
+                                                {invoice.estado_provision_display || invoice.estado_provision}
+                                            </span>
+                                            {invoice.estado_pago === "pagado_total" && (
+                                                <Badge variant="paid" size="xs">$</Badge>
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                    <td className="px-2 py-2">
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-medium text-slate-900 text-sm">
+                                                {invoice.numero_factura || "SIN-NUM"}
+                                            </span>
+                                            {invoice.requiere_revision && (
+                                                <AlertCircle className="w-3 h-3 text-amber-500" title="Requiere Revisión" />
+                                            )}
+                                            {invoice.has_disputes && (
+                                                <AlertTriangle className="w-3 h-3 text-orange-500" title="Tiene Disputa" />
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-2 py-2">
+                                        <span className="text-sm text-slate-700 truncate max-w-[150px] block">
+                                            {invoice.proveedor_data?.nombre || "-"}
+                                        </span>
+                                    </td>
+                                    <td className="px-2 py-2">
+                                        <div className="text-sm">
+                                            {invoice.ot_data ? (
+                                                <>
+                                                    <span className="font-medium text-slate-800">{invoice.ot_data.numero_ot}</span>
+                                                    <span className="text-slate-500 text-xs block truncate max-w-[120px]">
+                                                        {invoice.ot_data.cliente || ""}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-slate-400 text-xs italic">Sin OT</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-2 py-2 text-sm text-slate-600 whitespace-nowrap">
                                         {formatDate(invoice.fecha_emision)}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                        {formatDate(invoice.fecha_provision)}
+                                    <td className="px-2 py-2 text-right">
+                                        <span className="text-sm font-semibold text-slate-900">
+                                            ${(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString("es-MX", {
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 0,
+                                            }) || "0"}
+                                        </span>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                                        {formatDate(invoice.fecha_facturacion)}
-                                    </td>
-                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                        $
-                                        {(
-                                            invoice.monto_aplicable ??
-                                            invoice.monto
-                                        )?.toLocaleString("es-MX", {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 0,
-                                        }) || "0"}
-                                    </td>
-                                    <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    (window.location.href = `/invoices/${invoice.id}`)
-                                                }
-                                                title="Ver detalles"
-                                                className="h-8 w-8"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    setSelectedInvoiceForOT(
-                                                        invoice
-                                                    )
-                                                }
-                                                title={
-                                                    invoice.ot_data
-                                                        ? "Cambiar OT"
-                                                        : "Asignar OT"
-                                                }
-                                                className="h-8 w-8 hidden sm:inline-flex"
-                                            >
-                                                <Link2 className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                    setSelectedInvoiceForDispute(
-                                                        invoice
-                                                    );
-                                                    setShowDisputeModal(true);
-                                                }}
-                                                title="Crear Disputa"
-                                                className="h-8 w-8 hidden md:inline-flex"
-                                            >
-                                                <AlertTriangle className="w-4 h-4" />
-                                            </Button>
-                                            {invoice.file_url && (
+                                    <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-center gap-1">
+                                            {/* Acción rápida: Provisionar */}
+                                            {invoice.estado_provision === "pendiente" && (
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                        handleInvoiceDownload(
-                                                            invoice
-                                                        )
-                                                    }
-                                                    title="Descargar archivo"
-                                                    disabled={
-                                                        downloadingInvoiceId ===
-                                                        invoice.id
-                                                    }
-                                                    className="h-8 w-8 hidden lg:inline-flex"
+                                                    size="xs"
+                                                    onClick={() => handleQuickProvision(invoice)}
+                                                    disabled={provisioningId === invoice.id}
+                                                    title="Provisionar hoy"
+                                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                                                 >
-                                                    {downloadingInvoiceId ===
-                                                    invoice.id ? (
-                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    {provisioningId === invoice.id ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                     ) : (
-                                                        <Download className="w-4 h-4" />
+                                                        <ClipboardCheck className="w-3.5 h-3.5" />
                                                     )}
                                                 </Button>
                                             )}
+                                            <Button
+                                                variant="ghost"
+                                                size="xs"
+                                                onClick={() => {
+                                                    setQuickViewInvoice(invoice);
+                                                    setIsQuickViewOpen(true);
+                                                }}
+                                                title="Vista rápida"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="xs"
+                                                onClick={() => setSelectedInvoiceForOT(invoice)}
+                                                title={invoice.ot_data ? "Cambiar OT" : "Asignar OT"}
+                                            >
+                                                <Link2 className="w-3.5 h-3.5" />
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
 
             {/* Pagination */}
@@ -831,76 +760,40 @@ export function InvoicesPage() {
 
     return (
         <div className="space-y-4 sm:space-y-6">
-            {/* Stats Cards */}
+            {/* Stats Cards - Diseño compacto ERP */}
             {stats && (
-                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Total Facturas
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {stats.total}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                En el sistema
-                            </p>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                    <div className="bg-white border border-slate-200 rounded p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-slate-500 uppercase tracking-wide">Total</span>
+                            <FileText className="w-4 h-4 text-slate-400" />
+                        </div>
+                        <div className="text-xl font-bold text-slate-900">{stats.total}</div>
+                    </div>
 
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Pendientes
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
-                                {stats.pendientes_provision || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Por provisionar
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-white border border-slate-200 rounded p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-slate-500 uppercase tracking-wide">Pendientes</span>
+                            <span className="status-dot pending"></span>
+                        </div>
+                        <div className="text-xl font-bold text-amber-600">{stats.pendientes_provision || 0}</div>
+                    </div>
 
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Provisionadas
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {stats.provisionadas || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Listas para facturar
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-white border border-slate-200 rounded p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-slate-500 uppercase tracking-wide">Provisionadas</span>
+                            <span className="status-dot success"></span>
+                        </div>
+                        <div className="text-xl font-bold text-emerald-600">{stats.provisionadas || 0}</div>
+                    </div>
 
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Anuladas
-                            </CardTitle>
-                            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-600">
-                                {stats.anuladas || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Canceladas
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <div className="bg-white border border-slate-200 rounded p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-slate-500 uppercase tracking-wide">Pagadas</span>
+                            <DollarSign className="w-4 h-4 text-slate-400" />
+                        </div>
+                        <div className="text-xl font-bold text-slate-700">{stats.pagadas || 0}</div>
+                    </div>
                 </div>
             )}
 
@@ -1514,6 +1407,20 @@ export function InvoicesPage() {
                 confirmText="Sí, eliminar"
                 cancelText="Cancelar"
                 isConfirming={isDeletingBulk}
+            />
+
+            {/* QuickView - Panel lateral de detalle rápido */}
+            <InvoiceQuickView
+                invoice={quickViewDetail || quickViewInvoice}
+                isOpen={isQuickViewOpen}
+                onClose={() => {
+                    setIsQuickViewOpen(false);
+                    setQuickViewInvoice(null);
+                }}
+                onUpdate={() => {
+                    queryClient.invalidateQueries(["invoices"]);
+                    queryClient.invalidateQueries(["invoices-stats"]);
+                }}
             />
         </div>
     );

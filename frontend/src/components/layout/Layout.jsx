@@ -163,43 +163,43 @@ export function Layout({ children }) {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-50">
             {/* Mobile sidebar backdrop */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
+                    className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Sidebar - Diseño profesional ERP */}
             <aside
                 className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 
+          fixed top-0 left-0 z-50 h-full w-60 bg-slate-900
           transform transition-transform duration-200 ease-in-out lg:translate-x-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
             >
                 <div className="flex flex-col h-full">
                     {/* Logo */}
-                    <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between h-14 px-4 border-b border-slate-700">
                         <Link to="/" className="flex items-center">
                             <img
                                 src="/nextops-logo.svg"
                                 alt="NextOps"
-                                className="h-14 w-auto"
+                                className="h-10 w-auto brightness-0 invert"
                             />
                         </Link>
                         <button
-                            className="lg:hidden"
+                            className="lg:hidden text-slate-400 hover:text-white"
                             onClick={() => setSidebarOpen(false)}
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                    <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
                         {navigationItems.map((item) => {
                             // Handle parent items with children (Sales, Catalogs, etc.)
                             if (item.children) {
@@ -227,28 +227,28 @@ export function Layout({ children }) {
                                         <button
                                             onClick={toggleOpen}
                                             className={`
-                                                w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
+                                                w-full flex items-center justify-between px-3 py-2 text-sm rounded transition-colors
                                                 ${
                                                     isAnyChildActive
-                                                        ? "bg-blue-50 text-blue-600"
-                                                        : "text-gray-700 hover:bg-gray-100"
+                                                        ? "bg-slate-800 text-white"
+                                                        : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                                                 }
                                             `}
                                         >
                                             <div className="flex items-center">
-                                                <item.icon className="w-5 h-5 mr-3" />
+                                                <item.icon className="w-4 h-4 mr-2.5" />
                                                 {item.name}
                                             </div>
                                             {isOpen ? (
-                                                <ChevronDown className="w-4 h-4" />
+                                                <ChevronDown className="w-3.5 h-3.5" />
                                             ) : (
-                                                <ChevronRight className="w-4 h-4" />
+                                                <ChevronRight className="w-3.5 h-3.5" />
                                             )}
                                         </button>
 
                                         {/* Submenu */}
                                         {isOpen && (
-                                            <div className="ml-4 mt-1 space-y-1">
+                                            <div className="ml-6 mt-0.5 space-y-0.5 border-l border-slate-700 pl-2">
                                                 {item.children.map((child) => {
                                                     const isActive =
                                                         location.pathname ===
@@ -261,11 +261,11 @@ export function Layout({ children }) {
                                                             key={child.name}
                                                             to={child.href}
                                                             className={`
-                                                                flex items-center px-4 py-2 text-sm rounded-lg transition-colors
+                                                                flex items-center px-2 py-1.5 text-sm rounded transition-colors
                                                                 ${
                                                                     isActive
-                                                                        ? "bg-blue-100 text-blue-700 font-medium"
-                                                                        : "text-gray-600 hover:bg-gray-50"
+                                                                        ? "bg-slate-700 text-white"
+                                                                        : "text-slate-400 hover:text-slate-200"
                                                                 }
                                                             `}
                                                             onClick={() =>
@@ -274,7 +274,7 @@ export function Layout({ children }) {
                                                                 )
                                                             }
                                                         >
-                                                            <child.icon className="w-4 h-4 mr-2" />
+                                                            <child.icon className="w-3.5 h-3.5 mr-2" />
                                                             {child.name}
                                                         </Link>
                                                     );
@@ -292,16 +292,16 @@ export function Layout({ children }) {
                                     key={item.name}
                                     to={item.href}
                                     className={`
-                                        flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
+                                        flex items-center px-3 py-2 text-sm rounded transition-colors
                                         ${
                                             isActive
-                                                ? "bg-blue-50 text-blue-600"
-                                                : "text-gray-700 hover:bg-gray-100"
+                                                ? "bg-slate-800 text-white"
+                                                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                                         }
                                     `}
                                     onClick={() => setSidebarOpen(false)}
                                 >
-                                    <item.icon className="w-5 h-5 mr-3" />
+                                    <item.icon className="w-4 h-4 mr-2.5" />
                                     {item.name}
                                 </Link>
                             );
@@ -309,50 +309,51 @@ export function Layout({ children }) {
                     </nav>
 
                     {/* User info */}
-                    <div className="p-4 border-t border-gray-200">
+                    <div className="p-3 border-t border-slate-700">
                         <Link
                             to="/profile"
-                            className="block hover:bg-gray-50 p-2 rounded-lg"
+                            className="block hover:bg-slate-800 p-2 rounded transition-colors"
                         >
                             <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {user?.email}
+                                <div className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center mr-2.5">
+                                    <User className="w-4 h-4 text-slate-300" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-200 truncate">
+                                        {user?.email?.split("@")[0]}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-slate-500">
                                         {user?.role_display ||
                                             user?.role ||
                                             "Usuario"}
                                     </p>
                                 </div>
-                                <User className="w-5 h-5 text-gray-400" />
                             </div>
                         </Link>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start mt-4"
+                        <button
                             onClick={logout}
+                            className="w-full mt-2 flex items-center justify-center px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
                         >
-                            <LogOut className="w-4 h-4 mr-2" />
+                            <LogOut className="w-3.5 h-3.5 mr-1.5" />
                             Cerrar sesión
-                        </Button>
+                        </button>
                     </div>
                 </div>
             </aside>
 
             {/* Main content */}
-            <div className="lg:pl-64">
-                {/* Header */}
-                <header className="sticky top-0 z-30 flex items-center h-14 sm:h-16 px-3 sm:px-4 lg:px-8 bg-white border-b border-gray-200">
+            <div className="lg:pl-60">
+                {/* Header - Minimalista */}
+                <header className="sticky top-0 z-30 flex items-center h-12 px-4 lg:px-6 bg-white border-b border-slate-200">
                     <button
-                        className="lg:hidden mr-2 sm:mr-4"
+                        className="lg:hidden mr-3 text-slate-600 hover:text-slate-900"
                         onClick={() => setSidebarOpen(true)}
                     >
-                        <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <Menu className="w-5 h-5" />
                     </button>
 
                     <div className="flex-1 min-w-0">
-                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                        <h2 className="text-sm font-medium text-slate-700 truncate">
                             {(() => {
                                 // Find navigation item for current page (exact match)
                                 const currentNav = navigationItems.find(
@@ -414,7 +415,7 @@ export function Layout({ children }) {
                 </header>
 
                 {/* Page content */}
-                <main className="p-3 sm:p-4 lg:p-8">{children}</main>
+                <main className="p-4 lg:p-6">{children}</main>
             </div>
         </div>
     );

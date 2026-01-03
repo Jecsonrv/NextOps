@@ -1,5 +1,9 @@
 import PropTypes from 'prop-types';
 
+/**
+ * Cards profesionales para ERP
+ * Diseño limpio con sombras sutiles
+ */
 function Card({
   title,
   subtitle,
@@ -7,58 +11,59 @@ function Card({
   actions,
   className = '',
   headerClassName = '',
-  bodyClassName = ''
+  bodyClassName = '',
+  noPadding = false,
 }) {
   return (
-    <div className={`bg-white rounded-lg shadow ${className}`}>
+    <div className={`bg-white rounded border border-slate-200 ${className}`}>
       {(title || subtitle || actions) && (
-        <div className={`px-6 py-4 border-b border-gray-200 ${headerClassName}`}>
+        <div className={`px-4 py-3 border-b border-slate-100 ${headerClassName}`}>
           <div className="flex items-center justify-between">
             <div>
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
               )}
               {subtitle && (
-                <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
+                <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
               )}
             </div>
             {actions && (
-              <div className="flex items-center gap-2">{actions}</div>
+              <div className="flex items-center gap-1.5">{actions}</div>
             )}
           </div>
         </div>
       )}
-      <div className={`p-6 ${bodyClassName}`}>{children}</div>
+      <div className={noPadding ? '' : `p-4 ${bodyClassName}`}>{children}</div>
     </div>
   );
 }
 
 const CardHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
+  <div className={`px-4 py-3 border-b border-slate-100 ${className}`}>
     {children}
   </div>
 );
 
 const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
+  <h3 className={`text-sm font-semibold text-slate-800 ${className}`}>
     {children}
   </h3>
 );
 
 const CardContent = ({ children, className = '' }) => (
-  <div className={`p-6 ${className}`}>
+  <div className={`p-4 ${className}`}>
     {children}
   </div>
 );
 
 const CardDescription = ({ children, className = '' }) => (
-  <p className={`text-sm text-gray-600 ${className}`}>
+  <p className={`text-xs text-slate-500 ${className}`}>
     {children}
   </p>
 );
 
 const CardFooter = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-t border-gray-200 ${className}`}>
+  <div className={`px-4 py-3 border-t border-slate-100 bg-slate-50 ${className}`}>
     {children}
   </div>
 );

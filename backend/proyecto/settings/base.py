@@ -167,8 +167,12 @@ STORAGES = {
     },
 }
 
-# Legacy support for older Django code
-DEFAULT_FILE_STORAGE = 'common.storage_backends.CloudinaryMediaStorage'
+# Optional legacy fallback for older Django code
+# Set the environment variable `LEGACY_DEFAULT_FILE_STORAGE=True` to enable
+# `DEFAULT_FILE_STORAGE` (keeps compatibility with older code). By default
+# we rely on the Django `STORAGES` setting to avoid the mutual-exclusion error.
+if config('LEGACY_DEFAULT_FILE_STORAGE', default=False, cast=bool):
+    DEFAULT_FILE_STORAGE = 'common.storage_backends.CloudinaryMediaStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

@@ -1,6 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+/**
+ * Button profesional para ERP
+ * Diseño sobrio con colores neutros
+ */
 const Button = React.forwardRef((
   {
     children,
@@ -16,21 +20,33 @@ const Button = React.forwardRef((
   },
   ref
 ) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center font-medium rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus-visible:ring-gray-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500',
+    // Primary: gris oscuro profesional
+    primary: 'bg-slate-800 text-white hover:bg-slate-700 focus-visible:ring-slate-500',
+    // Secondary: gris claro
+    secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:ring-slate-400',
+    // Success: verde sobrio
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500',
+    // Danger: rojo apagado
     danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-blue-500 active:bg-gray-100',
-    ghost: 'text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-500',
+    // Destructive: alias para danger
+    destructive: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+    // Outline: borde sutil
+    outline: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400',
+    // Ghost: sin fondo
+    ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-400',
+    // Link: como enlace
+    link: 'text-slate-600 hover:text-slate-900 underline-offset-4 hover:underline',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    xs: 'px-2 py-1 text-xs',
+    sm: 'px-2.5 py-1.5 text-xs',
+    md: 'px-3 py-2 text-sm',
+    lg: 'px-4 py-2.5 text-sm',
+    icon: 'p-2',
   };
 
   return (
@@ -41,15 +57,15 @@ const Button = React.forwardRef((
       ref={ref}
       className={`
         ${baseStyles}
-        ${variants[variant]}
-        ${sizes[size]}
+        ${variants[variant] || variants.primary}
+        ${sizes[size] || sizes.md}
         ${className}
       `}
       {...props}
     >
       {loading && (
         <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4"
+          className="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -62,7 +78,7 @@ const Button = React.forwardRef((
           />
         </svg>
       )}
-      {icon && !loading && <span className="mr-2">{icon}</span>}
+      {icon && !loading && <span className="mr-1.5">{icon}</span>}
       {children}
     </button>
   );
@@ -71,9 +87,9 @@ const Button = React.forwardRef((
 Button.displayName = 'Button';
 
 Button.propTypes = {
-    children: PropTypes.node.isRequired,
-    variant: PropTypes.oneOf(['primary', 'secondary', 'success', 'danger', 'outline', 'ghost']),
-    size: PropTypes.oneOf(['sm', 'md', 'lg']),
+    children: PropTypes.node,
+    variant: PropTypes.oneOf(['primary', 'secondary', 'success', 'danger', 'destructive', 'outline', 'ghost', 'link']),
+    size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg', 'icon']),
     type: PropTypes.oneOf(['button', 'submit', 'reset']),
     disabled: PropTypes.bool,
     loading: PropTypes.bool,

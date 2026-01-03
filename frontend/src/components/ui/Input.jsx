@@ -2,12 +2,27 @@ import * as React from "react";
 import PropTypes from "prop-types";
 import { cn } from "../../lib/utils";
 
-const Input = React.forwardRef(({ className, type, ...props }, ref) => {
+/**
+ * Input profesional para ERP
+ * Diseño limpio con bordes sutiles
+ */
+const Input = React.forwardRef(({ className, type, size = "md", ...props }, ref) => {
+    const sizeClasses = {
+        sm: "h-8 px-2 text-xs",
+        md: "h-9 px-3 text-sm",
+        lg: "h-10 px-4 text-sm",
+    };
+
     return (
         <input
             type={type}
             className={cn(
-                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                "flex w-full rounded border border-slate-300 bg-white text-slate-900",
+                "placeholder:text-slate-400",
+                "focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400",
+                "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50",
+                "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                sizeClasses[size] || sizeClasses.md,
                 className
             )}
             ref={ref}
@@ -20,11 +35,13 @@ Input.displayName = "Input";
 Input.propTypes = {
     className: PropTypes.string,
     type: PropTypes.string,
+    size: PropTypes.oneOf(["sm", "md", "lg"]),
 };
 
 Input.defaultProps = {
     className: "",
     type: "text",
+    size: "md",
 };
 
 export { Input };
