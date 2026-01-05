@@ -3,6 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import PropTypes from "prop-types";
 import apiClient from "../../lib/api";
+import { useProviders } from "../../hooks/useInvoices";
+import { useCostTypes } from "../../hooks/useCostTypes";
+import { useProviderTypes } from "../../hooks/useProviderTypes";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import {
@@ -10,72 +13,119 @@ import {
     Save,
     Loader2,
     FileText,
-    Calendar,
-    DollarSign,
-    Hash,
-    Building2,
-    Receipt,
-    CalendarDays,
-    CalendarCheck,
-    CalendarClock,
+    Info,
 } from "lucide-react";
 
+const ESTADO_PROVISION_OPTIONS = [
+    { value: "pendiente", label: "Pendiente" },
+    { value: "provisionada", label: "Provisionada" },
+    { value: "revision", label: "En Revisión" },
+    { value: "disputada", label: "Disputada" },
+];
+
+const ESTADO_FACTURACION_OPTIONS = [
+    { value: "pendiente", label: "Pendiente" },
+    { value: "facturada", label: "Facturada" },
+];
+
+const MANUAL_PROVISION_STATES = new Set(["revision", "disputada"]);
+
 /**
- * Modal de edición rápida de factura - Diseño ERP profesional
- * Permite editar los campos más importantes sin navegar a otra página
+ * Modal de edición completa de factura - Mismos campos que InvoiceEditPage
+ * Permite editar todos los campos sin navegar a otra página
  */
 export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
     const queryClient = useQueryClient();
+
+    // Cargar datos dinámicos
+    const { data: providers, isLoading: providersLoading } = useProviders({ page_size: 1000 });
+    const { data: costTypes, isLoading: costTypesLoading } = useCostTypes();
+    const { data: providerTypes, isLoading: providerTypesLoading } = useProviderTypes();
+
     const [formData, setFormData] = useState({
         numero_factura: "",
         monto: "",
         fecha_emision: "",
+        fecha_vencimiento: "",
         fecha_provision: "",
         fecha_facturacion: "",
         tipo_costo: "",
-        estado_provision: "",
-        estado_facturacion: "",
+        proveedor_id: "",
+        tipo_proveedor: "",
+        estado_provision: "pendiente",
+        estado_facturacion: "pendiente",
         notas: "",
     });
 
-    // Opciones para selects
-    const TIPO_COSTO_CHOICES = [
-        { value: "FLETE", label: "Flete" },
-        { value: "CARGOS_NAVIERA", label: "Cargos de Naviera" },
-        { value: "TRANSPORTE", label: "Transporte" },
-        { value: "ADUANA", label: "Aduana" },
-        { value: "ALMACENAJE", label: "Almacenaje" },
-        { value: "DEMORA", label: "Demora" },
-        { value: "OTRO", label: "Otro" },
-    ];
+    // Helper function para determinar si un tipo de costo está vinculado a OT
+    const isCostTypeLinkedToOT = (tipoCosto) => {
+        if (!tipoCosto) return false;
+        if (tipoCosto === 'FLETE' || tipoCosto === 'CARGOS_NAVIERA') return true;
+        if (tipoCosto.startsWith('FLETE') || tipoCosto.startsWith('CARGOS_NAVIERA')) return true;
+        const costType = costTypes?.results?.find(ct => ct.code === tipoCosto);
+        return costType?.is_linked_to_ot === true;
+    };
 
-    const ESTADO_PROVISION_CHOICES = [
-        { value: "pendiente", label: "Pendiente" },
-        { value: "revision", label: "En Revisión" },
-        { value: "disputada", label: "Disputada" },
-        { value: "provisionada", label: "Provisionada" },
-        { value: "anulada", label: "Anulada" },
-        { value: "anulada_parcialmente", label: "Anulada Parcialmente" },
-        { value: "rechazada", label: "Rechazada" },
-    ];
-
-    const ESTADO_FACTURACION_CHOICES = [
-        { value: "pendiente", label: "Pendiente" },
-        { value: "facturada", label: "Facturada" },
-    ];
-
-    // Cargar datos de la factura cuando se abre el modal
+    // Cargar datos cuando se abre el modal
     useEffect(() => {
         if (invoice && isOpen) {
+            const shouldSyncWithOT =
+                (invoice.tipo_costo?.startsWith("FLETE") ||
+                    invoice.tipo_costo === "CARGOS_NAVIERA") &&
+                invoice.tipo_proveedor === "naviera" &&
+                invoice.ot_data;
+
+            const safeDate = (value) => value || "";
+
+            const fechaProvision =
+                shouldSyncWithOT && !invoice.fecha_provision
+                    ? safeDate(invoice.ot_data?.fecha_provision)
+                    : safeDate(invoice.fecha_provision);
+
+            const fechaFacturacion =
+                shouldSyncWithOT && !invoice.fecha_facturacion
+                    ? safeDate(invoice.ot_data?.fecha_recepcion_factura)
+                    : safeDate(invoice.fecha_facturacion);
+
+            const rawEstadoProvision = invoice.estado_provision || "pendiente";
+            const estadoProvision = fechaProvision
+                ? "provisionada"
+                : rawEstadoProvision === "provisionada"
+                ? "provisionada"
+                : MANUAL_PROVISION_STATES.has(rawEstadoProvision)
+                ? rawEstadoProvision
+                : "pendiente";
+
+            const estadoFacturacion = fechaFacturacion
+                ? "facturada"
+                : invoice.estado_facturacion || "pendiente";
+
+            const resolveProveedorId = () => {
+                const rawProveedor = invoice.proveedor;
+                if (typeof rawProveedor === "number" || typeof rawProveedor === "string") {
+                    return String(rawProveedor);
+                }
+                if (rawProveedor && typeof rawProveedor === "object" && rawProveedor.id) {
+                    return String(rawProveedor.id);
+                }
+                if (invoice.proveedor_data?.id != null) {
+                    return String(invoice.proveedor_data.id);
+                }
+                return "";
+            };
+
             setFormData({
                 numero_factura: invoice.numero_factura || "",
-                monto: invoice.monto || "",
+                monto: invoice.monto !== null && invoice.monto !== undefined ? String(invoice.monto) : "",
                 fecha_emision: invoice.fecha_emision || "",
-                fecha_provision: invoice.fecha_provision || "",
-                fecha_facturacion: invoice.fecha_facturacion || "",
+                fecha_vencimiento: invoice.fecha_vencimiento || "",
+                fecha_provision: fechaProvision,
+                fecha_facturacion: fechaFacturacion,
                 tipo_costo: invoice.tipo_costo || "",
-                estado_provision: invoice.estado_provision || "pendiente",
-                estado_facturacion: invoice.estado_facturacion || "pendiente",
+                proveedor_id: resolveProveedorId(),
+                tipo_proveedor: invoice.tipo_proveedor || invoice.proveedor_data?.tipo || "",
+                estado_provision: estadoProvision,
+                estado_facturacion: estadoFacturacion,
                 notas: invoice.notas || "",
             });
         }
@@ -84,14 +134,23 @@ export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
     // Mutation para actualizar
     const updateMutation = useMutation({
         mutationFn: async (data) => {
-            // Limpiar campos vacíos
-            const cleanData = {};
-            Object.keys(data).forEach((key) => {
-                if (data[key] !== "" && data[key] !== null) {
-                    cleanData[key] = data[key];
-                }
-            });
-            const response = await apiClient.patch(`/invoices/${invoice.id}/`, cleanData);
+            const normalizeDate = (value) => (value ? value : null);
+            let normalizedMonto = data.monto === "" ? null : Number(data.monto);
+            if (normalizedMonto !== null && Number.isNaN(normalizedMonto)) {
+                normalizedMonto = null;
+            }
+
+            const payload = {
+                ...data,
+                monto: normalizedMonto,
+                proveedor_id: data.proveedor_id ? Number(data.proveedor_id) : null,
+                fecha_emision: normalizeDate(data.fecha_emision),
+                fecha_vencimiento: normalizeDate(data.fecha_vencimiento),
+                fecha_provision: normalizeDate(data.fecha_provision),
+                fecha_facturacion: normalizeDate(data.fecha_facturacion),
+            };
+
+            const response = await apiClient.patch(`/invoices/${invoice.id}/`, payload);
             return response.data;
         },
         onSuccess: () => {
@@ -111,8 +170,47 @@ export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
         },
     });
 
-    const handleChange = (field, value) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+
+        setFormData((prev) => {
+            const newData = { ...prev, [name]: value };
+
+            // Lógica de sincronización de tipo de costo
+            if (name === "tipo_costo") {
+                const oldLinked = isCostTypeLinkedToOT(prev.tipo_costo);
+                const newLinked = isCostTypeLinkedToOT(value);
+                if (oldLinked && !newLinked) {
+                    newData.fecha_provision = "";
+                    newData.fecha_facturacion = "";
+                    if (!MANUAL_PROVISION_STATES.has(prev.estado_provision)) {
+                        newData.estado_provision = "pendiente";
+                    }
+                    newData.estado_facturacion = "pendiente";
+                }
+            }
+
+            // Auto-marcado de estados según fechas
+            if (name === "fecha_provision") {
+                if (value) {
+                    newData.estado_provision = "provisionada";
+                } else if (!MANUAL_PROVISION_STATES.has(prev.estado_provision)) {
+                    newData.estado_provision = "pendiente";
+                }
+            }
+
+            if (name === "fecha_facturacion") {
+                newData.estado_facturacion = value ? "facturada" : "pendiente";
+            }
+
+            if (name === "estado_provision") {
+                if (value === "pendiente" || MANUAL_PROVISION_STATES.has(value)) {
+                    newData.fecha_provision = "";
+                }
+            }
+
+            return newData;
+        });
     };
 
     const handleSubmit = (e) => {
@@ -121,6 +219,8 @@ export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
     };
 
     if (!isOpen || !invoice) return null;
+
+    const isLinkedToOT = isCostTypeLinkedToOT(formData.tipo_costo);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -131,7 +231,7 @@ export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
                     <div className="flex items-center gap-3">
@@ -156,164 +256,249 @@ export function InvoiceEditModal({ invoice, isOpen, onClose, onSuccess }) {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6">
-                    <div className="space-y-6">
-                        {/* Sección: Información Principal */}
-                        <div>
-                            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-4">
-                                Información Principal
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <Hash className="w-4 h-4 text-slate-400" />
-                                        Número de Factura
-                                    </label>
-                                    <Input
-                                        value={formData.numero_factura}
-                                        onChange={(e) => handleChange("numero_factura", e.target.value)}
-                                        placeholder="Ej: FAC-001234"
-                                        className="bg-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <DollarSign className="w-4 h-4 text-slate-400" />
-                                        Monto
-                                    </label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.monto}
-                                        onChange={(e) => handleChange("monto", e.target.value)}
-                                        placeholder="0.00"
-                                        className="bg-white"
-                                    />
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+                    <div className="p-6 space-y-6">
+                        {/* Sección: Información General */}
+                        <div className="bg-white border border-slate-200 rounded-lg">
+                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                <h3 className="text-sm font-semibold text-slate-700">Información General</h3>
+                            </div>
+                            <div className="p-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Número de Factura *
+                                        </label>
+                                        <Input
+                                            name="numero_factura"
+                                            value={formData.numero_factura}
+                                            onChange={handleChange}
+                                            required
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Monto (USD) *
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            name="monto"
+                                            value={formData.monto}
+                                            onChange={handleChange}
+                                            required
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Fecha de Emisión *
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            name="fecha_emision"
+                                            value={formData.fecha_emision}
+                                            onChange={handleChange}
+                                            required
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Fecha de Vencimiento
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            name="fecha_vencimiento"
+                                            value={formData.fecha_vencimiento}
+                                            onChange={handleChange}
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Tipo de Costo *
+                                        </label>
+                                        <select
+                                            name="tipo_costo"
+                                            value={formData.tipo_costo}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                            disabled={costTypesLoading}
+                                        >
+                                            <option value="">Selecciona un tipo de costo...</option>
+                                            {costTypes?.results?.map((option) => (
+                                                <option key={option.code} value={option.code}>
+                                                    {option.name}
+                                                    {option.is_linked_to_ot ? ' (Vinculado a OT)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {isLinkedToOT && invoice?.ot_data && (
+                                            <p className="mt-1.5 text-xs text-blue-600 flex items-center gap-1">
+                                                <Info className="w-3 h-3" />
+                                                Este tipo de costo está vinculado a la OT. Las fechas se sincronizan automáticamente.
+                                            </p>
+                                        )}
+                                        {!isLinkedToOT && formData.tipo_costo && (
+                                            <p className="mt-1.5 text-xs text-slate-500">
+                                                Este tipo de costo no está vinculado a OT. Las fechas son independientes.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Sección: Fechas */}
-                        <div>
-                            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-4">
-                                Fechas
-                            </h3>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <CalendarDays className="w-4 h-4 text-slate-400" />
-                                        Emisión
-                                    </label>
-                                    <Input
-                                        type="date"
-                                        value={formData.fecha_emision}
-                                        onChange={(e) => handleChange("fecha_emision", e.target.value)}
-                                        className="bg-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <CalendarCheck className="w-4 h-4 text-slate-400" />
-                                        Provisión
-                                    </label>
-                                    <Input
-                                        type="date"
-                                        value={formData.fecha_provision}
-                                        onChange={(e) => handleChange("fecha_provision", e.target.value)}
-                                        className="bg-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <CalendarClock className="w-4 h-4 text-slate-400" />
-                                        Facturación
-                                    </label>
-                                    <Input
-                                        type="date"
-                                        value={formData.fecha_facturacion}
-                                        onChange={(e) => handleChange("fecha_facturacion", e.target.value)}
-                                        className="bg-white"
-                                    />
+                        {/* Sección: Información del Proveedor */}
+                        <div className="bg-white border border-slate-200 rounded-lg">
+                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                <h3 className="text-sm font-semibold text-slate-700">Información del Proveedor</h3>
+                            </div>
+                            <div className="p-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Proveedor *
+                                        </label>
+                                        <select
+                                            name="proveedor_id"
+                                            value={formData.proveedor_id}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                            disabled={providersLoading}
+                                        >
+                                            <option value="">Selecciona un proveedor...</option>
+                                            {providers?.results?.map((proveedor) => (
+                                                <option key={proveedor.id} value={String(proveedor.id)}>
+                                                    {proveedor.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Tipo de Proveedor
+                                        </label>
+                                        <select
+                                            name="tipo_proveedor"
+                                            value={formData.tipo_proveedor}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            disabled={providerTypesLoading}
+                                        >
+                                            <option value="">Selecciona tipo...</option>
+                                            {providerTypes?.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Sección: Estados y Clasificación */}
-                        <div>
-                            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-4">
-                                Estados y Clasificación
-                            </h3>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-1.5">
-                                        <Receipt className="w-4 h-4 text-slate-400" />
-                                        Tipo de Costo
-                                    </label>
-                                    <select
-                                        value={formData.tipo_costo}
-                                        onChange={(e) => handleChange("tipo_costo", e.target.value)}
-                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        {TIPO_COSTO_CHOICES.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                        Estado Provisión
-                                    </label>
-                                    <select
-                                        value={formData.estado_provision}
-                                        onChange={(e) => handleChange("estado_provision", e.target.value)}
-                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        {ESTADO_PROVISION_CHOICES.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                        Estado Facturación
-                                    </label>
-                                    <select
-                                        value={formData.estado_facturacion}
-                                        onChange={(e) => handleChange("estado_facturacion", e.target.value)}
-                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        {ESTADO_FACTURACION_CHOICES.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                        {/* Sección: Estados y Fechas */}
+                        <div className="bg-white border border-slate-200 rounded-lg">
+                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                <h3 className="text-sm font-semibold text-slate-700">Estados y Fechas</h3>
+                            </div>
+                            <div className="p-4">
+                                {isLinkedToOT && invoice?.ot_data && (
+                                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p className="text-sm text-blue-700">
+                                            <strong>Sincronización Activa:</strong> Las fechas se sincronizan con la OT{" "}
+                                            <span className="font-mono">{invoice.ot_data.numero_ot}</span>
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Estado de Provisión
+                                        </label>
+                                        <select
+                                            name="estado_provision"
+                                            value={formData.estado_provision}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            {ESTADO_PROVISION_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Fecha de Provisión
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            name="fecha_provision"
+                                            value={formData.fecha_provision}
+                                            onChange={handleChange}
+                                            className="bg-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Estado de Facturación
+                                        </label>
+                                        <select
+                                            name="estado_facturacion"
+                                            value={formData.estado_facturacion}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            {ESTADO_FACTURACION_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Fecha de Facturación
+                                        </label>
+                                        <Input
+                                            type="date"
+                                            name="fecha_facturacion"
+                                            value={formData.fecha_facturacion}
+                                            onChange={handleChange}
+                                            className="bg-white"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Sección: Notas */}
-                        <div>
-                            <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                Notas
-                            </label>
-                            <textarea
-                                value={formData.notas}
-                                onChange={(e) => handleChange("notas", e.target.value)}
-                                rows={3}
-                                placeholder="Agregar notas o comentarios..."
-                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                            />
+                        <div className="bg-white border border-slate-200 rounded-lg">
+                            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                <h3 className="text-sm font-semibold text-slate-700">Notas</h3>
+                            </div>
+                            <div className="p-4">
+                                <textarea
+                                    name="notas"
+                                    value={formData.notas}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    placeholder="Agrega notas u observaciones sobre esta factura..."
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
                         <Button
                             type="button"
                             variant="outline"
