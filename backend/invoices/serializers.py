@@ -838,6 +838,25 @@ class InvoiceUpdateSerializer(serializers.ModelSerializer):
               - Si estado_facturacion = 'disputada' o 'en_revision' -> limpiar fecha_facturacion
         """
         from ots.models import OT
+
+        # FIX: Auto-resolve "Requires Review" flag on manual edit
+        # If the user manually updates critical fields (saving the form), assume the invoice is reviewed.
+        critical_fields = ['monto', 'monto_aplicable', 'numero_factura', 'fecha_emision', 'proveedor', 'ot']
+        
+        # Check if user is actually touching these fields (present in validated_data)
+        has_critical_updates = any(field in validated_data for field in critical_fields)
+        
+        # If critical fields are present (meaning user submitted the edit form)
+        # AND they are not explicitly asking to set requires_revision=True
+        # AND the invoice currently requires review
+        if has_critical_updates and validated_data.get('requiere_revision') is not True and instance.requiere_revision:
+            # Clear the review flag
+            validated_data['requiere_revision'] = False
+            
+            # If the user is saving, they are validating the match (even if they didn't change the OT)
+            # We can update the confidence to 100% to reflect human validation
+            if instance.confianza_match < 1:
+                instance.confianza_match = Decimal('1.000')
         
         # BUG FIX: Si se cambia tipo_costo de vinculable a no vinculable, limpiar fechas
         TIPOS_VINCULABLES = ['FLETE', 'CARGOS_NAVIERA']
