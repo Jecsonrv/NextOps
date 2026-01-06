@@ -1465,39 +1465,61 @@ class ExcelProcessor:
         return str_value
     
     def _extract_list_value(self, row: pd.Series, field: str) -> List[str]:
-        """Extraer lista de valores (separados por comas, saltos de línea, etc.)"""
+        """
+        Extraer lista de valores (separados por comas, saltos de línea, espacios múltiples, etc.)
+
+        Maneja correctamente:
+        - Comas (,)
+        - Punto y coma (;)
+        - Saltos de línea (\n, \r, \r\n)
+        - Espacios múltiples
+        - Tabulaciones
+        """
         value = self._extract_value(row, field)
-        
+
         if not value:
             return []
-        
-        # Separar por comas, saltos de línea, puntos y comas
-        items = re.split(r'[,;\n]+', value)
-        
+
+        # Separar por: comas, punto y coma, saltos de línea (todos los tipos),
+        # espacios múltiples (2 o más), y tabulaciones
+        items = re.split(r'[,;\r\n\t]+|\s{2,}', value)
+
         # Limpiar y filtrar vacíos
         return [item.strip().upper() for item in items if item.strip()]
     
     def _extract_contenedores(self, row: pd.Series) -> List[str]:
-        """Extraer y normalizar números de contenedor."""
+        """
+        Extraer y normalizar números de contenedor.
+
+        Usa búsqueda de patrones directa para detectar contenedores con formato:
+        4 letras mayúsculas + 7 dígitos (ej: ABCD1234567)
+
+        Esto funciona independientemente de los separadores (comas, espacios, saltos de línea, etc.)
+
+        El patrón usa negative lookbehind/lookahead para evitar extraer substrings
+        de cadenas más largas (ej: no extrae "INER1234567" de "TOOLONGCONTAINER123456789")
+        """
         value = self._extract_value(row, 'contenedor')
-        
+
         if not value:
             return []
-        
-        # Separar múltiples contenedores
-        container_numbers = re.split(r'[,;\n]+', value)
-        
+
+        # Normalizar el texto: convertir a mayúsculas
+        value_upper = value.upper()
+
+        # Buscar TODOS los patrones de contenedor (4 letras + 7 números)
+        # usando regex directamente en el texto completo.
+        # El patrón usa negative lookbehind (?<![A-Z0-9]) y lookahead (?![A-Z0-9])
+        # para asegurar que el contenedor no sea parte de una cadena más larga
+        pattern = r'(?<![A-Z0-9])[A-Z]{4}\d{7}(?![A-Z0-9])'
+        matches = re.findall(pattern, value_upper)
+
+        # Eliminar duplicados manteniendo el orden
         contenedores = []
-        for container_str in container_numbers:
-            container_str = container_str.strip().upper()
-            container_str = re.sub(r"[^A-Z0-9]", "", container_str)
-            
-            if not container_str:
-                continue
-            
-            if CONTAINER_NUMBER_PATTERN.match(container_str) and container_str not in contenedores:
-                contenedores.append(container_str)
-        
+        for container in matches:
+            if container not in contenedores:
+                contenedores.append(container)
+
         return contenedores
     
     def _extract_date(self, row: pd.Series, field: str) -> Optional[datetime]:

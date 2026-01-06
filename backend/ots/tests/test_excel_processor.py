@@ -240,3 +240,109 @@ class ExcelProcessorTestCase(TestCase):
         self.assertIn("25OT-001", processor.pending_data)
         pending_ot_data = processor.pending_data["25OT-001"]['data']
         self.assertEqual(pending_ot_data['cliente_name'], "CLIENTE ANTIGUO")
+
+    def test_extract_contenedores_with_commas(self):
+        """Test extraction of containers separated by commas."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567, EFGH8901234, IJKL5678901'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 3)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertIn('IJKL5678901', containers)
+
+    def test_extract_contenedores_with_newlines(self):
+        """Test extraction of containers separated by newlines."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567\nEFGH8901234\nIJKL5678901'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 3)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertIn('IJKL5678901', containers)
+
+    def test_extract_contenedores_with_spaces(self):
+        """Test extraction of containers separated by multiple spaces."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567  EFGH8901234   IJKL5678901'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 3)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertIn('IJKL5678901', containers)
+
+    def test_extract_contenedores_with_mixed_separators(self):
+        """Test extraction of containers with mixed separators (commas, newlines, spaces)."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567, EFGH8901234\nIJKL5678901  MNOP2345678;QRST6789012'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 5)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertIn('IJKL5678901', containers)
+        self.assertIn('MNOP2345678', containers)
+        self.assertIn('QRST6789012', containers)
+
+    def test_extract_contenedores_with_carriage_return(self):
+        """Test extraction of containers separated by carriage return \\r\\n."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567\r\nEFGH8901234\r\nIJKL5678901'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 3)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertIn('IJKL5678901', containers)
+
+    def test_extract_contenedores_with_lowercase(self):
+        """Test that lowercase containers are properly converted to uppercase."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'abcd1234567, efgh8901234'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 2)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+
+    def test_extract_contenedores_removes_duplicates(self):
+        """Test that duplicate containers are removed."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567, ABCD1234567, EFGH8901234, ABCD1234567'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 2)
+        self.assertEqual(containers.count('ABCD1234567'), 1)
+
+    def test_extract_contenedores_ignores_invalid_format(self):
+        """Test that invalid container formats are ignored."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'ABCD1234567, ABC123, TOOLONGCONTAINER123456789, EFGH8901234'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 2)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
+        self.assertNotIn('ABC123', containers)
+
+    def test_extract_contenedores_with_extra_text(self):
+        """Test extraction when there's extra text around containers."""
+        processor = ExcelProcessor()
+        row = pd.Series({
+            'contenedor': 'Contenedor: ABCD1234567 (confirmado), EFGH8901234 - en tránsito'
+        })
+        containers = processor._extract_contenedores(row)
+        self.assertEqual(len(containers), 2)
+        self.assertIn('ABCD1234567', containers)
+        self.assertIn('EFGH8901234', containers)
