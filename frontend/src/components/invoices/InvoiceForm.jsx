@@ -7,12 +7,20 @@ import { Label } from "../../ui/Label";
 import { Textarea } from "../../ui/Textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/Select";
 import { useProviderTypes } from "../../../hooks/useProviderTypes";
+import { useCostTypes } from "../../../hooks/useCostTypes";
 
 export function InvoiceForm({ form, onSubmit }) {
     const { control, handleSubmit, formState: { errors } } = form;
 
     // Cargar tipos de proveedores dinámicamente desde backend
     const { data: providerTypes = [] } = useProviderTypes();
+    
+    // Cargar tipos de costo desde catálogo
+    const { data: costTypesData } = useCostTypes({ page_size: 100 });
+    const costTypeOptions = costTypesData?.results?.map(ct => ({
+        value: ct.code,
+        label: ct.name
+    })) || [];
 
     const TIPO_PAGO_CHOICES = [
         { value: 'contado', label: 'Contado' },
@@ -32,17 +40,6 @@ export function InvoiceForm({ form, onSubmit }) {
     const ESTADO_FACTURACION_CHOICES = [
         { value: 'pendiente', label: 'Pendiente' },
         { value: 'facturada', label: 'Facturada' },
-    ];
-
-    // NOTE: TIPO_COSTO_CHOICES are dynamic from CostType model, but for now, using a basic set.
-    const TIPO_COSTO_BASIC_CHOICES = [
-        { value: 'FLETE', label: 'Flete' },
-        { value: 'CARGOS_NAVIERA', label: 'Cargos de Naviera' },
-        { value: 'TRANSPORTE', label: 'Transporte' },
-        { value: 'ADUANA', label: 'Aduana' },
-        { value: 'ALMACENAJE', label: 'Almacenaje' },
-        { value: 'DEMORA', label: 'Demora' },
-        { value: 'OTRO', label: 'Otro' },
     ];
 
 
@@ -200,7 +197,7 @@ export function InvoiceForm({ form, onSubmit }) {
                                     <SelectValue placeholder="Selecciona un tipo de costo" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {TIPO_COSTO_BASIC_CHOICES.map(option => (
+                                    {costTypeOptions.map(option => (
                                         <SelectItem key={option.value} value={option.value}>
                                             {option.label}
                                         </SelectItem>

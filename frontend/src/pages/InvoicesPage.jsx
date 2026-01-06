@@ -7,6 +7,7 @@ import {
     useInvoiceFilterValues,
     useBulkDeleteInvoices,
 } from "../hooks/useInvoices";
+import { useCostTypes } from "../hooks/useCostTypes";
 import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
@@ -48,10 +49,14 @@ import {
     Ship,
     DollarSign,
     Loader2,
+    CalendarCheck,
 } from "lucide-react";
 import { Trash2 } from "lucide-react";
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
 import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteModal";
+import { ProvisionModal } from "../components/invoices/ProvisionModal";
+import { InvoiceCostTypeEditable } from "../components/invoices/InvoiceCostTypeEditable";
+import { InvoiceDetailDrawer } from "../components/invoices/InvoiceDetailDrawer";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 export function InvoicesPage() {
@@ -65,6 +70,8 @@ export function InvoicesPage() {
     const [showDisputeModal, setShowDisputeModal] = useState(false);
     const [selectedInvoiceForDispute, setSelectedInvoiceForDispute] =
         useState(null);
+    const [selectedInvoiceForProvision, setSelectedInvoiceForProvision] = useState(null);
+    const [selectedInvoiceIdForDrawer, setSelectedInvoiceIdForDrawer] = useState(null);
     const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
     const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -110,6 +117,10 @@ export function InvoicesPage() {
     // Obtener valores de filtros dinámicos (solo proveedores y tipos de costo con facturas)
     const { data: filterValues, isLoading: filterValuesLoading } =
         useInvoiceFilterValues();
+        
+    // Obtener catálogo completo de tipos de costo para edición
+    const { data: costTypesData } = useCostTypes({ page_size: 100 });
+    
     const queryClient = useQueryClient();
 
     const bulkDeleteMutation = useBulkDeleteInvoices();
@@ -135,6 +146,59 @@ export function InvoicesPage() {
         onError: (error) => {
             console.error("Error al asignar OT:", error);
             toast.error("Error al asignar OT");
+        },
+    });
+
+    // Mutation para provisionar
+    const provisionInvoiceMutation = useMutation({
+        mutationFn: async ({ invoiceId, date }) => {
+            const response = await apiClient.patch(
+                `/invoices/${invoiceId}/`,
+                { 
+                    estado_provision: 'provisionada',
+                    fecha_provision: date 
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["invoices"]);
+            queryClient.invalidateQueries(["invoices-stats"]);
+            toast.success("Factura provisionada exitosamente");
+        },
+        onError: (error) => {
+            console.error("Error al provisionar:", error);
+            toast.error("Error al provisionar la factura");
+        },
+    });
+
+    // Mutation para actualizar tipo de costo
+    const updateCostTypeMutation = useMutation({
+        mutationFn: async ({ invoiceId, costType }) => {
+            const response = await apiClient.patch(
+                `/invoices/${invoiceId}/`,
+                { tipo_costo: costType },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["invoices"]);
+            queryClient.invalidateQueries(["invoices-stats"]);
+            toast.success("Tipo de costo actualizado");
+        },
+        onError: (error) => {
+            console.error("Error al actualizar tipo de costo:", error);
+            toast.error("Error al actualizar el tipo de costo");
         },
     });
 
@@ -626,10 +690,11 @@ export function InvoicesPage() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
-                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <DollarSign className="w-3.5 h-3.5" />
-                                            {invoice.tipo_costo_display || "-"}
-                                        </div>
+                                        <InvoiceCostTypeEditable 
+                                            invoice={invoice}
+                                            options={costTypesData?.results || []}
+                                            onSave={(id, val) => updateCostTypeMutation.mutateAsync({ invoiceId: id, costType: val })}
+                                        />
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <div className="flex flex-col gap-1">
@@ -648,13 +713,13 @@ export function InvoicesPage() {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <div className="flex items-center gap-1.5">
-                                            <Link
-                                                to={`/invoices/${invoice.id}`}
-                                                className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                            <button
+                                                onClick={() => setSelectedInvoiceIdForDrawer(invoice.id)}
+                                                className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                                             >
                                                 {invoice.numero_factura ||
                                                     "SIN-NUM"}
-                                            </Link>
+                                            </button>
                                             {invoice.requiere_revision && (
                                                 <AlertCircle
                                                     className="w-3.5 h-3.5 text-red-500 flex-shrink-0"
@@ -706,7 +771,7 @@ export function InvoicesPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() =>
-                                                    (window.location.href = `/invoices/${invoice.id}`)
+                                                    setSelectedInvoiceIdForDrawer(invoice.id)
                                                 }
                                                 title="Ver detalles"
                                                 className="h-8 w-8"
@@ -729,6 +794,15 @@ export function InvoicesPage() {
                                                 className="h-8 w-8 hidden sm:inline-flex"
                                             >
                                                 <Link2 className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setSelectedInvoiceForProvision(invoice)}
+                                                title="Provisionar / Cambiar Fecha"
+                                                className="h-8 w-8 hidden md:inline-flex"
+                                            >
+                                                <CalendarCheck className="w-4 h-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -1503,6 +1577,28 @@ export function InvoicesPage() {
                     }}
                 />
             )}
+
+            {/* Modal para Provisionar */}
+            {selectedInvoiceForProvision && (
+                <ProvisionModal
+                    isOpen={!!selectedInvoiceForProvision}
+                    onClose={() => setSelectedInvoiceForProvision(null)}
+                    invoice={selectedInvoiceForProvision}
+                    onConfirm={async (invoiceId, date) => {
+                        await provisionInvoiceMutation.mutateAsync({
+                            invoiceId,
+                            date
+                        });
+                    }}
+                />
+            )}
+
+            {/* Drawer de Detalle */}
+            <InvoiceDetailDrawer
+                invoiceId={selectedInvoiceIdForDrawer}
+                isOpen={!!selectedInvoiceIdForDrawer}
+                onClose={() => setSelectedInvoiceIdForDrawer(null)}
+            />
 
             {/* Confirmación de eliminación masiva */}
             <ConfirmDialog
