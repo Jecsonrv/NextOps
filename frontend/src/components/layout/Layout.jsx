@@ -337,7 +337,7 @@ export function Layout({ children }) {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
+            <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-2 pr-2 space-y-0.5">
                 {/* Operations section */}
                 <SectionLabel collapsed={collapsed}>Operaciones</SectionLabel>
                 {operationsItems.map((item) => (
