@@ -3,10 +3,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
 import { formatDate } from "../lib/dateUtils";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { StatCard } from "../components/common/StatCard";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../components/ui/Select";
 import {
     FileText,
     Search,
@@ -22,15 +34,17 @@ import {
     CheckCircle,
     Clock,
     ExternalLink,
-    FileMinus
+    FileMinus,
 } from "lucide-react";
 import { useProviders } from "../hooks/useInvoices";
 import { CreateCreditNoteModal } from "../components/invoices/CreateCreditNoteModal";
+import { TableSkeleton } from "../components/ui/Skeleton";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 export function CreditNotesPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState("");
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [showFilters, setShowFilters] = useState(false);
@@ -41,24 +55,28 @@ export function CreditNotesPage() {
         fecha_desde: "",
         fecha_hasta: "",
     });
+    const debouncedSearch = useDebouncedValue(searchInput, 300);
 
     const { data: providersData } = useProviders({ page_size: 1000 });
 
     // Obtener notas de crédito
     const { data, isLoading, error } = useQuery({
-        queryKey: ["credit-notes", page, pageSize, search, filters],
+        queryKey: ["credit-notes", page, pageSize, debouncedSearch, filters],
         queryFn: async () => {
             const params = new URLSearchParams(
                 Object.entries({
                     page: page.toString(),
                     page_size: pageSize.toString(),
-                    search,
-                    ...filters
-                }).filter(([_, value]) => value)
+                    search: debouncedSearch,
+                    ...filters,
+                }).filter(([_, value]) => value),
             );
-            const response = await apiClient.get(`/invoices/credit-notes/?${params}`);
+            const response = await apiClient.get(
+                `/invoices/credit-notes/?${params}`,
+            );
             return response.data;
-        }
+        },
+        keepPreviousData: true,
     });
 
     // Obtener estadísticas
@@ -66,11 +84,13 @@ export function CreditNotesPage() {
         queryKey: ["credit-notes-stats", filters],
         queryFn: async () => {
             const params = new URLSearchParams(
-                Object.entries(filters).filter(([_, value]) => value)
+                Object.entries(filters).filter(([_, value]) => value),
             );
-            const response = await apiClient.get(`/invoices/credit-notes/stats/?${params}`);
+            const response = await apiClient.get(
+                `/invoices/credit-notes/stats/?${params}`,
+            );
             return response.data;
-        }
+        },
     });
 
     const handleFilterChange = (key, value) => {
@@ -79,8 +99,13 @@ export function CreditNotesPage() {
     };
 
     const handleClearFilters = () => {
-        setFilters({ estado: "", proveedor_id: "", fecha_desde: "", fecha_hasta: "" });
-        setSearch("");
+        setFilters({
+            estado: "",
+            proveedor_id: "",
+            fecha_desde: "",
+            fecha_hasta: "",
+        });
+        setSearchInput("");
         setPage(1);
     };
 
@@ -91,18 +116,26 @@ export function CreditNotesPage() {
     const handleDownloadPDF = async (creditNote) => {
         if (creditNote.uploaded_file) {
             try {
-                const response = await apiClient.get(`/files/${creditNote.uploaded_file}/download/`, {
-                    responseType: 'blob'
-                });
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
+                const response = await apiClient.get(
+                    `/files/${creditNote.uploaded_file}/download/`,
+                    {
+                        responseType: "blob",
+                    },
+                );
+                const url = window.URL.createObjectURL(
+                    new Blob([response.data]),
+                );
+                const link = document.createElement("a");
                 link.href = url;
-                link.setAttribute('download', `NC_${creditNote.numero_nota}.pdf`);
+                link.setAttribute(
+                    "download",
+                    `NC_${creditNote.numero_nota}.pdf`,
+                );
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
             } catch (error) {
-                console.error('Error al descargar:', error);
+                console.error("Error al descargar:", error);
             }
         }
     };
@@ -110,82 +143,37 @@ export function CreditNotesPage() {
     if (error) {
         return (
             <div className="p-4 text-center">
-                <p className="text-red-600">Error al cargar las notas de crédito: {error.message}</p>
+                <p className="text-destructive">
+                    Error al cargar las notas de crédito: {error.message}
+                </p>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Estadísticas */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Notas
-                        </CardTitle>
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {statsData?.total_notas || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            En el sistema
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Monto Total
-                        </CardTitle>
-                        <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-red-600">
-                            -${(statsData?.monto_total || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Crédito aplicado
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Aplicadas
-                        </CardTitle>
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {statsData?.aplicadas || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            ${(statsData?.monto_aplicadas || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Pendientes
-                        </CardTitle>
-                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
-                            {statsData?.pendientes || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            ${(statsData?.monto_pendientes || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}
-                        </p>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Notas"
+                    value={statsData?.total_notas || 0}
+                    icon={FileText}
+                />
+                <StatCard
+                    label="Monto Total"
+                    value={`-$${(statsData?.monto_total || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 })}`}
+                    icon={TrendingDown}
+                />
+                <StatCard
+                    label="Aplicadas"
+                    value={statsData?.aplicadas || 0}
+                    icon={CheckCircle}
+                />
+                <StatCard
+                    label="Pendientes"
+                    value={statsData?.pendientes || 0}
+                    icon={Clock}
+                />
             </div>
 
             {/* Barra de búsqueda y acciones */}
@@ -195,17 +183,23 @@ export function CreditNotesPage() {
                         {/* Search */}
                         <div className="w-full">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Buscar por número de nota, proveedor, factura, OT..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    value={searchInput}
+                                    onChange={(e) => {
+                                        setSearchInput(e.target.value);
+                                        setPage(1);
+                                    }}
                                     className="pl-10 h-10"
                                 />
-                                {search && (
+                                {searchInput && (
                                     <button
-                                        onClick={() => setSearch("")}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        onClick={() => {
+                                            setSearchInput("");
+                                            setPage(1);
+                                        }}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
@@ -219,11 +213,17 @@ export function CreditNotesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`flex-1 sm:flex-none ${showFilters ? "bg-blue-50 border-blue-300" : ""}`}
+                                className={`flex-1 sm:flex-none ${showFilters ? "bg-primary/10 border-blue-300" : ""}`}
                             >
                                 <Filter className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Filtros</span>
-                                {showFilters ? <ChevronUp className="w-4 h-4 ml-2 hidden sm:inline" /> : <ChevronDown className="w-4 h-4 ml-2 hidden sm:inline" />}
+                                <span className="hidden sm:inline">
+                                    Filtros
+                                </span>
+                                {showFilters ? (
+                                    <ChevronUp className="w-4 h-4 ml-2 hidden sm:inline" />
+                                ) : (
+                                    <ChevronDown className="w-4 h-4 ml-2 hidden sm:inline" />
+                                )}
                             </Button>
                             <Button
                                 size="sm"
@@ -231,7 +231,9 @@ export function CreditNotesPage() {
                                 className="flex-1 sm:flex-none"
                             >
                                 <FileMinus className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Crear NC</span>
+                                <span className="hidden sm:inline">
+                                    Crear NC
+                                </span>
                             </Button>
                             <Button
                                 variant="outline"
@@ -239,7 +241,9 @@ export function CreditNotesPage() {
                                 className="flex-1 sm:flex-none"
                             >
                                 <Download className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Exportar</span>
+                                <span className="hidden sm:inline">
+                                    Exportar
+                                </span>
                             </Button>
                         </div>
                     </div>
@@ -248,11 +252,18 @@ export function CreditNotesPage() {
                     <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">
+                                    Estado
+                                </label>
                                 <select
                                     value={filters.estado}
-                                    onChange={(e) => handleFilterChange("estado", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "estado",
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Todos</option>
                                     <option value="pendiente">Pendiente</option>
@@ -261,37 +272,64 @@ export function CreditNotesPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">
+                                    Proveedor
+                                </label>
                                 <select
                                     value={filters.proveedor_id}
-                                    onChange={(e) => handleFilterChange("proveedor_id", e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "proveedor_id",
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Todos</option>
                                     {providersData?.results?.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                                        <option key={p.id} value={p.id}>
+                                            {p.nombre}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Desde</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">
+                                    Fecha Desde
+                                </label>
                                 <Input
                                     type="date"
                                     value={filters.fecha_desde}
-                                    onChange={(e) => handleFilterChange("fecha_desde", e.target.value)}
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "fecha_desde",
+                                            e.target.value,
+                                        )
+                                    }
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Hasta</label>
+                                <label className="block text-sm font-medium text-foreground mb-1">
+                                    Fecha Hasta
+                                </label>
                                 <Input
                                     type="date"
                                     value={filters.fecha_hasta}
-                                    onChange={(e) => handleFilterChange("fecha_hasta", e.target.value)}
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "fecha_hasta",
+                                            e.target.value,
+                                        )
+                                    }
                                 />
                             </div>
                         </div>
                         <div className="mt-4 flex justify-end">
-                            <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleClearFilters}
+                            >
                                 <X className="w-4 h-4 mr-2" />
                                 Limpiar Filtros
                             </Button>
@@ -304,127 +342,181 @@ export function CreditNotesPage() {
             <Card>
                 <CardContent className="pt-6">
                     {isLoading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-sm text-gray-600">Cargando notas de crédito...</p>
-                        </div>
+                        <TableSkeleton rows={8} cols={7} />
                     ) : data?.results?.length === 0 ? (
                         <div className="text-center py-12">
-                            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600 font-medium">No se encontraron notas de crédito</p>
-                            <p className="text-sm text-gray-500 mt-2">Intenta ajustar los filtros o realiza una nueva búsqueda</p>
+                            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground font-medium">
+                                No se encontraron notas de crédito
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-2">
+                                Intenta ajustar los filtros o realiza una nueva
+                                búsqueda
+                            </p>
                         </div>
                     ) : (
                         <>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm border-separate border-spacing-0">
                                     <thead>
-                                        <tr className="bg-gray-50">
-                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                        <tr className="bg-muted">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Número NC
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Proveedor
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Factura / OT
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Fecha
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Monto
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Estado
                                             </th>
-                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                                            <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                                 Acciones
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white">
+                                    <tbody className="bg-card">
                                         {data?.results?.map((cn) => (
                                             <tr
                                                 key={cn.id}
-                                                className="hover:bg-blue-50 transition-colors cursor-pointer"
-                                                onClick={() => handleViewDetail(cn.id)}
+                                                className="hover:bg-primary/10 transition-colors cursor-pointer"
+                                                onClick={() =>
+                                                    handleViewDetail(cn.id)
+                                                }
                                             >
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
                                                     <Link
                                                         to={`/invoices/credit-notes/${cn.id}`}
-                                                        className="font-semibold text-sm text-blue-600 hover:text-blue-800"
-                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="font-semibold text-sm text-primary hover:text-blue-800"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
                                                     >
                                                         {cn.numero_nota}
                                                     </Link>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
                                                     <div className="text-sm">
-                                                        <p className="font-medium text-gray-900">{cn.proveedor_nombre}</p>
+                                                        <p className="font-medium text-foreground">
+                                                            {
+                                                                cn.proveedor_nombre
+                                                            }
+                                                        </p>
                                                         {cn.motivo && (
-                                                            <p className="text-xs text-gray-500 truncate max-w-xs mt-1" title={cn.motivo}>
+                                                            <p
+                                                                className="text-xs text-muted-foreground truncate max-w-xs mt-1"
+                                                                title={
+                                                                    cn.motivo
+                                                                }
+                                                            >
                                                                 {cn.motivo}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
                                                     <div className="text-sm space-y-1">
-                                                        {cn.invoice_data?.numero_factura ? (
+                                                        {cn.invoice_data
+                                                            ?.numero_factura ? (
                                                             <Link
                                                                 to={`/invoices/${cn.invoice_data.id}`}
-                                                                className="text-blue-600 hover:text-blue-800 font-medium block"
-                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-primary hover:text-blue-800 font-medium block"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
                                                             >
-                                                                {cn.invoice_data.numero_factura}
+                                                                {
+                                                                    cn
+                                                                        .invoice_data
+                                                                        .numero_factura
+                                                                }
                                                             </Link>
                                                         ) : (
-                                                            <span className="text-gray-400">-</span>
+                                                            <span className="text-muted-foreground">
+                                                                -
+                                                            </span>
                                                         )}
-                                                        {cn.ot_data?.numero_ot && (
+                                                        {cn.ot_data
+                                                            ?.numero_ot && (
                                                             <Link
                                                                 to={`/ots/${cn.ot_data.id}`}
-                                                                className="text-gray-600 hover:text-gray-800 text-xs block"
-                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-muted-foreground hover:text-foreground text-xs block"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
                                                             >
-                                                                OT: {cn.ot_data.numero_ot}
+                                                                OT:{" "}
+                                                                {
+                                                                    cn.ot_data
+                                                                        .numero_ot
+                                                                }
                                                             </Link>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50 text-sm text-gray-600">
-                                                    {formatDate(cn.fecha_emision)}
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10 text-sm text-muted-foreground">
+                                                    {formatDate(
+                                                        cn.fecha_emision,
+                                                    )}
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50 text-right">
-                                                    <span className="font-semibold text-red-600 text-sm">
-                                                        -${Math.abs(parseFloat(cn.monto || 0)).toLocaleString('es-MX', {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2
-                                                        })}
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10 text-right">
+                                                    <span className="font-semibold text-destructive text-sm">
+                                                        -$
+                                                        {Math.abs(
+                                                            parseFloat(
+                                                                cn.monto || 0,
+                                                            ),
+                                                        ).toLocaleString(
+                                                            "es-MX",
+                                                            {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            },
+                                                        )}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
-                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                                                        cn.estado === 'aplicada'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : cn.estado === 'pendiente'
-                                                            ? 'bg-yellow-100 text-yellow-800'
-                                                            : 'bg-red-100 text-red-800'
-                                                    }`}>
-                                                        {cn.estado === 'aplicada' && <CheckCircle className="w-3 h-3" />}
-                                                        {cn.estado === 'pendiente' && <Clock className="w-3 h-3" />}
-                                                        {cn.estado_display || cn.estado}
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                    <span
+                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                                            cn.estado ===
+                                                            "aplicada"
+                                                                ? "bg-emerald-50 text-green-800"
+                                                                : cn.estado ===
+                                                                    "pendiente"
+                                                                  ? "bg-yellow-100 text-yellow-800"
+                                                                  : "bg-red-100 text-red-800"
+                                                        }`}
+                                                    >
+                                                        {cn.estado ===
+                                                            "aplicada" && (
+                                                            <CheckCircle className="w-3 h-3" />
+                                                        )}
+                                                        {cn.estado ===
+                                                            "pendiente" && (
+                                                            <Clock className="w-3 h-3" />
+                                                        )}
+                                                        {cn.estado_display ||
+                                                            cn.estado}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleViewDetail(cn.id);
+                                                                handleViewDetail(
+                                                                    cn.id,
+                                                                );
                                                             }}
                                                             title="Ver detalles"
                                                             className="h-8 w-8"
@@ -435,9 +527,13 @@ export function CreditNotesPage() {
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                onClick={(e) => {
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
                                                                     e.stopPropagation();
-                                                                    handleDownloadPDF(cn);
+                                                                    handleDownloadPDF(
+                                                                        cn,
+                                                                    );
                                                                 }}
                                                                 title="Descargar PDF"
                                                                 className="h-8 w-8"
@@ -456,14 +552,31 @@ export function CreditNotesPage() {
                             {/* Paginación */}
                             {data?.count > pageSize && (
                                 <div className="mt-6 flex items-center justify-between border-t pt-4">
-                                    <p className="text-sm text-gray-600">
-                                        Mostrando <span className="font-semibold">{(page - 1) * pageSize + 1}</span> - <span className="font-semibold">{Math.min(page * pageSize, data.count)}</span> de <span className="font-semibold">{data.count}</span> notas
+                                    <p className="text-sm text-muted-foreground">
+                                        Mostrando{" "}
+                                        <span className="font-semibold">
+                                            {(page - 1) * pageSize + 1}
+                                        </span>{" "}
+                                        -{" "}
+                                        <span className="font-semibold">
+                                            {Math.min(
+                                                page * pageSize,
+                                                data.count,
+                                            )}
+                                        </span>{" "}
+                                        de{" "}
+                                        <span className="font-semibold">
+                                            {data.count}
+                                        </span>{" "}
+                                        notas
                                     </p>
                                     <div className="flex items-center space-x-2">
                                         <Select
                                             value={pageSize.toString()}
                                             onValueChange={(value) => {
-                                                setPageSize(parseInt(value, 10));
+                                                setPageSize(
+                                                    parseInt(value, 10),
+                                                );
                                                 setPage(1);
                                             }}
                                         >
@@ -471,9 +584,15 @@ export function CreditNotesPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="20">20 / página</SelectItem>
-                                                <SelectItem value="50">50 / página</SelectItem>
-                                                <SelectItem value="100">100 / página</SelectItem>
+                                                <SelectItem value="20">
+                                                    20 / página
+                                                </SelectItem>
+                                                <SelectItem value="50">
+                                                    50 / página
+                                                </SelectItem>
+                                                <SelectItem value="100">
+                                                    100 / página
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <Button

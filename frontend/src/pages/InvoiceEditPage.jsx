@@ -6,7 +6,7 @@ import {
     useProviders,
 } from "../hooks/useInvoices";
 import { useCostTypes } from "../hooks/useCostTypes";
-import { useProviderTypes } from "../hooks/useProviderTypes";
+import { useProviderTypes } from "../hooks/useCatalogs";
 import {
     Card,
     CardContent,
@@ -285,7 +285,7 @@ export function InvoiceEditPage() {
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Cargando factura...</p>
+                    <p className="text-muted-foreground">Cargando factura...</p>
                 </div>
             </div>
         );
@@ -294,11 +294,11 @@ export function InvoiceEditPage() {
     if (error || !invoice) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                     Error al cargar factura
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-muted-foreground mb-6">
                     {error?.message || "No se encontró la factura"}
                 </p>
                 <Button onClick={() => navigate("/invoices")}>
@@ -322,10 +322,10 @@ export function InvoiceEditPage() {
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900">
+                        <h1 className="text-4xl font-bold text-foreground">
                             Editar Factura
                         </h1>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-muted-foreground mt-1">
                             {invoice.numero_factura}
                         </p>
                     </div>
@@ -341,7 +341,7 @@ export function InvoiceEditPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Número de Factura *
                                 </label>
                                 <Input
@@ -353,7 +353,7 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Monto (USD) *
                                 </label>
                                 <Input
@@ -367,7 +367,7 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Fecha de Emisión *
                                 </label>
                                 <Input
@@ -380,7 +380,7 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Fecha de Vencimiento
                                 </label>
                                 <Input
@@ -392,14 +392,14 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Tipo de Costo *
                                 </label>
                                 <select
                                     name="tipo_costo"
                                     value={formData.tipo_costo}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                     disabled={costTypesLoading}
                                 >
@@ -415,12 +415,12 @@ export function InvoiceEditPage() {
                                     ))}
                                 </select>
                                 {isCostTypeLinkedToOT(formData.tipo_costo) && invoice?.ot && (
-                                    <p className="mt-1 text-xs text-blue-600">
+                                    <p className="mt-1 text-xs text-primary">
                                         ℹ️ Este tipo de costo está vinculado a la OT. Las fechas se sincronizan automáticamente.
                                     </p>
                                 )}
                                 {!isCostTypeLinkedToOT(formData.tipo_costo) && formData.tipo_costo && (
-                                    <p className="mt-1 text-xs text-gray-600">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         Este tipo de costo no está vinculado a OT. Las fechas son independientes.
                                     </p>
                                 )}
@@ -437,14 +437,14 @@ export function InvoiceEditPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Proveedor *
                                 </label>
                                 <select
                                     name="proveedor_id"
                                     value={formData.proveedor_id}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                     disabled={providersLoading}
                                 >
@@ -463,14 +463,14 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Tipo de Proveedor
                                 </label>
                                 <select
                                     name="tipo_proveedor"
                                     value={formData.tipo_proveedor}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {providerTypes?.map((option) => (
                                         <option
@@ -494,7 +494,7 @@ export function InvoiceEditPage() {
                             formData.tipo_costo === "CARGOS_NAVIERA") &&
                             formData.tipo_proveedor === "naviera" &&
                             invoice?.ot && (
-                                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                                <div className="mt-2 p-2 bg-primary/10 border border-blue-200 rounded text-sm text-blue-700">
                                     <strong>Sincronización Activa:</strong> Las
                                     fechas se sincronizan automáticamente con la
                                     OT{" "}
@@ -507,7 +507,7 @@ export function InvoiceEditPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="estado_provision" className="block text-sm font-medium text-gray-700 mb-1">
+                                <label htmlFor="estado_provision" className="block text-sm font-medium text-foreground mb-1">
                                     Estado de Provisión
                                 </label>
                                 <select
@@ -515,7 +515,7 @@ export function InvoiceEditPage() {
                                     name="estado_provision"
                                     value={formData.estado_provision}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {ESTADO_PROVISION_OPTIONS.map((option) => (
                                         <option
@@ -529,7 +529,7 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Fecha de Provisión
                                 </label>
                                 <Input
@@ -541,14 +541,14 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Estado de Facturación
                                 </label>
                                 <select
                                     name="estado_facturacion"
                                     value={formData.estado_facturacion}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {ESTADO_FACTURACION_OPTIONS.map(
                                         (option) => (
@@ -564,7 +564,7 @@ export function InvoiceEditPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Fecha de Facturación
                                 </label>
                                 <Input
@@ -589,7 +589,7 @@ export function InvoiceEditPage() {
                             value={formData.notas}
                             onChange={handleChange}
                             rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Agrega notas u observaciones sobre esta factura..."
                         />
                     </CardContent>

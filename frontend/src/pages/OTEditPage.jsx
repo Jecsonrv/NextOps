@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "../lib/api";
-import { OTForm } from "../components/OTForm";
+import { OTForm } from "../components/ots/OTForm";
 import { Button } from "../components/ui/Button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { showSuccess } from "../utils/toast";
@@ -40,7 +40,7 @@ export function OTEditPage() {
             ? ot.contenedores.map((item) => ({
                   numero: asString(
                       typeof item === "string" ? item : item?.numero,
-                      ""
+                      "",
                   ),
               }))
             : [];
@@ -90,7 +90,7 @@ export function OTEditPage() {
             provision_source: asString(ot.provision_source || "manual"),
             provision_locked: Boolean(ot.provision_locked),
             fecha_solicitud_facturacion: asDateInput(
-                ot.fecha_solicitud_facturacion
+                ot.fecha_solicitud_facturacion,
             ),
             fecha_recepcion_factura: asDateInput(ot.fecha_recepcion_factura),
             express_release_fecha: asDateInput(ot.express_release_fecha),
@@ -147,8 +147,8 @@ export function OTEditPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-2" />
-                    <p className="text-gray-500">Cargando OT...</p>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                    <p className="text-muted-foreground">Cargando OT...</p>
                 </div>
             </div>
         );
@@ -158,7 +158,7 @@ export function OTEditPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4">Error al cargar la OT</p>
+                    <p className="text-destructive mb-4">Error al cargar la OT</p>
                     <Button onClick={() => navigate("/ots")}>
                         Volver a la lista
                     </Button>
@@ -180,10 +180,10 @@ export function OTEditPage() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Editar OT: {ot.numero_ot}
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             Modifique los campos necesarios y guarde los cambios
                         </p>
                     </div>

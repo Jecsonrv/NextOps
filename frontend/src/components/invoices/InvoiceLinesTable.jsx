@@ -121,48 +121,48 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
         <div className="space-y-4">
             {/* Tabla de Líneas */}
             <div className="overflow-x-auto border rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted">
                         <tr>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12">
+                            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-12">
                                 #
                             </th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">
+                            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase min-w-[200px]">
                                 Descripción
                             </th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[150px]">
+                            <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase min-w-[150px]">
                                 Concepto
                             </th>
-                            <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-24">
+                            <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-24">
                                 Cant.
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
+                            <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-32">
                                 Precio Unit.
                             </th>
-                            <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-20">
+                            <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-20">
                                 IVA?
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
+                            <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-32">
                                 Subtotal
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
+                            <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-32">
                                 IVA 13%
                             </th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">
+                            <th className="px-3 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-32">
                                 Total
                             </th>
                             {!readonly && (
-                                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase w-20">
+                                <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-20">
                                     Acc.
                                 </th>
                             )}
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-border">
                         {lines.length === 0 ? (
                             <tr>
-                                <td colSpan={readonly ? 9 : 10} className="px-3 py-8 text-center text-gray-500">
-                                    <Calculator className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                                <td colSpan={readonly ? 9 : 10} className="px-3 py-8 text-center text-muted-foreground">
+                                    <Calculator className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                                     <p className="text-sm">No hay líneas agregadas</p>
                                     {!readonly && (
                                         <Button
@@ -180,16 +180,16 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                             </tr>
                         ) : (
                             lines.map((line) => (
-                                <tr key={line.id} className="hover:bg-gray-50">
+                                <tr key={line.id} className="hover:bg-muted">
                                     {/* Número de línea */}
-                                    <td className="px-3 py-2 text-center text-sm text-gray-900 font-mono">
+                                    <td className="px-3 py-2 text-center text-sm text-foreground font-mono">
                                         {line.numero_linea}
                                     </td>
 
                                     {/* Descripción */}
                                     <td className="px-3 py-2">
                                         {readonly ? (
-                                            <span className="text-sm text-gray-900">{line.descripcion}</span>
+                                            <span className="text-sm text-foreground">{line.descripcion}</span>
                                         ) : (
                                             <Input
                                                 type="text"
@@ -204,12 +204,12 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                     {/* Concepto */}
                                     <td className="px-3 py-2">
                                         {readonly ? (
-                                            <span className="text-sm text-gray-700">{line.concepto}</span>
+                                            <span className="text-sm text-foreground">{line.concepto}</span>
                                         ) : (
                                             <select
                                                 value={line.concepto}
                                                 onChange={(e) => handleUpdateLine(line.id, 'concepto', e.target.value)}
-                                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-2 py-1 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             >
                                                 {CONCEPTO_CHOICES.map(concepto => (
                                                     <option key={concepto} value={concepto}>
@@ -223,7 +223,7 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                     {/* Cantidad */}
                                     <td className="px-3 py-2">
                                         {readonly ? (
-                                            <span className="text-sm text-gray-900 text-center block">{line.cantidad}</span>
+                                            <span className="text-sm text-foreground text-center block">{line.cantidad}</span>
                                         ) : (
                                             <Input
                                                 type="number"
@@ -239,7 +239,7 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                     {/* Precio Unitario */}
                                     <td className="px-3 py-2">
                                         {readonly ? (
-                                            <span className="text-sm text-gray-900 text-right block font-mono">
+                                            <span className="text-sm text-foreground text-right block font-mono">
                                                 ${parseFloat(line.precio_unitario).toFixed(2)}
                                             </span>
                                         ) : (
@@ -268,13 +268,13 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                                 type="checkbox"
                                                 checked={line.aplica_iva}
                                                 onChange={(e) => handleUpdateLine(line.id, 'aplica_iva', e.target.checked)}
-                                                className="w-4 h-4 text-blue-600 rounded"
+                                                className="w-4 h-4 text-primary rounded"
                                             />
                                         )}
                                     </td>
 
                                     {/* Subtotal (calculado) */}
-                                    <td className="px-3 py-2 text-right text-sm text-gray-900 font-mono">
+                                    <td className="px-3 py-2 text-right text-sm text-foreground font-mono">
                                         ${line.subtotal}
                                     </td>
 
@@ -283,12 +283,12 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                         {line.aplica_iva ? (
                                             <span className="text-orange-600">${line.iva}</span>
                                         ) : (
-                                            <span className="text-gray-400">$0.00</span>
+                                            <span className="text-muted-foreground">$0.00</span>
                                         )}
                                     </td>
 
                                     {/* Total (calculado) */}
-                                    <td className="px-3 py-2 text-right text-sm text-gray-900 font-bold font-mono">
+                                    <td className="px-3 py-2 text-right text-sm text-foreground font-bold font-mono">
                                         ${line.total}
                                     </td>
 
@@ -300,7 +300,7 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDeleteLine(line.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                className="text-destructive hover:text-red-700 hover:bg-destructive/10"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -313,20 +313,20 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
 
                     {/* Footer con totales */}
                     {lines.length > 0 && (
-                        <tfoot className="bg-gray-50 font-semibold">
-                            <tr className="border-t-2 border-gray-300">
-                                <td colSpan={5} className="px-3 py-2 text-right text-sm text-gray-700">
+                        <tfoot className="bg-muted font-semibold">
+                            <tr className="border-t-2 border-border">
+                                <td colSpan={5} className="px-3 py-2 text-right text-sm text-foreground">
                                     SUBTOTALES:
                                 </td>
-                                <td className="px-3 py-2 text-right text-sm text-gray-900 font-mono">
+                                <td className="px-3 py-2 text-right text-sm text-foreground font-mono">
                                     ${totals.subtotal_gravado.toFixed(2)}
-                                    <div className="text-xs text-gray-500 font-normal">
+                                    <div className="text-xs text-muted-foreground font-normal">
                                         (Gravado)
                                     </div>
                                     {totals.subtotal_exento > 0 && (
                                         <>
                                             ${totals.subtotal_exento.toFixed(2)}
-                                            <div className="text-xs text-gray-500 font-normal">
+                                            <div className="text-xs text-muted-foreground font-normal">
                                                 (Exento)
                                             </div>
                                         </>
@@ -335,7 +335,7 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
                                 <td className="px-3 py-2 text-right text-sm text-orange-600 font-mono">
                                     ${totals.iva_total.toFixed(2)}
                                 </td>
-                                <td className="px-3 py-2 text-right text-sm text-gray-900 font-bold font-mono text-lg">
+                                <td className="px-3 py-2 text-right text-sm text-foreground font-bold font-mono text-lg">
                                     ${totals.total.toFixed(2)}
                                 </td>
                                 {!readonly && <td></td>}
@@ -362,23 +362,23 @@ export function InvoiceLinesTable({ lines, onChange, readonly = false }) {
 
             {/* Resumen de Totales */}
             {lines.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
                     <div className="grid grid-cols-2 gap-2 text-sm max-w-md ml-auto">
-                        <div className="text-gray-700">Subtotal Gravado:</div>
+                        <div className="text-foreground">Subtotal Gravado:</div>
                         <div className="text-right font-mono">${totals.subtotal_gravado.toFixed(2)}</div>
 
                         {totals.subtotal_exento > 0 && (
                             <>
-                                <div className="text-gray-700">Subtotal Exento:</div>
+                                <div className="text-foreground">Subtotal Exento:</div>
                                 <div className="text-right font-mono">${totals.subtotal_exento.toFixed(2)}</div>
                             </>
                         )}
 
-                        <div className="text-gray-700">IVA 13% 🇸🇻:</div>
+                        <div className="text-foreground">IVA 13% 🇸🇻:</div>
                         <div className="text-right font-mono text-orange-600">${totals.iva_total.toFixed(2)}</div>
 
-                        <div className="text-lg font-bold text-gray-900 pt-2 border-t-2 border-blue-300">Total Factura:</div>
-                        <div className="text-lg text-right font-bold font-mono text-gray-900 pt-2 border-t-2 border-blue-300">
+                        <div className="text-lg font-bold text-foreground pt-2 border-t-2 border-blue-300">Total Factura:</div>
+                        <div className="text-lg text-right font-bold font-mono text-foreground pt-2 border-t-2 border-blue-300">
                             ${totals.total.toFixed(2)}
                         </div>
                     </div>

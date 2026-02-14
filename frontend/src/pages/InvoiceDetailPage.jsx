@@ -369,7 +369,7 @@ export function InvoiceDetailPage() {
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Cargando factura...</p>
+                    <p className="text-muted-foreground">Cargando factura...</p>
                 </div>
             </div>
         );
@@ -378,11 +378,11 @@ export function InvoiceDetailPage() {
     if (error || !invoice) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                     Error al cargar factura
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-muted-foreground mb-6">
                     {error?.message || "No se encontró la factura"}
                 </p>
                 <Button onClick={() => navigate("/invoices")}>
@@ -394,7 +394,7 @@ export function InvoiceDetailPage() {
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
             {/* Header con botones de acción */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
@@ -409,7 +409,7 @@ export function InvoiceDetailPage() {
                     </Button>
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 truncate">
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground truncate">
                                 {invoice.numero_factura || `Factura #${id}`}
                             </h1>
                             {invoice.requiere_revision && (
@@ -422,7 +422,7 @@ export function InvoiceDetailPage() {
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-gray-600 mt-1 text-xs sm:text-sm truncate">
+                        <p className="text-muted-foreground mt-1 text-xs sm:text-sm truncate">
                             {invoice.proveedor_data?.nombre ||
                                 invoice.proveedor_nombre ||
                                 "Sin proveedor"}
@@ -471,7 +471,7 @@ export function InvoiceDetailPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        className="text-green-600 hover:bg-green-50 hidden lg:inline-flex"
+                        className="text-emerald-600 hover:bg-emerald-50 hidden lg:inline-flex"
                         onClick={() =>
                             setIsAssociateSalesInvoiceModalOpen(true)
                         }
@@ -485,7 +485,7 @@ export function InvoiceDetailPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-blue-600 hover:bg-blue-50 hidden lg:inline-flex"
+                                className="text-primary hover:bg-primary/10 hidden lg:inline-flex"
                                 onClick={() => setIsQuickPaymentModalOpen(true)}
                                 title="Registrar pago de esta factura"
                             >
@@ -499,7 +499,7 @@ export function InvoiceDetailPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="text-blue-600 hover:bg-blue-50 hidden xl:inline-flex"
+                            className="text-primary hover:bg-primary/10 hidden xl:inline-flex"
                             onClick={() => setIsAddProvisionDateModalOpen(true)}
                         >
                             <Calendar className="w-4 h-4 mr-2" />
@@ -570,11 +570,11 @@ export function InvoiceDetailPage() {
 
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                 {/* COLUMNA IZQUIERDA - Información Principal */}
-                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                <div className="lg:col-span-2 space-y-6">
                     {/* Información de la OT Asignada */}
                     {invoice.ot_data && (
                         <Card className="border-blue-200">
-                            <CardHeader className="bg-blue-50 border-b border-blue-200">
+                            <CardHeader className="bg-primary/10 border-b border-blue-200">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-blue-900">
                                         <Package className="w-5 h-5" />
@@ -583,7 +583,7 @@ export function InvoiceDetailPage() {
                                     <Link
                                         to={`/ots/${invoice.ot_data.id}`}
                                         state={{ from: `/invoices/${id}` }}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-card border border-blue-300 rounded-md hover:bg-primary/10 hover:border-blue-400 transition-colors"
                                     >
                                         <Eye className="w-4 h-4" />
                                         Ver Detalle
@@ -593,48 +593,48 @@ export function InvoiceDetailPage() {
                             <CardContent className="pt-6">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Operativo
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <User className="w-4 h-4 text-gray-400" />
-                                            <p className="font-medium text-gray-900">
+                                            <User className="w-4 h-4 text-muted-foreground" />
+                                            <p className="font-medium text-foreground">
                                                 {invoice.ot_data.operativo ||
                                                     "-"}
                                             </p>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Número OT
                                         </label>
-                                        <p className="text-lg font-bold text-blue-600 mt-1">
+                                        <p className="text-lg font-bold text-primary mt-1">
                                             {invoice.ot_data.numero_ot}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Cliente
                                         </label>
-                                        <p className="font-medium text-gray-900 mt-1">
+                                        <p className="font-medium text-foreground mt-1">
                                             {invoice.ot_data.cliente || "-"}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             MBL
                                         </label>
-                                        <p className="font-mono text-sm text-gray-900 mt-1">
+                                        <p className="font-mono text-sm text-foreground mt-1">
                                             {invoice.ot_data.mbl || "-"}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Naviera
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <Ship className="w-4 h-4 text-gray-400" />
-                                            <p className="text-gray-900">
+                                            <Ship className="w-4 h-4 text-muted-foreground" />
+                                            <p className="text-foreground">
                                                 {invoice.ot_data.naviera || "-"}
                                             </p>
                                         </div>
@@ -655,10 +655,10 @@ export function InvoiceDetailPage() {
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-start">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Número de Factura
                                     </label>
-                                    <p className="text-base sm:text-lg font-bold text-gray-900 mt-1 break-all">
+                                    <p className="text-base sm:text-lg font-bold text-foreground mt-1 break-all">
                                         {invoice.numero_factura || "SIN NÚMERO"}
                                     </p>
                                 </div>
@@ -676,10 +676,10 @@ export function InvoiceDetailPage() {
                                         if (!invoice.ot_data) {
                                             return (
                                                 <div>
-                                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                                         Monto Total
                                                     </label>
-                                                    <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1 break-all">
+                                                    <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1 break-all">
                                                         $
                                                         {parseAmount(
                                                             invoice.monto
@@ -791,10 +791,10 @@ export function InvoiceDetailPage() {
                                         if (totalAjustes === 0) {
                                             return (
                                                 <div>
-                                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                                         Monto Total
                                                     </label>
-                                                    <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1 break-all">
+                                                    <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1 break-all">
                                                         $
                                                         {montoOriginal.toLocaleString(
                                                             "es-MX",
@@ -810,22 +810,22 @@ export function InvoiceDetailPage() {
                                         // Si hay ajustes, mostrar el desglose
                                         return (
                                             <div className="sm:col-span-2">
-                                                <label className="text-xs font-medium text-gray-600 uppercase">
+                                                <label className="text-xs font-medium text-muted-foreground uppercase">
                                                     Resumen de Montos
                                                 </label>
                                                 <div
                                                     className={`mt-2 p-2.5 sm:p-3 rounded-lg space-y-2 ${
                                                         esAnulacionTotal
-                                                            ? "bg-red-50 border border-red-200"
-                                                            : "bg-blue-50 border border-blue-200"
+                                                            ? "bg-destructive/10 border border-destructive/20"
+                                                            : "bg-primary/10 border border-blue-200"
                                                     }`}
                                                 >
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-sm text-gray-700">
+                                                        <span className="text-sm text-foreground">
                                                             Monto Original:
                                                         </span>
                                                         <span
-                                                            className={`font-semibold text-gray-900`}
+                                                            className={`font-semibold text-foreground`}
                                                         >
                                                             $
                                                             {montoOriginal.toLocaleString(
@@ -840,12 +840,12 @@ export function InvoiceDetailPage() {
                                                     {totalAnuladoDisputas >
                                                         0 && (
                                                         <div className="flex justify-between items-center text-sm">
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 {shouldCombineAdjustments
                                                                     ? "Ajuste por Disputas (Nota de Crédito Aplicada):"
                                                                     : "Ajuste por Disputas:"}
                                                             </span>
-                                                            <span className="font-medium text-red-600">
+                                                            <span className="font-medium text-destructive">
                                                                 -$
                                                                 {(shouldCombineAdjustments
                                                                     ? totalAjustes
@@ -863,11 +863,11 @@ export function InvoiceDetailPage() {
                                                     {totalNotasCredito > 0 &&
                                                         !shouldCombineAdjustments && (
                                                             <div className="flex justify-between items-center text-sm">
-                                                                <span className="text-gray-600">
+                                                                <span className="text-muted-foreground">
                                                                     Notas de
                                                                     Crédito:
                                                                 </span>
-                                                                <span className="font-medium text-red-600">
+                                                                <span className="font-medium text-destructive">
                                                                     -$
                                                                     {totalNotasCredito.toLocaleString(
                                                                         "es-MX",
@@ -891,7 +891,7 @@ export function InvoiceDetailPage() {
                                                                 className={`font-bold ${
                                                                     esAnulacionTotal
                                                                         ? "text-red-700"
-                                                                        : "text-gray-800"
+                                                                        : "text-foreground"
                                                                 }`}
                                                             >
                                                                 Monto a Pagar:
@@ -899,8 +899,8 @@ export function InvoiceDetailPage() {
                                                             <span
                                                                 className={`text-xl font-bold ${
                                                                     esAnulacionTotal
-                                                                        ? "text-red-600"
-                                                                        : "text-green-600"
+                                                                        ? "text-destructive"
+                                                                        : "text-emerald-600"
                                                                 }`}
                                                             >
                                                                 $
@@ -913,7 +913,7 @@ export function InvoiceDetailPage() {
                                                             </span>
                                                         </div>
                                                         {esAnulacionTotal && (
-                                                            <p className="text-xs text-red-600 mt-1 text-right">
+                                                            <p className="text-xs text-destructive mt-1 text-right">
                                                                 Factura Anulada
                                                             </p>
                                                         )}
@@ -925,12 +925,12 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Fecha de Emisión
                                     </label>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <Calendar className="w-4 h-4 text-gray-400" />
-                                        <p className="text-gray-900">
+                                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                                        <p className="text-foreground">
                                             {formatDateLocalized(
                                                 invoice.fecha_emision
                                             )}
@@ -940,12 +940,12 @@ export function InvoiceDetailPage() {
 
                                 {invoice.fecha_vencimiento && (
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Fecha de Vencimiento
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Calendar className="w-4 h-4 text-red-400" />
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {formatDateLocalized(
                                                     invoice.fecha_vencimiento
                                                 )}
@@ -956,12 +956,12 @@ export function InvoiceDetailPage() {
 
                                 {invoice.fecha_provision && (
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Fecha de Provisión
                                         </label>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Calendar className="w-4 h-4 text-blue-400" />
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {formatDate(
                                                     invoice.fecha_provision
                                                 )}
@@ -971,7 +971,7 @@ export function InvoiceDetailPage() {
                                 )}
 
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Tipo de Costo
                                     </label>
                                     <div className="mt-2">
@@ -998,7 +998,7 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Tipo de Proveedor
                                     </label>
                                     <div className="mt-2">
@@ -1015,7 +1015,7 @@ export function InvoiceDetailPage() {
                                 {/* Estado de Pago - Sección completa */}
                                 <div className="col-span-2 border-t pt-4">
                                     <div className="flex items-center justify-between mb-3">
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Estado de Pago
                                         </label>
                                         <Badge
@@ -1044,10 +1044,10 @@ export function InvoiceDetailPage() {
                                     {/* Información Financiera */}
                                     <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
                                         <div>
-                                            <p className="text-gray-600 text-xs">
+                                            <p className="text-muted-foreground text-xs">
                                                 Pagado
                                             </p>
-                                            <p className="font-bold text-green-600">
+                                            <p className="font-bold text-emerald-600">
                                                 $
                                                 {parseFloat(
                                                     invoice.monto_pagado || 0
@@ -1055,7 +1055,7 @@ export function InvoiceDetailPage() {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-gray-600 text-xs">
+                                            <p className="text-muted-foreground text-xs">
                                                 Pendiente
                                             </p>
                                             <p className="font-bold text-orange-600">
@@ -1066,10 +1066,10 @@ export function InvoiceDetailPage() {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-gray-600 text-xs">
+                                            <p className="text-muted-foreground text-xs">
                                                 Total
                                             </p>
-                                            <p className="font-bold text-gray-900">
+                                            <p className="font-bold text-foreground">
                                                 $
                                                 {parseFloat(
                                                     invoice.monto_aplicable || 0
@@ -1080,7 +1080,7 @@ export function InvoiceDetailPage() {
 
                                     {/* Barra de Progreso */}
                                     <div className="mb-3">
-                                        <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                             <span>Progreso de Pago</span>
                                             <span>
                                                 {Math.round(
@@ -1097,7 +1097,7 @@ export function InvoiceDetailPage() {
                                                 %
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div className="w-full bg-muted rounded-full h-2.5">
                                             <div
                                                 className={`h-2.5 rounded-full transition-all duration-300 ${
                                                     invoice.estado_pago ===
@@ -1106,7 +1106,7 @@ export function InvoiceDetailPage() {
                                                         : invoice.estado_pago ===
                                                           "pagado_parcial"
                                                         ? "bg-yellow-500"
-                                                        : "bg-gray-300"
+                                                        : "bg-muted"
                                                 }`}
                                                 style={{
                                                     width: `${Math.min(
@@ -1147,10 +1147,10 @@ export function InvoiceDetailPage() {
 
                                 {invoice.moneda && invoice.moneda !== "MXN" && (
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Moneda
                                         </label>
-                                        <p className="text-gray-900 mt-1 font-medium">
+                                        <p className="text-foreground mt-1 font-medium">
                                             {invoice.moneda}
                                         </p>
                                     </div>
@@ -1176,17 +1176,17 @@ export function InvoiceDetailPage() {
                                                 <Link
                                                     key={salesInvoice.id}
                                                     to={`/sales/invoices/${salesInvoice.id}`}
-                                                    className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                                                    className="block p-4 border rounded-lg hover:bg-muted transition-colors"
                                                 >
                                                     <div className="space-y-3">
                                                         {/* Header: Número de factura */}
                                                         <div className="flex justify-between items-center border-b pb-2">
-                                                            <span className="font-semibold text-gray-800">
+                                                            <span className="font-semibold text-foreground">
                                                                 {
                                                                     salesInvoice.numero_factura
                                                                 }
                                                             </span>
-                                                            <span className="text-xs text-gray-500">
+                                                            <span className="text-xs text-muted-foreground">
                                                                 {
                                                                     salesInvoice
                                                                         .cliente_data
@@ -1200,7 +1200,7 @@ export function InvoiceDetailPage() {
                                                             {salesInvoice.subtotal_gravado >
                                                                 0 && (
                                                                 <div className="flex justify-between text-sm">
-                                                                    <span className="text-gray-600">
+                                                                    <span className="text-muted-foreground">
                                                                         Subtotal
                                                                         Gravado:
                                                                     </span>
@@ -1217,7 +1217,7 @@ export function InvoiceDetailPage() {
                                                             {salesInvoice.subtotal_exento >
                                                                 0 && (
                                                                 <div className="flex justify-between text-sm">
-                                                                    <span className="text-gray-600">
+                                                                    <span className="text-muted-foreground">
                                                                         Subtotal
                                                                         Exento:
                                                                     </span>
@@ -1234,7 +1234,7 @@ export function InvoiceDetailPage() {
                                                             {salesInvoice.iva_total >
                                                                 0 && (
                                                                 <div className="flex justify-between text-sm">
-                                                                    <span className="text-gray-600">
+                                                                    <span className="text-muted-foreground">
                                                                         IVA
                                                                         (13%):
                                                                     </span>
@@ -1251,10 +1251,10 @@ export function InvoiceDetailPage() {
 
                                                             {/* Monto Total */}
                                                             <div className="flex justify-between text-sm font-semibold border-t pt-1.5 mt-1.5">
-                                                                <span className="text-gray-700">
+                                                                <span className="text-foreground">
                                                                     Monto Total:
                                                                 </span>
-                                                                <span className="text-gray-900">
+                                                                <span className="text-foreground">
                                                                     $
                                                                     {parseFloat(
                                                                         salesInvoice.monto_total
@@ -1318,7 +1318,7 @@ export function InvoiceDetailPage() {
                                                                 .cliente_data
                                                                 ?.tipo_contribuyente ===
                                                                 "gran_contribuyente") && (
-                                                            <div className="flex justify-between items-center bg-blue-50 p-2 rounded border-t-2 border-blue-200">
+                                                            <div className="flex justify-between items-center bg-primary/10 p-2 rounded border-t-2 border-blue-200">
                                                                 <span className="text-sm font-bold text-blue-700">
                                                                     Valor a
                                                                     Cobrar:
@@ -1350,7 +1350,7 @@ export function InvoiceDetailPage() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <AlertCircle className="w-5 h-5 text-orange-600" />
-                                        <CardTitle className="text-gray-900">
+                                        <CardTitle className="text-foreground">
                                             Disputas
                                         </CardTitle>
                                     </div>
@@ -1369,12 +1369,12 @@ export function InvoiceDetailPage() {
                                             key={dispute.id}
                                             to={`/disputes/${dispute.id}`}
                                             state={{ from: `/invoices/${id}` }}
-                                            className="block p-4 border border-gray-200 rounded-lg hover:border-orange-200 hover:bg-orange-50/50 transition-colors"
+                                            className="block p-4 border border-border rounded-lg hover:border-orange-200 hover:bg-orange-50/50 transition-colors"
                                         >
                                             <div className="flex justify-between items-start gap-4">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-sm font-semibold text-gray-900 truncate">
+                                                        <span className="text-sm font-semibold text-foreground truncate">
                                                             {
                                                                 dispute.tipo_disputa_display
                                                             }
@@ -1415,7 +1415,7 @@ export function InvoiceDetailPage() {
                                                             )}
                                                     </div>
                                                     {dispute.numero_caso && (
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-muted-foreground">
                                                             Caso:{" "}
                                                             <span className="font-mono">
                                                                 {
@@ -1424,7 +1424,7 @@ export function InvoiceDetailPage() {
                                                             </span>
                                                         </p>
                                                     )}
-                                                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">
+                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                                         {dispute.detalle}
                                                     </p>
                                                 </div>
@@ -1442,7 +1442,7 @@ export function InvoiceDetailPage() {
                                                     </p>
                                                     {dispute.monto_recuperado >
                                                         0 && (
-                                                        <p className="text-xs text-green-600 font-medium mt-0.5">
+                                                        <p className="text-xs text-emerald-600 font-medium mt-0.5">
                                                             Recuperado: $
                                                             {parseFloat(
                                                                 dispute.monto_recuperado
@@ -1466,11 +1466,11 @@ export function InvoiceDetailPage() {
                     {/* Notas de Crédito */}
                     {invoice.notas_credito?.length > 0 && (
                         <Card className="border-blue-200">
-                            <CardHeader className="bg-blue-50 border-b border-blue-100">
+                            <CardHeader className="bg-primary/10 border-b border-blue-100">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <FileMinus className="w-5 h-5 text-blue-600" />
-                                        <CardTitle className="text-gray-900">
+                                        <FileMinus className="w-5 h-5 text-primary" />
+                                        <CardTitle className="text-foreground">
                                             Notas de Crédito
                                         </CardTitle>
                                     </div>
@@ -1487,29 +1487,29 @@ export function InvoiceDetailPage() {
                                     {invoice.notas_credito.map((nc) => (
                                         <div
                                             key={nc.id}
-                                            className="border border-gray-200 rounded-lg p-4 hover:border-blue-200 hover:bg-blue-50/50 transition-colors"
+                                            className="border border-border rounded-lg p-4 hover:border-blue-200 hover:bg-primary/10/50 transition-colors"
                                         >
                                             <div className="flex items-start justify-between gap-4 mb-3">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                                        <h3 className="text-sm font-semibold text-foreground truncate">
                                                             NC {nc.numero_nota}
                                                         </h3>
-                                                        <span className="text-xs text-gray-500 shrink-0">
+                                                        <span className="text-xs text-muted-foreground shrink-0">
                                                             {formatDateLocalized(
                                                                 nc.fecha_emision
                                                             )}
                                                         </span>
                                                     </div>
                                                     {nc.motivo && (
-                                                        <p className="text-xs text-gray-600 line-clamp-1">
+                                                        <p className="text-xs text-muted-foreground line-clamp-1">
                                                             {nc.motivo}
                                                         </p>
                                                     )}
                                                 </div>
                                                 {nc.monto && (
                                                     <div className="text-right shrink-0">
-                                                        <p className="text-base font-bold text-blue-600">
+                                                        <p className="text-base font-bold text-primary">
                                                             -$
                                                             {parseFloat(
                                                                 nc.monto
@@ -1586,7 +1586,7 @@ export function InvoiceDetailPage() {
                                             </div>
 
                                             {cnFileActions.error && (
-                                                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                                <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-red-700">
                                                     {cnFileActions.error}
                                                 </div>
                                             )}
@@ -1608,10 +1608,10 @@ export function InvoiceDetailPage() {
                         <CardContent>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Nombre
                                     </label>
-                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                    <p className="text-lg font-bold text-foreground mt-1">
                                         {invoice.proveedor_data?.nombre ||
                                             invoice.proveedor_nombre ||
                                             "Sin especificar"}
@@ -1630,10 +1630,10 @@ export function InvoiceDetailPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     {invoice.proveedor_data?.tipo && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Categoría
                                             </label>
-                                            <p className="text-gray-900 mt-1 capitalize">
+                                            <p className="text-foreground mt-1 capitalize">
                                                 {invoice.proveedor_data
                                                     .tipo_display ||
                                                     invoice.proveedor_data.tipo}
@@ -1643,10 +1643,10 @@ export function InvoiceDetailPage() {
 
                                     {invoice.proveedor_data?.payment_terms && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Condiciones de Crédito
                                             </label>
-                                            <p className="text-gray-900 mt-1">
+                                            <p className="text-foreground mt-1">
                                                 {
                                                     invoice.proveedor_data
                                                         .payment_terms
@@ -1663,10 +1663,10 @@ export function InvoiceDetailPage() {
                     {invoice.supplier_payment_links &&
                         invoice.supplier_payment_links.length > 0 && (
                             <Card className="border-green-200">
-                                <CardHeader className="bg-green-50 border-b border-green-100">
+                                <CardHeader className="bg-emerald-50 border-b border-green-100">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="flex items-center gap-2 text-gray-900">
-                                            <CreditCard className="w-5 h-5 text-green-600" />
+                                        <CardTitle className="flex items-center gap-2 text-foreground">
+                                            <CreditCard className="w-5 h-5 text-emerald-600" />
                                             Historial de Pagos
                                         </CardTitle>
                                         <Badge
@@ -1687,18 +1687,18 @@ export function InvoiceDetailPage() {
                                             (link) => (
                                                 <div
                                                     key={link.id}
-                                                    className="border border-gray-200 rounded-lg p-4 hover:border-green-200 hover:bg-green-50/50 transition-colors"
+                                                    className="border border-border rounded-lg p-4 hover:border-green-200 hover:bg-emerald-50/50 transition-colors"
                                                 >
                                                     <div className="flex items-start justify-between gap-4">
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <h3 className="text-sm font-semibold text-gray-900">
+                                                                <h3 className="text-sm font-semibold text-foreground">
                                                                     Pago #
                                                                     {
                                                                         link.supplier_payment_id
                                                                     }
                                                                 </h3>
-                                                                <span className="text-xs text-gray-500">
+                                                                <span className="text-xs text-muted-foreground">
                                                                     {formatDateLocalized(
                                                                         link.created_at
                                                                     )}
@@ -1707,7 +1707,7 @@ export function InvoiceDetailPage() {
                                                             {link
                                                                 .supplier_payment_data
                                                                 ?.referencia && (
-                                                                <p className="text-xs text-gray-600">
+                                                                <p className="text-xs text-muted-foreground">
                                                                     Ref:{" "}
                                                                     {
                                                                         link
@@ -1719,7 +1719,7 @@ export function InvoiceDetailPage() {
                                                             {link
                                                                 .supplier_payment_data
                                                                 ?.fecha_pago && (
-                                                                <p className="text-xs text-gray-600 mt-1">
+                                                                <p className="text-xs text-muted-foreground mt-1">
                                                                     Fecha:{" "}
                                                                     {new Date(
                                                                         link.supplier_payment_data.fecha_pago
@@ -1731,7 +1731,7 @@ export function InvoiceDetailPage() {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="text-right shrink-0">
-                                                                <p className="text-lg font-bold text-green-600">
+                                                                <p className="text-lg font-bold text-emerald-600">
                                                                     $
                                                                     {parseFloat(
                                                                         link.monto_pagado_factura ||
@@ -1778,7 +1778,7 @@ export function InvoiceDetailPage() {
                                                                         true
                                                                     );
                                                                 }}
-                                                                className="text-blue-600 hover:bg-blue-50 border-blue-200"
+                                                                className="text-primary hover:bg-primary/10 border-blue-200"
                                                                 title="Editar pago"
                                                             >
                                                                 <Edit2 className="w-4 h-4" />
@@ -1813,7 +1813,7 @@ export function InvoiceDetailPage() {
                                                                         payment
                                                                     );
                                                                 }}
-                                                                className="text-red-600 hover:bg-red-50 border-red-200"
+                                                                className="text-destructive hover:bg-destructive/10 border-destructive/20"
                                                                 title="Eliminar pago"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -1825,13 +1825,13 @@ export function InvoiceDetailPage() {
                                         )}
 
                                         {/* Resumen de pagos */}
-                                        <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+                                        <div className="mt-4 p-3 bg-muted rounded border border-border">
                                             <div className="grid grid-cols-3 gap-4 text-sm">
                                                 <div>
-                                                    <p className="text-gray-600">
+                                                    <p className="text-muted-foreground">
                                                         Total Factura:
                                                     </p>
-                                                    <p className="font-semibold text-gray-900">
+                                                    <p className="font-semibold text-foreground">
                                                         $
                                                         {parseFloat(
                                                             invoice.monto_aplicable ||
@@ -1840,10 +1840,10 @@ export function InvoiceDetailPage() {
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-600">
+                                                    <p className="text-muted-foreground">
                                                         Total Pagado:
                                                     </p>
-                                                    <p className="font-semibold text-green-600">
+                                                    <p className="font-semibold text-emerald-600">
                                                         $
                                                         {parseFloat(
                                                             invoice.monto_pagado ||
@@ -1852,7 +1852,7 @@ export function InvoiceDetailPage() {
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-600">
+                                                    <p className="text-muted-foreground">
                                                         Saldo Pendiente:
                                                     </p>
                                                     <p
@@ -1860,7 +1860,7 @@ export function InvoiceDetailPage() {
                                                             invoice.monto_pendiente >
                                                             0
                                                                 ? "text-orange-600"
-                                                                : "text-gray-900"
+                                                                : "text-foreground"
                                                         }`}
                                                     >
                                                         $
@@ -1884,7 +1884,7 @@ export function InvoiceDetailPage() {
                                 <CardTitle>Notas y Observaciones</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                <p className="text-foreground whitespace-pre-wrap leading-relaxed">
                                     {invoice.notas}
                                 </p>
                             </CardContent>
@@ -1916,7 +1916,7 @@ export function InvoiceDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-600 mb-2">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">
                                     Estado de Provisión
                                 </p>
                                 <Badge
@@ -1930,15 +1930,15 @@ export function InvoiceDetailPage() {
                                         invoice.estado_provision?.toUpperCase()}
                                 </Badge>
                                 {invoice.fecha_provision && (
-                                    <p className="text-xs text-gray-500 mt-2">
+                                    <p className="text-xs text-muted-foreground mt-2">
                                         Provisionada:{" "}
                                         {formatDate(invoice.fecha_provision)}
                                     </p>
                                 )}
                             </div>
 
-                            <div className="pt-3 border-t border-gray-200">
-                                <p className="text-sm font-medium text-gray-600 mb-2">
+                            <div className="pt-3 border-t border-border">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">
                                     Estado de Facturación
                                 </p>
                                 <Badge
@@ -1952,15 +1952,15 @@ export function InvoiceDetailPage() {
                                         invoice.estado_facturacion?.toUpperCase()}
                                 </Badge>
                                 {invoice.fecha_facturacion && (
-                                    <p className="text-xs text-gray-500 mt-2">
+                                    <p className="text-xs text-muted-foreground mt-2">
                                         Facturada:{" "}
                                         {formatDate(invoice.fecha_facturacion)}
                                     </p>
                                 )}
                             </div>
 
-                            <div className="pt-3 border-t border-gray-200">
-                                <p className="text-sm font-medium text-gray-600 mb-2">
+                            <div className="pt-3 border-t border-border">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">
                                     Confianza de Matching
                                 </p>
                                 <Badge
@@ -1972,7 +1972,7 @@ export function InvoiceDetailPage() {
                                 >
                                     {invoice.confidence_level?.toUpperCase()}
                                 </Badge>
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-xs text-muted-foreground mt-2">
                                     Precisión:{" "}
                                     {invoice.confianza_match
                                         ? (
@@ -1996,29 +1996,29 @@ export function InvoiceDetailPage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Nombre del Archivo
                                     </label>
-                                    <p className="text-sm text-gray-900 mt-1 break-words font-mono">
+                                    <p className="text-sm text-foreground mt-1 break-words font-mono">
                                         {invoice.uploaded_file_data.filename}
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Tamaño
                                         </label>
-                                        <p className="text-sm text-gray-900 mt-1">
+                                        <p className="text-sm text-foreground mt-1">
                                             {invoice.uploaded_file_data.size_mb}{" "}
                                             MB
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Tipo
                                         </label>
-                                        <p className="text-sm text-gray-900 mt-1 font-mono">
+                                        <p className="text-sm text-foreground mt-1 font-mono">
                                             {invoice.uploaded_file_data
                                                 .content_type ||
                                                 "application/pdf"}
@@ -2028,10 +2028,10 @@ export function InvoiceDetailPage() {
 
                                 {invoice.uploaded_file_data.uploaded_at && (
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Fecha de Carga
                                         </label>
-                                        <p className="text-sm text-gray-900 mt-1">
+                                        <p className="text-sm text-foreground mt-1">
                                             {formatDateTime(
                                                 invoice.uploaded_file_data
                                                     .uploaded_at
@@ -2076,7 +2076,7 @@ export function InvoiceDetailPage() {
                                 </div>
 
                                 {fileActions.error && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                                         <p className="text-xs text-red-700">
                                             {fileActions.error}
                                         </p>
@@ -2093,19 +2093,19 @@ export function InvoiceDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div>
-                                <label className="text-xs font-medium text-gray-600 uppercase block mb-1">
+                                <label className="text-xs font-medium text-muted-foreground uppercase block mb-1">
                                     Fecha de Creación
                                 </label>
-                                <p className="text-gray-900">
+                                <p className="text-foreground">
                                     {formatDateTime(invoice.created_at)}
                                 </p>
                             </div>
                             {invoice.updated_at && (
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase block mb-1">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase block mb-1">
                                         Última Actualización
                                     </label>
-                                    <p className="text-gray-900">
+                                    <p className="text-foreground">
                                         {formatDateTime(invoice.updated_at)}
                                     </p>
                                 </div>
@@ -2167,7 +2167,7 @@ export function InvoiceDetailPage() {
                             <p className="mb-2">
                                 ¿Estás seguro de que deseas eliminar este pago?
                             </p>
-                            <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm">
+                            <div className="bg-muted p-3 rounded border border-border text-sm">
                                 <p>
                                     <strong>Proveedor:</strong>{" "}
                                     {paymentToDelete.proveedor_nombre}
@@ -2188,7 +2188,7 @@ export function InvoiceDetailPage() {
                                     {paymentToDelete.invoice_links?.length || 0}
                                 </p>
                             </div>
-                            <p className="mt-3 text-red-600 font-medium">
+                            <p className="mt-3 text-destructive font-medium">
                                 Esta acción revertirá el estado de pago de las
                                 facturas asociadas.
                             </p>

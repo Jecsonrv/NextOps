@@ -33,41 +33,41 @@ export default function PatternEditModal({ open, onClose, pattern, group, provid
     const renderGeneralTab = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Patrón</label>
-                <select name="tipo_patron" value={formData.tipo_patron || 'costo'} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" disabled={!!group}>
+                <label className="block text-sm font-medium text-foreground">Tipo de Patrón</label>
+                <select name="tipo_patron" value={formData.tipo_patron || 'costo'} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" disabled={!!group}>
                     <option value="costo">Costo (Proveedor)</option>
                     <option value="venta">Venta (Cliente)</option>
                 </select>
             </div>
             {formData.tipo_patron === 'costo' ? (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Proveedor</label>
-                    <select name="proveedor" value={formData.proveedor || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" disabled={!!group}>
+                    <label className="block text-sm font-medium text-foreground">Proveedor</label>
+                    <select name="proveedor" value={formData.proveedor || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" disabled={!!group}>
                         <option value="">Seleccione un proveedor</option>
                         {providers.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                     </select>
                 </div>
             ) : (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Tipo de Documento</label>
-                    <input type="text" name="tipo_documento" value={formData.tipo_documento || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" disabled={!!group} />
+                    <label className="block text-sm font-medium text-foreground">Tipo de Documento</label>
+                    <input type="text" name="tipo_documento" value={formData.tipo_documento || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" disabled={!!group} />
                 </div>
             )}
             <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre del Patrón</label>
-                <input type="text" name="nombre" value={formData.nombre || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
+                <label className="block text-sm font-medium text-foreground">Nombre del Patrón</label>
+                <input type="text" name="nombre" value={formData.nombre || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" required />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Campo Objetivo</label>
-                <input type="text" name="campo_objetivo" value={formData.campo_objetivo || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Ej: numero_factura, total" />
+                <label className="block text-sm font-medium text-foreground">Campo Objetivo</label>
+                <input type="text" name="campo_objetivo" value={formData.campo_objetivo || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" placeholder="Ej: numero_factura, total" />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Prioridad</label>
-                <input type="number" name="prioridad" value={formData.prioridad || 10} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                <label className="block text-sm font-medium text-foreground">Prioridad</label>
+                <input type="number" name="prioridad" value={formData.prioridad || 10} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-border shadow-sm" />
             </div>
             <div className="flex items-center">
-                <input type="checkbox" name="activo" checked={formData.activo || false} onChange={handleInputChange} className="h-4 w-4 rounded border-gray-300" />
-                <label htmlFor="activo" className="ml-2 block text-sm text-gray-900">Activo</label>
+                <input type="checkbox" name="activo" checked={formData.activo || false} onChange={handleInputChange} className="h-4 w-4 rounded border-border" />
+                <label htmlFor="activo" className="ml-2 block text-sm text-foreground">Activo</label>
             </div>
         </div>
     );
@@ -83,13 +83,13 @@ export default function PatternEditModal({ open, onClose, pattern, group, provid
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 {regexFields.map(field => (
                     <div key={field}>
-                        <label className="block text-sm font-medium text-gray-700 capitalize">{field.replace('patron_','').replace(/_/g, ' ')}</label>
+                        <label className="block text-sm font-medium text-foreground capitalize">{field.replace('patron_','').replace(/_/g, ' ')}</label>
                         <textarea 
                             name={field} 
                             value={formData[field] || ''} 
                             onChange={handleInputChange} 
                             rows={2} 
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm font-mono text-xs"
+                            className="mt-1 block w-full rounded-md border-border shadow-sm font-mono text-xs"
                         />
                     </div>
                 ))}
@@ -121,7 +121,7 @@ export default function PatternEditModal({ open, onClose, pattern, group, provid
     return (
         <div className="grid grid-cols-2 gap-6 h-full">
             <div className="flex flex-col">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Texto de Prueba</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Texto de Prueba</label>
                 <textarea
                     value={testText}
                     onChange={(e) => setTestText(e.target.value)}
@@ -133,12 +133,12 @@ export default function PatternEditModal({ open, onClose, pattern, group, provid
                 </Button>
             </div>
             <div className="flex flex-col">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Resultado</label>
-                <div className="bg-gray-100 border rounded-md p-4 h-full overflow-y-auto">
+                <label className="block text-sm font-medium text-foreground mb-2">Resultado</label>
+                <div className="bg-muted border rounded-md p-4 h-full overflow-y-auto">
                     {testResult ? (
                         <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(testResult, null, 2)}</pre>
                     ) : (
-                        <p className="text-gray-500">Los resultados de la prueba aparecerán aquí.</p>
+                        <p className="text-muted-foreground">Los resultados de la prueba aparecerán aquí.</p>
                     )}
                 </div>
             </div>
@@ -171,15 +171,15 @@ TestTab.propTypes = {
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col">
                 <h2 className="text-xl font-bold p-6 border-b">{pattern ? 'Editar Patrón' : 'Crear Nuevo Patrón'}</h2>
                 
-                <div className="border-b border-gray-200">
+                <div className="border-b border-border">
                     <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-                        <button onClick={() => setActiveTab('general')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'general' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <button onClick={() => setActiveTab('general')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'general' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
                             General
                         </button>
-                        <button onClick={() => setActiveTab('regex')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'regex' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <button onClick={() => setActiveTab('regex')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'regex' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
                             Campos Regex
                         </button>
-                        <button onClick={() => setActiveTab('test')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'test' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <button onClick={() => setActiveTab('test')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'test' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}`}>
                             Probar
                         </button>
                     </nav>
@@ -191,7 +191,7 @@ TestTab.propTypes = {
                     {activeTab === 'test' && <TestTab pattern={pattern} />}
                 </div>
 
-                <div className="flex justify-end gap-4 p-6 border-t bg-gray-50">
+                <div className="flex justify-end gap-4 p-6 border-t bg-muted">
                     <Button variant="outline" onClick={() => onClose(false)}>Cancelar</Button>
                     <Button onClick={handleSave} disabled={loading}>{loading ? 'Guardando...' : 'Guardar Cambios'}</Button>
                 </div>

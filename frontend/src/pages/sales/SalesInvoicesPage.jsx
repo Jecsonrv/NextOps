@@ -83,7 +83,7 @@ export default function SalesInvoicesPage() {
         isLoading: isLoadingCreditNotes,
         error: creditNotesError,
     } = useSalesCreditNotes(
-        activeTab === "credit_notes" ? creditNoteFilters : {}
+        activeTab === "credit_notes" ? creditNoteFilters : {},
     );
 
     // Construir filtros según la pestaña activa usando useMemo
@@ -140,60 +140,60 @@ export default function SalesInvoicesPage() {
     const InvoiceTable = () => (
         <div className="overflow-x-auto">
             <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-muted border-b border-border">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             N° Factura
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Cliente
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             OT
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Monto / A Cobrar
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Pagado
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Estado Fact.
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Estado Pago
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Fecha Emisión
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Acciones
                         </th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                     {!invoices || invoices.length === 0 ? (
                         <tr>
                             <td
                                 colSpan="9"
-                                className="px-6 py-8 text-center text-gray-500"
+                                className="px-6 py-8 text-center text-muted-foreground"
                             >
                                 No se encontraron facturas de venta
                             </td>
                         </tr>
                     ) : (
                         invoices.map((invoice) => (
-                            <tr key={invoice.id} className="hover:bg-gray-50">
+                            <tr key={invoice.id} className="hover:bg-muted">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center">
-                                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                                        <span className="text-sm font-medium text-gray-900">
+                                        <FileText className="h-4 w-4 text-muted-foreground mr-2" />
+                                        <span className="text-sm font-medium text-foreground">
                                             {invoice.numero_factura}
                                         </span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-900">
+                                    <div className="text-sm text-foreground">
                                         {invoice.cliente_nombre ||
                                             invoice.cliente}
                                     </div>
@@ -202,18 +202,18 @@ export default function SalesInvoicesPage() {
                                     {invoice.ot ? (
                                         <Link
                                             to={`/ots/${invoice.ot}`}
-                                            className="text-sm text-blue-600 hover:text-blue-800"
+                                            className="text-sm text-primary hover:text-blue-800"
                                         >
                                             {invoice.ot_numero || invoice.ot}
                                         </Link>
                                     ) : (
-                                        <span className="text-sm text-gray-400">
+                                        <span className="text-sm text-muted-foreground">
                                             N/A
                                         </span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-900">
+                                    <div className="text-sm font-medium text-foreground">
                                         {/* Mostrar valor a cobrar si es gran contribuyente nacional, sino monto total */}
                                         {invoice.cliente_data
                                             ?.tipo_contribuyente ===
@@ -223,13 +223,13 @@ export default function SalesInvoicesPage() {
                                             <div className="flex flex-col">
                                                 <span className="font-semibold text-blue-700">
                                                     {formatCurrency(
-                                                        invoice.monto_neto_cobrar
+                                                        invoice.monto_neto_cobrar,
                                                     )}
                                                 </span>
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     (Total:{" "}
                                                     {formatCurrency(
-                                                        invoice.monto_total
+                                                        invoice.monto_total,
                                                     )}
                                                     )
                                                 </span>
@@ -240,29 +240,29 @@ export default function SalesInvoicesPage() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-900">
+                                    <div className="text-sm text-foreground">
                                         {formatCurrency(invoice.monto_pagado)}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     {getStatusBadge(
                                         invoice.estado_facturacion,
-                                        ESTADO_FACTURACION_CHOICES
+                                        ESTADO_FACTURACION_CHOICES,
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     {getStatusBadge(
                                         invoice.estado_pago,
-                                        ESTADO_PAGO_CHOICES
+                                        ESTADO_PAGO_CHOICES,
                                     )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                     {formatDate(invoice.fecha_emision)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <Link
                                         to={`/sales/invoices/${invoice.id}`}
-                                        className="text-blue-600 hover:text-blue-800"
+                                        className="text-primary hover:text-blue-800"
                                     >
                                         <Button variant="ghost" size="sm">
                                             <Eye className="h-4 w-4" />
@@ -279,19 +279,7 @@ export default function SalesInvoicesPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        {activeTab === "credit_notes"
-                            ? "Notas de Crédito"
-                            : "Facturas de Venta"}
-                    </h1>
-                    <p className="mt-2 text-sm text-gray-600">
-                        {activeTab === "credit_notes"
-                            ? "Gestión de notas de crédito para ajustes y anulaciones"
-                            : "Gestión de facturas de venta y seguimiento de cobros"}
-                    </p>
-                </div>
+            <div className="flex items-center justify-end">
                 {activeTab === "credit_notes" ? (
                     <Button
                         onClick={() => setIsCreateCreditNoteModalOpen(true)}
@@ -320,11 +308,11 @@ export default function SalesInvoicesPage() {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Buscar
                             </label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="N° factura, cliente, OT..."
@@ -332,7 +320,7 @@ export default function SalesInvoicesPage() {
                                     onChange={(e) =>
                                         handleFilterChange(
                                             "search",
-                                            e.target.value
+                                            e.target.value,
                                         )
                                     }
                                     className="pl-10"
@@ -341,7 +329,7 @@ export default function SalesInvoicesPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Estado Facturación
                             </label>
                             <Select
@@ -349,7 +337,7 @@ export default function SalesInvoicesPage() {
                                 onValueChange={(value) =>
                                     handleFilterChange(
                                         "estado_facturacion",
-                                        value
+                                        value,
                                     )
                                 }
                             >
@@ -368,7 +356,7 @@ export default function SalesInvoicesPage() {
                                             >
                                                 {choice.label}
                                             </SelectItem>
-                                        )
+                                        ),
                                     )}
                                 </SelectContent>
                             </Select>
@@ -460,13 +448,13 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="all">
                             {isLoading ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando facturas...
                                     </p>
                                 </div>
                             ) : error ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar facturas:{" "}
                                         {error.message}
                                     </p>
@@ -479,13 +467,13 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="facturadas">
                             {isLoading ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando facturas facturadas...
                                     </p>
                                 </div>
                             ) : error ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar facturas:{" "}
                                         {error.message}
                                     </p>
@@ -498,13 +486,13 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="pendientes_cobro">
                             {isLoading ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando facturas pendientes...
                                     </p>
                                 </div>
                             ) : error ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar facturas:{" "}
                                         {error.message}
                                     </p>
@@ -517,13 +505,13 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="pagadas">
                             {isLoading ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando facturas pagadas...
                                     </p>
                                 </div>
                             ) : error ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar facturas:{" "}
                                         {error.message}
                                     </p>
@@ -536,13 +524,13 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="anuladas">
                             {isLoading ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando facturas anuladas...
                                     </p>
                                 </div>
                             ) : error ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar facturas:{" "}
                                         {error.message}
                                     </p>
@@ -555,24 +543,24 @@ export default function SalesInvoicesPage() {
                         <TabsContent value="credit_notes">
                             {isLoadingCreditNotes ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Cargando notas de crédito...
                                     </p>
                                 </div>
                             ) : creditNotesError ? (
                                 <div className="text-center py-8">
-                                    <p className="text-red-600">
+                                    <p className="text-destructive">
                                         Error al cargar notas de crédito:{" "}
                                         {creditNotesError.message}
                                     </p>
                                 </div>
                             ) : !creditNotes || creditNotes.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600 font-medium mb-2">
+                                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground font-medium mb-2">
                                         No hay notas de crédito
                                     </p>
-                                    <p className="text-sm text-gray-500 mb-4">
+                                    <p className="text-sm text-muted-foreground mb-4">
                                         Crea tu primera nota de crédito para
                                         anular o ajustar facturas
                                     </p>
@@ -609,58 +597,58 @@ export default function SalesInvoicesPage() {
 function CreditNotesTable({ creditNotes }) {
     return (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Número NC
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Factura Asociada
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Fecha Emisión
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Monto
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Motivo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Acciones
                         </th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                     {creditNotes.map((cn) => (
-                        <tr key={cn.id} className="hover:bg-gray-50">
+                        <tr key={cn.id} className="hover:bg-muted">
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                     {cn.numero_nota_credito}
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <Link
                                     to={`/sales/invoices/${cn.sales_invoice}`}
-                                    className="text-sm text-blue-600 hover:text-blue-900 hover:underline"
+                                    className="text-sm text-primary hover:text-blue-900 hover:underline"
                                 >
                                     {cn.sales_invoice_numero ||
                                         `ID: ${cn.sales_invoice}`}
                                 </Link>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">
+                                <div className="text-sm text-foreground">
                                     {formatDate(cn.fecha_emision)}
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-red-600">
+                                <div className="text-sm font-medium text-destructive">
                                     -${parseFloat(cn.monto).toFixed(2)}
                                 </div>
                             </td>
                             <td className="px-6 py-4">
-                                <div className="text-sm text-gray-900 max-w-xs truncate">
+                                <div className="text-sm text-foreground max-w-xs truncate">
                                     {cn.motivo}
                                 </div>
                             </td>
@@ -671,7 +659,7 @@ function CreditNotesTable({ creditNotes }) {
                                             href={cn.archivo_pdf_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-900"
+                                            className="text-primary hover:text-blue-900"
                                             title="Descargar PDF de Nota de Crédito"
                                         >
                                             <Download className="h-4 w-4" />
@@ -679,7 +667,7 @@ function CreditNotesTable({ creditNotes }) {
                                     )}
                                     <Link
                                         to={`/sales/invoices/${cn.sales_invoice}`}
-                                        className="text-gray-600 hover:text-gray-900"
+                                        className="text-muted-foreground hover:text-foreground"
                                         title="Ver Factura Asociada"
                                     >
                                         <Eye className="h-4 w-4" />
@@ -705,6 +693,6 @@ CreditNotesTable.propTypes = {
             monto: PropTypes.string.isRequired,
             motivo: PropTypes.string.isRequired,
             archivo_pdf_url: PropTypes.string,
-        })
+        }),
     ).isRequired,
 };

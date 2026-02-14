@@ -20,7 +20,7 @@ export function ConfirmDialog({
           <DialogTitle className="text-center sm:text-left">{title}</DialogTitle>
         </DialogHeader>
         <div className="px-6 py-4">
-          <p className="text-sm text-gray-600 text-center sm:text-left whitespace-pre-line">{message}</p>
+          <p className="text-sm text-muted-foreground text-center sm:text-left whitespace-pre-line">{message}</p>
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
           {cancelText && (

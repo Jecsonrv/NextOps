@@ -44,7 +44,7 @@ import {
     ArrowLeft,
     Loader2,
 } from "lucide-react";
-import { ConflictResolutionModal } from "../components/ot/ConflictResolutionModal";
+import { ConflictResolutionModal } from "../components/ots/ConflictResolutionModal";
 
 const createInitialFilters = () => ({
     estados: [],
@@ -63,8 +63,8 @@ const normalizeMultiValues = (values) =>
         new Set(
             (Array.isArray(values) ? values : [])
                 .map((value) => (typeof value === "string" ? value.trim() : ""))
-                .filter(Boolean)
-        )
+                .filter(Boolean),
+        ),
     );
 
 const arraysAreEqual = (a = [], b = []) => {
@@ -105,7 +105,8 @@ const formatEstadoDisplay = (estado) => {
     return estado
         .split("_")
         .map(
-            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
         )
         .join(" ");
 };
@@ -150,12 +151,12 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
-                }
+                },
             );
 
             toast.success(
                 response.data.message ||
-                    "Provisión Acajutla importada correctamente"
+                    "Provisión Acajutla importada correctamente",
             );
 
             if (
@@ -165,7 +166,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
             ) {
                 const errorCount = response.data.stats.errors.length;
                 toast.warning(
-                    `Se encontraron ${errorCount} errores durante la importación`
+                    `Se encontraron ${errorCount} errores durante la importación`,
                 );
             }
 
@@ -196,14 +197,14 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
             onClick={handleClose}
         >
             <div
-                className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
+                className="bg-card rounded-lg shadow-xl w-full max-w-md mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-xl font-semibold text-foreground">
                         Importar Provisión Acajutla
                     </h2>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Carga el CSV con fechas de provisión y barcos
                     </p>
                 </div>
@@ -211,7 +212,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                 <div className="px-6 py-4">
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Archivo CSV
                             </label>
                             <input
@@ -219,10 +220,10 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                                 accept=".csv"
                                 onChange={handleFileChange}
                                 disabled={uploading}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-blue-700 hover:file:bg-primary/10 disabled:opacity-50"
                             />
                             {file && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-muted-foreground">
                                     Archivo seleccionado:{" "}
                                     <span className="font-medium">
                                         {file.name}
@@ -231,7 +232,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
                             <h3 className="text-sm font-semibold text-blue-900 mb-2">
                                 ℹ️ Información Importante
                             </h3>
@@ -257,14 +258,14 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                                 <p className="text-sm text-red-800">{error}</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
                     <Button
                         variant="outline"
                         onClick={handleClose}
@@ -324,7 +325,7 @@ export function OTImportPage() {
                         headers: {
                             "Content-Type": "multipart/form-data",
                         },
-                    }
+                    },
                 );
                 return response.data;
             } catch (error) {
@@ -400,7 +401,7 @@ export function OTImportPage() {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
-                }
+                },
             );
             return response.data;
         },
@@ -484,8 +485,8 @@ export function OTImportPage() {
         if (invalidFiles.length > 0) {
             alert(
                 `Los siguientes archivos tienen formato inválido y no serán importados:\n${invalidFiles.join(
-                    "\n"
-                )}\n\nFormatos válidos: .xlsx, .xls`
+                    "\n",
+                )}\n\nFormatos válidos: .xlsx, .xls`,
             );
         }
 
@@ -502,14 +503,14 @@ export function OTImportPage() {
     const handleTipoOperacionChange = (index, tipo) => {
         setFiles((prev) =>
             prev.map((fileData, i) =>
-                i === index ? { ...fileData, tipo_operacion: tipo } : fileData
-            )
+                i === index ? { ...fileData, tipo_operacion: tipo } : fileData,
+            ),
         );
     };
 
     const handleSetAllTipo = (tipo) => {
         setFiles((prev) =>
-            prev.map((fileData) => ({ ...fileData, tipo_operacion: tipo }))
+            prev.map((fileData) => ({ ...fileData, tipo_operacion: tipo })),
         );
     };
 
@@ -557,9 +558,9 @@ export function OTImportPage() {
 
     const getStatusIcon = (status) => {
         if (status === "success")
-            return <CheckCircle className="h-5 w-5 text-green-500" />;
+            return <CheckCircle className="h-5 w-5 text-emerald-600" />;
         if (status === "error")
-            return <XCircle className="h-5 w-5 text-red-500" />;
+            return <XCircle className="h-5 w-5 text-destructive" />;
         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
     };
 
@@ -576,10 +577,10 @@ export function OTImportPage() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Importar OTs desde Excel
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             Sube uno o más archivos Excel para importar
                             múltiples OTs automáticamente
                         </p>
@@ -596,7 +597,7 @@ export function OTImportPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-3 text-sm text-gray-600">
+                    <div className="space-y-3 text-sm text-muted-foreground">
                         <p>
                             El sistema detecta automáticamente encabezados,
                             formatos de fecha y separa contenedores/HBLs por
@@ -613,7 +614,7 @@ export function OTImportPage() {
                             </span>
                         </p>
 
-                        <p className="mt-2 text-blue-700 bg-blue-50 p-3 rounded-md flex items-start gap-2">
+                        <p className="mt-2 text-blue-700 bg-primary/10 p-3 rounded-md flex items-start gap-2">
                             <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                             <span>
                                 <strong>Conflictos:</strong> Si la misma OT
@@ -643,29 +644,29 @@ export function OTImportPage() {
                             onDrop={handleDrop}
                             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
                                 isDragging
-                                    ? "border-blue-500 bg-blue-50"
-                                    : "border-gray-300 hover:border-gray-400"
+                                    ? "border-blue-500 bg-primary/10"
+                                    : "border-border hover:border-border"
                             }`}
                         >
                             {files.length > 0 ? (
                                 <div className="space-y-4">
-                                    <FileSpreadsheet className="h-16 w-16 text-green-500 mx-auto" />
+                                    <FileSpreadsheet className="h-16 w-16 text-emerald-600 mx-auto" />
 
                                     {/* Controles globales */}
-                                    <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                                    <div className="bg-muted rounded-lg p-5 border border-border">
                                         <div className="flex items-center justify-between">
                                             {/* Botones para marcar todos - izquierda */}
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium text-gray-600">
+                                                <span className="text-xs font-medium text-muted-foreground">
                                                     Marcar todos:
                                                 </span>
                                                 <button
                                                     onClick={() =>
                                                         handleSetAllTipo(
-                                                            "importacion"
+                                                            "importacion",
                                                         )
                                                     }
-                                                    className="flex items-center gap-1 py-1 px-2.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 rounded text-xs font-medium transition-colors"
+                                                    className="flex items-center gap-1 py-1 px-2.5 bg-card border border-blue-200 hover:bg-primary/10 text-blue-700 rounded text-xs font-medium transition-colors"
                                                     title="Marcar todos como Importación"
                                                 >
                                                     <CheckCircle className="h-3 w-3" />
@@ -674,10 +675,10 @@ export function OTImportPage() {
                                                 <button
                                                     onClick={() =>
                                                         handleSetAllTipo(
-                                                            "exportacion"
+                                                            "exportacion",
                                                         )
                                                     }
-                                                    className="flex items-center gap-1 py-1 px-2.5 bg-white border border-yellow-200 hover:bg-yellow-50 text-yellow-700 rounded text-xs font-medium transition-colors"
+                                                    className="flex items-center gap-1 py-1 px-2.5 bg-card border border-yellow-200 hover:bg-yellow-50 text-yellow-700 rounded text-xs font-medium transition-colors"
                                                     title="Marcar todos como Exportación"
                                                 >
                                                     <CheckCircle className="h-3 w-3" />
@@ -689,8 +690,8 @@ export function OTImportPage() {
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex items-center gap-1.5 text-xs">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                        <span className="font-medium text-gray-700">
+                                                        <div className="w-2 h-2 rounded-full bg-primary/100"></div>
+                                                        <span className="font-medium text-foreground">
                                                             {
                                                                 countByTipo.importacion
                                                             }{" "}
@@ -699,7 +700,7 @@ export function OTImportPage() {
                                                     </div>
                                                     <div className="flex items-center gap-1.5 text-xs">
                                                         <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                                        <span className="font-medium text-gray-700">
+                                                        <span className="font-medium text-foreground">
                                                             {
                                                                 countByTipo.exportacion
                                                             }{" "}
@@ -707,7 +708,7 @@ export function OTImportPage() {
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="text-sm font-medium text-gray-700">
+                                                <div className="text-sm font-medium text-foreground">
                                                     {files.length} archivo
                                                     {files.length > 1
                                                         ? "s"
@@ -726,28 +727,28 @@ export function OTImportPage() {
                                         {files.map((fileData, index) => (
                                             <div
                                                 key={index}
-                                                className="bg-white rounded-md border border-gray-200 p-5 hover:border-gray-300 transition-all group"
+                                                className="bg-card rounded-md border border-border p-5 hover:border-border transition-all group"
                                             >
                                                 <div className="flex items-center justify-between gap-4">
                                                     {/* Info del archivo - izquierda */}
                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                        <FileSpreadsheet className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                                        <FileSpreadsheet className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="font-medium text-sm text-gray-900 truncate text-left">
+                                                            <p className="font-medium text-sm text-foreground truncate text-left">
                                                                 {
                                                                     fileData
                                                                         .file
                                                                         .name
                                                                 }
                                                             </p>
-                                                            <p className="text-xs text-gray-500 text-left">
+                                                            <p className="text-xs text-muted-foreground text-left">
                                                                 {(
                                                                     fileData
                                                                         .file
                                                                         .size /
                                                                     1024
                                                                 ).toFixed(
-                                                                    2
+                                                                    2,
                                                                 )}{" "}
                                                                 KB
                                                             </p>
@@ -761,14 +762,14 @@ export function OTImportPage() {
                                                                 onClick={() =>
                                                                     handleTipoOperacionChange(
                                                                         index,
-                                                                        "importacion"
+                                                                        "importacion",
                                                                     )
                                                                 }
                                                                 className={`py-1.5 px-3 rounded text-xs font-medium transition-colors whitespace-nowrap ${
                                                                     fileData.tipo_operacion ===
                                                                     "importacion"
                                                                         ? "bg-blue-600 text-white"
-                                                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                                                        : "bg-muted text-muted-foreground hover:bg-muted"
                                                                 }`}
                                                             >
                                                                 Importación
@@ -778,14 +779,14 @@ export function OTImportPage() {
                                                                 onClick={() =>
                                                                     handleTipoOperacionChange(
                                                                         index,
-                                                                        "exportacion"
+                                                                        "exportacion",
                                                                     )
                                                                 }
                                                                 className={`py-1.5 px-3 rounded text-xs font-medium transition-colors whitespace-nowrap ${
                                                                     fileData.tipo_operacion ===
                                                                     "exportacion"
                                                                         ? "bg-yellow-500 text-white"
-                                                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                                                        : "bg-muted text-muted-foreground hover:bg-muted"
                                                                 }`}
                                                             >
                                                                 Exportación
@@ -795,13 +796,13 @@ export function OTImportPage() {
                                                         <button
                                                             onClick={() =>
                                                                 handleRemoveFile(
-                                                                    index
+                                                                    index,
                                                                 )
                                                             }
-                                                            className="p-1.5 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                            className="p-1.5 hover:bg-destructive/10 rounded transition-colors opacity-0 group-hover:opacity-100"
                                                             title="Remover archivo"
                                                         >
-                                                            <X className="h-4 w-4 text-red-500" />
+                                                            <X className="h-4 w-4 text-destructive" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -851,7 +852,7 @@ export function OTImportPage() {
                                             multiple
                                             onChange={(e) => {
                                                 const newFiles = Array.from(
-                                                    e.target.files
+                                                    e.target.files,
                                                 );
                                                 // Solo pasar los nuevos archivos, validateAndSetFiles los agregará al estado
                                                 validateAndSetFiles(newFiles);
@@ -869,12 +870,12 @@ export function OTImportPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <FileSpreadsheet className="h-16 w-16 text-gray-400 mx-auto" />
+                                    <FileSpreadsheet className="h-16 w-16 text-muted-foreground mx-auto" />
                                     <div>
-                                        <p className="text-lg font-semibold text-gray-700">
+                                        <p className="text-lg font-semibold text-foreground">
                                             Arrastra tus archivos Excel aquí
                                         </p>
-                                        <p className="text-sm text-gray-500">
+                                        <p className="text-sm text-muted-foreground">
                                             o haz clic para seleccionar
                                             (múltiples archivos soportados)
                                         </p>
@@ -896,7 +897,7 @@ export function OTImportPage() {
                                             Seleccionar archivos
                                         </label>
                                     </div>
-                                    <p className="text-xs text-gray-400">
+                                    <p className="text-xs text-muted-foreground">
                                         Archivos Excel (.xlsx, .xls) - Máximo
                                         10MB por archivo
                                     </p>
@@ -918,7 +919,7 @@ export function OTImportPage() {
                                     {getStatusIcon(
                                         importResult.success
                                             ? "success"
-                                            : "error"
+                                            : "error",
                                     )}
                                     Resultados de Importación
                                 </CardTitle>
@@ -938,8 +939,8 @@ export function OTImportPage() {
                                 </p>
 
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                    <div className="p-4 bg-gray-50 rounded-lg">
-                                        <p className="text-sm text-gray-600">
+                                    <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">
                                             Total Filas
                                         </p>
                                         <p className="text-2xl font-bold">
@@ -947,8 +948,8 @@ export function OTImportPage() {
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-blue-50 rounded-lg">
-                                        <p className="text-sm text-blue-600">
+                                    <div className="p-4 bg-primary/10 rounded-lg">
+                                        <p className="text-sm text-primary">
                                             Procesadas
                                         </p>
                                         <p className="text-2xl font-bold text-blue-700">
@@ -956,8 +957,8 @@ export function OTImportPage() {
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-green-50 rounded-lg">
-                                        <p className="text-sm text-green-600">
+                                    <div className="p-4 bg-emerald-50 rounded-lg">
+                                        <p className="text-sm text-emerald-600">
                                             Creadas
                                         </p>
                                         <p className="text-2xl font-bold text-green-700">
@@ -974,8 +975,8 @@ export function OTImportPage() {
                                         </p>
                                     </div>
 
-                                    <div className="p-4 bg-gray-50 rounded-lg">
-                                        <p className="text-sm text-gray-600">
+                                    <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">
                                             Omitidas
                                         </p>
                                         <p className="text-2xl font-bold">
@@ -1014,7 +1015,7 @@ export function OTImportPage() {
                                                         {conflict.reason}
                                                     </p>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </CardContent>
@@ -1069,7 +1070,7 @@ export function OTImportPage() {
                                                         </Badge>
                                                     </div>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </CardContent>
@@ -1081,7 +1082,7 @@ export function OTImportPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <XCircle className="h-5 w-5 text-red-500" />
+                                    <XCircle className="h-5 w-5 text-destructive" />
                                     Errores Encontrados (
                                     {importResult.errors.length})
                                 </CardTitle>
@@ -1091,7 +1092,7 @@ export function OTImportPage() {
                                     {importResult.errors.map((error, idx) => (
                                         <div
                                             key={idx}
-                                            className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm"
+                                            className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm"
                                         >
                                             <p className="font-semibold text-red-900">
                                                 Fila {error.row}
@@ -1136,4 +1137,3 @@ export function OTImportPage() {
         </div>
     );
 }
-

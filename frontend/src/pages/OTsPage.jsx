@@ -5,8 +5,10 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../lib/api";
 import { usePermissions } from "../components/common/PermissionGate";
+import { StatCard } from "../components/common/StatCard";
 
 import { formatDate } from "../lib/dateUtils";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
     Card,
     CardContent,
@@ -16,6 +18,7 @@ import {
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import {
     Select,
     SelectContent,
@@ -38,6 +41,7 @@ import {
     Eye,
     Edit,
     Trash2,
+    Ship,
 } from "lucide-react";
 
 const SINGLE_SELECT_CLEAR_VALUE = "__all__";
@@ -59,8 +63,8 @@ const normalizeMultiValues = (values) =>
         new Set(
             (Array.isArray(values) ? values : [])
                 .map((value) => (typeof value === "string" ? value.trim() : ""))
-                .filter(Boolean)
-        )
+                .filter(Boolean),
+        ),
     );
 
 const arraysAreEqual = (a = [], b = []) => {
@@ -99,7 +103,8 @@ const formatEstadoDisplay = (estado) => {
     return estado
         .split("_")
         .map(
-            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
         )
         .join(" ");
 };
@@ -144,12 +149,12 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
-                }
+                },
             );
 
             toast.success(
                 response.data.message ||
-                    "Provisión Acajutla importada correctamente"
+                    "Provisión Acajutla importada correctamente",
             );
 
             if (
@@ -159,7 +164,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
             ) {
                 const errorCount = response.data.stats.errors.length;
                 toast.warning(
-                    `Se encontraron ${errorCount} errores durante la importación`
+                    `Se encontraron ${errorCount} errores durante la importación`,
                 );
             }
 
@@ -190,14 +195,14 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
             onClick={handleClose}
         >
             <div
-                className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
+                className="bg-card rounded-lg shadow-xl w-full max-w-md mx-4"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-xl font-semibold text-foreground">
                         Importar Provisión Acajutla
                     </h2>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Carga el CSV con fechas de provisión y barcos
                     </p>
                 </div>
@@ -205,7 +210,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                 <div className="px-6 py-4">
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Archivo CSV
                             </label>
                             <input
@@ -213,10 +218,10 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                                 accept=".csv"
                                 onChange={handleFileChange}
                                 disabled={uploading}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-blue-700 hover:file:bg-primary/10 disabled:opacity-50"
                             />
                             {file && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-muted-foreground">
                                     Archivo seleccionado:{" "}
                                     <span className="font-medium">
                                         {file.name}
@@ -225,7 +230,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
                             <h3 className="text-sm font-semibold text-blue-900 mb-2">
                                 ℹ️ Información Importante
                             </h3>
@@ -251,14 +256,14 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                         </div>
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
                                 <p className="text-sm text-red-800">{error}</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
                     <Button
                         variant="outline"
                         onClick={handleClose}
@@ -303,20 +308,24 @@ export function OTsPage() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [bulkSearchText, setBulkSearchText] = useState("");
+    const debouncedSearch = useDebouncedValue(search, 350);
 
-    const normalizedSearch = search.trim();
+    const normalizedSearch = debouncedSearch.trim();
+    const immediateNormalizedSearch = search.trim();
     const filtersKey = JSON.stringify(filters);
     const hasFilterSelections = Boolean(
         filters.estados.length ||
-            filters.clientes.length ||
-            filters.operativos.length ||
-            filters.proveedores.length ||
-            filters.estado_provision ||
-            filters.estado_facturado ||
-            filters.tipo_operacion ||
-            filters.bulk_search_values.length
+        filters.clientes.length ||
+        filters.operativos.length ||
+        filters.proveedores.length ||
+        filters.estado_provision ||
+        filters.estado_facturado ||
+        filters.tipo_operacion ||
+        filters.bulk_search_values.length,
     );
-    const hasActiveFilters = Boolean(normalizedSearch || hasFilterSelections);
+    const hasActiveFilters = Boolean(
+        immediateNormalizedSearch || hasFilterSelections,
+    );
 
     const handleClearSearch = () => {
         if (!search) return;
@@ -512,6 +521,7 @@ export function OTsPage() {
             const response = await apiClient.get(`/ots/?${params}`);
             return response.data;
         },
+        keepPreviousData: true,
     });
 
     // Fetch estadísticas para las cards (usa endpoint específico con agregaciones DB)
@@ -540,11 +550,12 @@ export function OTsPage() {
         queryFn: async () => {
             const params = buildFilterParams(false); // Do not include pagination
             const response = await apiClient.get(
-                `/ots/filter-values/?${params}`
+                `/ots/filter-values/?${params}`,
             );
             return response.data;
         },
         staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+        keepPreviousData: true,
     });
 
     const handleExport = async () => {
@@ -555,7 +566,7 @@ export function OTsPage() {
                 `/ots/export-excel/?${params}`,
                 {
                     responseType: "blob",
-                }
+                },
             );
 
             const blob = new Blob([response.data], {
@@ -594,7 +605,7 @@ export function OTsPage() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["ots"]);
-            queryClient.invalidateQueries(["ots-stats"]);
+            queryClient.invalidateQueries(["ots-cards-stats"]);
         },
     });
 
@@ -609,7 +620,7 @@ export function OTsPage() {
     if (error) {
         return (
             <div className="p-4 text-center">
-                <p className="text-red-600">
+                <p className="text-destructive">
                     Error al cargar las OTs: {error.message}
                 </p>
             </div>
@@ -617,78 +628,29 @@ export function OTsPage() {
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Stats Cards - Dinámicas basadas en datos filtrados */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total OT's
-                        </CardTitle>
-                        <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {cardsStats?.total || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            {hasActiveFilters
-                                ? "Resultados filtrados"
-                                : "En el sistema"}
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Facturadas
-                        </CardTitle>
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {cardsStats?.facturadas || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Con F. facturación
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Cerradas
-                        </CardTitle>
-                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-700">
-                            {cardsStats?.cerradas || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Estado cerrado
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Pendientes
-                        </CardTitle>
-                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
-                            {cardsStats?.pendientes_cierre || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Pendientes de cierre
-                        </p>
-                    </CardContent>
-                </Card>
+        <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total OT's"
+                    value={cardsStats?.total || 0}
+                    icon={Layers}
+                />
+                <StatCard
+                    label="Facturadas"
+                    value={cardsStats?.facturadas || 0}
+                    icon={CheckCircle2}
+                />
+                <StatCard
+                    label="Cerradas"
+                    value={cardsStats?.cerradas || 0}
+                    icon={XCircle}
+                />
+                <StatCard
+                    label="Pendientes"
+                    value={cardsStats?.pendientes_cierre || 0}
+                    icon={Clock}
+                />
             </div>
 
             {/* Barra de búsqueda y acciones mejorada */}
@@ -698,7 +660,7 @@ export function OTsPage() {
                         {/* Search */}
                         <div className="w-full">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Buscar OT, MBL, contenedor..."
                                     value={search}
@@ -708,7 +670,7 @@ export function OTsPage() {
                                 {search && (
                                     <button
                                         onClick={handleClearSearch}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
@@ -724,7 +686,7 @@ export function OTsPage() {
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex-1 sm:flex-none ${
                                     showFilters
-                                        ? "bg-blue-50 border-blue-300"
+                                        ? "bg-primary/10 border-blue-300"
                                         : ""
                                 }`}
                             >
@@ -757,7 +719,7 @@ export function OTsPage() {
                                 }
                                 className={`hidden md:inline-flex ${
                                     showBulkSearch
-                                        ? "bg-blue-50 border-blue-300"
+                                        ? "bg-primary/10 border-blue-300"
                                         : ""
                                 }`}
                             >
@@ -784,7 +746,7 @@ export function OTsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowProvisionModal(true)}
-                                    className="hidden lg:inline-flex border-blue-600 text-blue-600 hover:bg-blue-50"
+                                    className="hidden lg:inline-flex border-blue-600 text-primary hover:bg-primary/10"
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
                                     Provisión
@@ -810,14 +772,14 @@ export function OTsPage() {
                         <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {/* Filtro por Estado */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Estatus
                                 </label>
                                 <MultiSelect
                                     options={filterValues?.estados || []}
                                     selected={filters.estados}
                                     onChange={handleMultiSelectChange(
-                                        "estados"
+                                        "estados",
                                     )}
                                     placeholder="Todos los estatus"
                                     formatDisplay={formatEstadoDisplay}
@@ -826,14 +788,14 @@ export function OTsPage() {
 
                             {/* Filtro por Cliente */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Cliente
                                 </label>
                                 <MultiSelect
                                     options={filterValues?.clientes || []}
                                     selected={filters.clientes}
                                     onChange={handleMultiSelectChange(
-                                        "clientes"
+                                        "clientes",
                                     )}
                                     placeholder="Todos los clientes"
                                 />
@@ -841,14 +803,14 @@ export function OTsPage() {
 
                             {/* Filtro por Operativo */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Operativo
                                 </label>
                                 <MultiSelect
                                     options={filterValues?.operativos || []}
                                     selected={filters.operativos}
                                     onChange={handleMultiSelectChange(
-                                        "operativos"
+                                        "operativos",
                                     )}
                                     placeholder="Todos los operativos"
                                 />
@@ -856,14 +818,14 @@ export function OTsPage() {
 
                             {/* Filtro por Naviera/Proveedor */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Naviera
                                 </label>
                                 <MultiSelect
                                     options={filterValues?.proveedores || []}
                                     selected={filters.proveedores}
                                     onChange={handleMultiSelectChange(
-                                        "proveedores"
+                                        "proveedores",
                                     )}
                                     placeholder="Todas las navieras"
                                 />
@@ -871,7 +833,7 @@ export function OTsPage() {
 
                             {/* Filtro por Estado de Provisión */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Estado Provisión
                                 </label>
                                 <Select
@@ -880,7 +842,7 @@ export function OTsPage() {
                                         SINGLE_SELECT_CLEAR_VALUE
                                     }
                                     onValueChange={handleSingleSelectChange(
-                                        "estado_provision"
+                                        "estado_provision",
                                     )}
                                 >
                                     <SelectTrigger>
@@ -899,10 +861,10 @@ export function OTsPage() {
                                                     value={estado}
                                                 >
                                                     {formatEstadoDisplay(
-                                                        estado
+                                                        estado,
                                                     )}
                                                 </SelectItem>
-                                            )
+                                            ),
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -910,7 +872,7 @@ export function OTsPage() {
 
                             {/* Filtro por Estado de Facturación */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Estado Facturación
                                 </label>
                                 <Select
@@ -919,7 +881,7 @@ export function OTsPage() {
                                         SINGLE_SELECT_CLEAR_VALUE
                                     }
                                     onValueChange={handleSingleSelectChange(
-                                        "estado_facturado"
+                                        "estado_facturado",
                                     )}
                                 >
                                     <SelectTrigger>
@@ -938,10 +900,10 @@ export function OTsPage() {
                                                     value={estado}
                                                 >
                                                     {formatEstadoDisplay(
-                                                        estado
+                                                        estado,
                                                     )}
                                                 </SelectItem>
-                                            )
+                                            ),
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -949,7 +911,7 @@ export function OTsPage() {
 
                             {/* Filtro por Tipo de Operación */}
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Tipo de Operación
                                 </label>
                                 <Select
@@ -958,7 +920,7 @@ export function OTsPage() {
                                         SINGLE_SELECT_CLEAR_VALUE
                                     }
                                     onValueChange={handleSingleSelectChange(
-                                        "tipo_operacion"
+                                        "tipo_operacion",
                                     )}
                                 >
                                     <SelectTrigger>
@@ -986,11 +948,11 @@ export function OTsPage() {
 
             {/* Panel de Búsqueda Masiva - Independiente */}
             {showBulkSearch && (
-                <Card className="border-blue-200 bg-blue-50/30">
+                <Card className="border-blue-200 bg-primary/10/30">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Layers className="w-5 h-5 text-blue-600" />
+                                <Layers className="w-5 h-5 text-primary" />
                                 <CardTitle className="text-lg">
                                     Búsqueda Masiva
                                 </CardTitle>
@@ -1012,7 +974,7 @@ export function OTsPage() {
                                 <X className="w-4 h-4" />
                             </Button>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Busca múltiples OT&apos;s simultáneamente usando
                             diferentes criterios
                         </p>
@@ -1020,7 +982,7 @@ export function OTsPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="md:col-span-1">
-                                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                <label className="text-sm font-medium text-foreground mb-2 block">
                                     Tipo de Búsqueda
                                 </label>
                                 <Select
@@ -1030,7 +992,7 @@ export function OTsPage() {
                                     }
                                     onValueChange={handleBulkSearchTypeChange}
                                 >
-                                    <SelectTrigger className="bg-white">
+                                    <SelectTrigger className="bg-card">
                                         <SelectValue placeholder="Seleccionar..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1054,9 +1016,9 @@ export function OTsPage() {
 
                             {filters.bulk_search_type && (
                                 <div className="md:col-span-3">
-                                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                    <label className="text-sm font-medium text-foreground mb-2 block">
                                         Valores a Buscar
-                                        <span className="text-gray-500 font-normal ml-2">
+                                        <span className="text-muted-foreground font-normal ml-2">
                                             (separados por espacios, comas,
                                             saltos de línea...)
                                         </span>
@@ -1068,20 +1030,20 @@ export function OTsPage() {
                                             filters.bulk_search_type === "mbl"
                                                 ? "MBL001, MBL002, MBL003"
                                                 : filters.bulk_search_type ===
-                                                  "contenedor"
-                                                ? "MSCU1234567 TEMU2345678 CMAU3456789"
-                                                : "OT-001\nOT-002\nOT-003"
+                                                    "contenedor"
+                                                  ? "MSCU1234567 TEMU2345678 CMAU3456789"
+                                                  : "OT-001\nOT-002\nOT-003"
                                         }`}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] font-mono text-sm bg-white resize-y"
+                                        className="w-full px-4 py-3 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] font-mono text-sm bg-card resize-y"
                                     />
                                     <div className="flex items-center justify-between mt-2">
-                                        <div className="text-sm text-gray-600">
+                                        <div className="text-sm text-muted-foreground">
                                             {bulkSearchText.trim() && (
                                                 <>
-                                                    <span className="font-medium text-blue-600">
+                                                    <span className="font-medium text-primary">
                                                         {
                                                             processBulkSearchText(
-                                                                bulkSearchText
+                                                                bulkSearchText,
                                                             ).length
                                                         }
                                                     </span>{" "}
@@ -1089,15 +1051,15 @@ export function OTsPage() {
                                                     "mbl"
                                                         ? "MBLs"
                                                         : filters.bulk_search_type ===
-                                                          "contenedor"
-                                                        ? "contenedores"
-                                                        : "OTs"}{" "}
+                                                            "contenedor"
+                                                          ? "contenedores"
+                                                          : "OTs"}{" "}
                                                     detectados
                                                 </>
                                             )}
                                             {filters.bulk_search_values.length >
                                                 0 && (
-                                                <span className="ml-2 text-green-600 font-medium">
+                                                <span className="ml-2 text-emerald-600 font-medium">
                                                     ✓{" "}
                                                     {
                                                         filters
@@ -1143,15 +1105,15 @@ export function OTsPage() {
             {/* Indicadores de Filtros Activos */}
             {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-foreground">
                         Filtros activos:
                     </span>
-                    {normalizedSearch && (
+                    {immediateNormalizedSearch && (
                         <Badge variant="secondary" className="gap-1">
-                            Búsqueda: {normalizedSearch}
+                            Búsqueda: {immediateNormalizedSearch}
                             <button
                                 onClick={handleClearSearch}
-                                className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                                className="ml-1 hover:bg-muted rounded-full p-0.5"
                             >
                                 <X className="w-3 h-3" />
                             </button>
@@ -1196,7 +1158,7 @@ export function OTsPage() {
                         variant="outline"
                         size="sm"
                         onClick={handleClearFilters}
-                        className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 font-medium"
+                        className="border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-red-300 hover:text-red-700 font-medium"
                     >
                         <X className="w-4 h-4 mr-1.5" />
                         Limpiar todos los filtros
@@ -1210,7 +1172,7 @@ export function OTsPage() {
                     <div className="flex items-center justify-between">
                         <CardTitle>Órdenes de Trabajo</CardTitle>
                         {data?.count > 0 && (
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                                 Mostrando {data.results.length} de {data.count}{" "}
                                 OT&apos;s
                             </span>
@@ -1219,20 +1181,15 @@ export function OTsPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-sm text-gray-600">
-                                Cargando OTs...
-                            </p>
-                        </div>
+                        <TableSkeleton rows={8} cols={8} />
                     ) : (data?.results?.length ?? 0) === 0 ? (
                         hasActiveFilters ? (
                             <div className="text-center py-12">
-                                <Truck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-foreground">
                                     No encontramos coincidencias
                                 </h3>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-muted-foreground">
                                     Ajusta la búsqueda o limpia los filtros para
                                     ver más resultados.
                                 </p>
@@ -1246,7 +1203,7 @@ export function OTsPage() {
                                             Limpiar filtros
                                         </Button>
                                     )}
-                                    {normalizedSearch && (
+                                    {immediateNormalizedSearch && (
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -1259,15 +1216,15 @@ export function OTsPage() {
                             </div>
                         ) : (
                             <div className="text-center py-12">
-                                <Truck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-foreground">
                                     Aún no tienes órdenes registradas
                                 </h3>
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-muted-foreground">
                                     Importa un archivo Excel con tus OT&apos;s
                                     para comenzar.
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Usa el botón &quot;Importar&quot; en la
                                     parte superior.
                                 </p>
@@ -1276,64 +1233,64 @@ export function OTsPage() {
                     ) : (
                         <>
                             {/* Indicador de scroll en móviles */}
-                            <div className="block sm:hidden mb-2 text-xs text-gray-500 text-center">
+                            <div className="block sm:hidden mb-2 text-xs text-muted-foreground text-center">
                                 ← Desliza para ver más columnas →
                             </div>
 
                             <div className="overflow-x-auto -mx-4 sm:mx-0 border-x sm:border-x-0">
                                 <div className="inline-block min-w-full align-middle">
-                                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-border text-sm">
+                                        <thead className="bg-muted">
                                             <tr>
-                                                <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="sticky left-0 z-10 bg-muted px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     OT
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Estatus
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Cliente
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Operativo
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     MBL
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Contenedores
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Naviera
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Barco
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     F. ETA
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     F. Provisión
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     F. Facturación
                                                 </th>
-                                                <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                                <th className="sticky right-0 z-10 bg-muted px-4 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                                     Acciones
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                        <tbody className="divide-y divide-border bg-card">
                                             {data?.results?.map((ot) => (
                                                 <tr
                                                     key={ot.id}
-                                                    className="hover:bg-gray-50 transition-colors"
+                                                    className="hover:bg-muted transition-colors"
                                                 >
-                                                    <td className="sticky left-0 z-10 bg-white px-4 py-3 whitespace-nowrap">
+                                                    <td className="sticky left-0 z-10 bg-card px-4 py-3 whitespace-nowrap">
                                                         <div className="flex items-center gap-2">
                                                             <Link
                                                                 to={`/ots/${ot.id}`}
-                                                                className="font-medium text-sm text-blue-600 hover:text-blue-800"
+                                                                className="font-medium text-sm text-primary hover:text-blue-800"
                                                             >
                                                                 {ot.numero_ot}
                                                             </Link>
@@ -1360,50 +1317,50 @@ export function OTsPage() {
                                                             {ot.estado_display}
                                                         </Badge>
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                                         {ot.cliente_nombre ||
                                                             "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {ot.operativo || "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {ot.mbl || "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {ot.contenedores_list ||
                                                             "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {ot.proveedor_nombre ||
                                                             "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {ot.barco || "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {formatDate(
-                                                            ot.fecha_eta
+                                                            ot.fecha_eta,
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {formatDate(
-                                                            ot.fecha_provision
+                                                            ot.fecha_provision,
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {formatDate(
-                                                            ot.fecha_recepcion_factura
+                                                            ot.fecha_recepcion_factura,
                                                         )}
                                                     </td>
-                                                    <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
+                                                    <td className="sticky right-0 z-10 bg-card px-4 py-3 text-right whitespace-nowrap">
                                                         <div className="flex justify-end gap-1">
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
                                                                     navigate(
-                                                                        `/ots/${ot.id}`
+                                                                        `/ots/${ot.id}`,
                                                                     )
                                                                 }
                                                                 title="Ver detalle"
@@ -1416,7 +1373,7 @@ export function OTsPage() {
                                                                 size="icon"
                                                                 onClick={() =>
                                                                     navigate(
-                                                                        `/ots/${ot.id}/edit`
+                                                                        `/ots/${ot.id}/edit`,
                                                                     )
                                                                 }
                                                                 title="Editar"
@@ -1431,7 +1388,7 @@ export function OTsPage() {
                                                                     size="icon"
                                                                     onClick={() =>
                                                                         handleDelete(
-                                                                            ot
+                                                                            ot,
                                                                         )
                                                                     }
                                                                     title="Eliminar"
@@ -1440,7 +1397,7 @@ export function OTsPage() {
                                                                     }
                                                                     className="h-8 w-8 hidden md:inline-flex"
                                                                 >
-                                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                                    <Trash2 className="w-4 h-4 text-destructive" />
                                                                 </Button>
                                                             )}
                                                         </div>
@@ -1455,14 +1412,14 @@ export function OTsPage() {
                             {/* Pagination */}
                             {data?.count > pageSize && (
                                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-muted-foreground">
                                         Mostrando {(page - 1) * pageSize + 1} -{" "}
                                         {Math.min(page * pageSize, data.count)}{" "}
                                         de {data.count} OTs
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-2">
-                                            <label className="text-sm text-gray-600 hidden sm:inline">
+                                            <label className="text-sm text-muted-foreground hidden sm:inline">
                                                 Mostrar:
                                             </label>
                                             <select
@@ -1471,28 +1428,28 @@ export function OTsPage() {
                                                     setPageSize(
                                                         parseInt(
                                                             e.target.value,
-                                                            10
-                                                        )
+                                                            10,
+                                                        ),
                                                     );
                                                     setPage(1);
                                                 }}
-                                                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                                className="px-3 py-1.5 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-card"
                                             >
                                                 <option value="20">20</option>
                                                 <option value="50">50</option>
                                                 <option value="100">100</option>
                                             </select>
-                                            <span className="text-sm text-gray-600 hidden sm:inline">
+                                            <span className="text-sm text-muted-foreground hidden sm:inline">
                                                 por página
                                             </span>
                                         </div>
-                                        <div className="h-5 w-px bg-gray-300 mx-1"></div>
+                                        <div className="h-5 w-px bg-muted mx-1"></div>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
                                                 setPage((p) =>
-                                                    Math.max(1, p - 1)
+                                                    Math.max(1, p - 1),
                                                 )
                                             }
                                             disabled={!data.previous}

@@ -12,6 +12,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
 from django.db.models import Q, Count
 from django.utils import timezone
 from fuzzywuzzy import fuzz
@@ -435,6 +436,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         return obsolete_count
     
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    @transaction.atomic
     def apply_normalization(self, request):
         """
         Aplica normalización masiva de un alias en todas las OTs.
@@ -961,6 +963,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         return short_name
 
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    @transaction.atomic
     def bulk_create_from_invoices(self, request):
         """
         Crea aliases masivamente desde un grupo de variantes de facturas.
@@ -1057,6 +1060,7 @@ class ClientAliasViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], permission_classes=[IsJefeOperaciones])
+    @transaction.atomic
     def bulk_merge_from_invoices(self, request):
         """
         Fusiona un grupo de variantes de facturas con un alias existente.

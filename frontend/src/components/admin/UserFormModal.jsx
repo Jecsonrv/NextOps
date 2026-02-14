@@ -77,7 +77,7 @@ export function UserFormModal({ user, isOpen, onClose, onSave, isSaving }) {
             <DialogContent className="sm:max-w-[500px] p-6">
                 <DialogHeader>
                     <DialogTitle className="text-2xl">{isEditMode ? "Editar Usuario" : "Crear Nuevo Usuario"}</DialogTitle>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                         {isEditMode ? `Actualizando el perfil de ${user.username}` : "Rellena los detalles para crear un nuevo usuario."}
                     </p>
                 </DialogHeader>
@@ -87,7 +87,7 @@ export function UserFormModal({ user, isOpen, onClose, onSave, isSaving }) {
                             <div className="space-y-2">
                                 <Label htmlFor="username">Usuario</Label>
                                 <Input id="username" {...register("username")} />
-                                {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
+                                {errors.username && <p className="text-destructive text-xs mt-1">{errors.username.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="full_name">Nombre Completo</Label>
@@ -97,12 +97,12 @@ export function UserFormModal({ user, isOpen, onClose, onSave, isSaving }) {
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
                             <Input id="email" type="email" {...register("email")} />
-                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email.message}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">Contraseña</Label>
                             <Input id="password" type="password" {...register("password")} placeholder={isEditMode ? "Dejar en blanco para no cambiar" : ""} />
-                            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+                            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
                         </div>
                         <div className="grid grid-cols-2 gap-4 items-center">
                             <div className="space-y-2">

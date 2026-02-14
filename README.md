@@ -7,7 +7,15 @@ Sistema integral para la gestión automatizada de facturas y órdenes de trabajo
 **Versión:** 1.0.0 (Fases 1-9 Completadas)
 **Progreso General:** ~90%
 
+### 📚 Documentación
+
+- Operativa rápida: `GUIA_INICIO_CRM.md`
+- Índice de documentación vigente: `docs/README.md`
+- Roadmap UX/ERP: `docs/UX_PROFESSIONAL_ROADMAP.md`
+- Reportes históricos: `docs/archive/legacy-reports/`
+
 ### ✅ Fases Completadas
+
 - [x] **Fase 1:** Infraestructura Base (Django + DRF + Docker + Celery)
 - [x] **Fase 2:** Módulo Catalogs (Proveedores)
 - [x] **Fase 3:** Módulo Patterns (Patrones Regex)
@@ -17,6 +25,7 @@ Sistema integral para la gestión automatizada de facturas y órdenes de trabajo
 - [x] **Fase 9:** Automatización de Correos (Microsoft Graph API)
 
 ### 🚧 Pendiente
+
 - [ ] **Fase 10:** Reportes y Estadísticas Avanzadas
 
 ---
@@ -36,6 +45,7 @@ Sistema integral para la gestión automatizada de facturas y órdenes de trabajo
 ## 🛠️ Stack Tecnológico
 
 ### Backend
+
 - **Framework**: Django 5.1 + Django REST Framework 3.15
 - **Base de Datos**: PostgreSQL 15+ (desarrollo con Docker, producción Neon)
 - **Caché/Queue**: Redis 7.x (Upstash o local)
@@ -45,6 +55,7 @@ Sistema integral para la gestión automatizada de facturas y órdenes de trabajo
 - **Email/Outlook**: Microsoft Graph API (msal)
 
 ### Frontend (separado)
+
 - React 18 + Vite 5
 - TailwindCSS + shadcn/ui
 - React Query + Axios
@@ -187,21 +198,25 @@ LOG_LEVEL=INFO
 ## 🌐 Endpoints Principales
 
 ### Autenticación
+
 - `POST /api/auth/login/` - Login con JWT
 - `POST /api/auth/refresh/` - Refresh token
 - `GET /api/auth/me/` - Perfil usuario actual
 - `POST /api/auth/change-password/` - Cambiar contraseña
 
 ### Catálogos
+
 - `GET/POST /api/catalogs/providers/` - Proveedores
 - `GET/POST /api/catalogs/cost-types/` - Tipos de costo
 
 ### Órdenes de Trabajo
+
 - `GET/POST /api/ots/` - CRUD de OTs
 - `POST /api/ots/import-excel/` - Importar desde Excel
 - `POST /api/ots/upload-csv-provisions/` - Cargar provisiones CSV
 
 ### Facturas
+
 - `GET/POST /api/invoices/` - CRUD de facturas
 - `POST /api/invoices/upload/` - Subir PDFs manualmente
 - `POST /api/invoices/{id}/assign-ot/` - Asignar OT
@@ -209,6 +224,7 @@ LOG_LEVEL=INFO
 - `GET /api/invoices/export-contabilidad/` - Export para contabilidad
 
 ### Documentación
+
 - `GET /api/docs/` - Swagger UI
 - `GET /api/redoc/` - ReDoc
 - `GET /api/health/` - Health check
@@ -217,16 +233,16 @@ LOG_LEVEL=INFO
 
 ## 🔐 Roles y Permisos
 
-| Acción | Admin | Jefe Ops | Finanzas | Operativo |
-|--------|-------|----------|----------|-----------|
-| Gestionar Usuarios | ✅ | ❌ | ❌ | ❌ |
-| CRUD Catálogos | ✅ | ✅ | ❌ | ❌ |
-| CRUD OTs | ✅ | ✅ | ❌ | ✅ |
-| Importar Excel | ✅ | ✅ | ❌ | ✅ |
-| Aprobar Provisiones | ✅ | ✅ | ❌ | ❌ |
-| Upload Facturas | ✅ | ✅ | ❌ | ✅ |
-| Ver Reportes | ✅ | ✅ | ✅ | ❌ |
-| Export Contabilidad | ✅ | ✅ | ✅ | ❌ |
+| Acción              | Admin | Jefe Ops | Finanzas | Operativo |
+| ------------------- | ----- | -------- | -------- | --------- |
+| Gestionar Usuarios  | ✅    | ❌       | ❌       | ❌        |
+| CRUD Catálogos      | ✅    | ✅       | ❌       | ❌        |
+| CRUD OTs            | ✅    | ✅       | ❌       | ✅        |
+| Importar Excel      | ✅    | ✅       | ❌       | ✅        |
+| Aprobar Provisiones | ✅    | ✅       | ❌       | ❌        |
+| Upload Facturas     | ✅    | ✅       | ❌       | ✅        |
+| Ver Reportes        | ✅    | ✅       | ✅       | ❌        |
+| Export Contabilidad | ✅    | ✅       | ✅       | ❌        |
 
 ---
 
@@ -252,9 +268,9 @@ coverage html
 1. Conectar repositorio GitHub
 2. Configurar variables de entorno
 3. Configurar servicios:
-   - Web: `gunicorn proyecto.wsgi:application`
-   - Worker: `celery -A workers.celery worker`
-   - Beat: `celery -A workers.celery beat`
+    - Web: `gunicorn proyecto.wsgi:application`
+    - Worker: `celery -A workers.celery worker`
+    - Beat: `celery -A workers.celery beat`
 4. Conectar Postgres (Neon) y Redis (Upstash)
 5. Ejecutar migraciones automáticamente
 

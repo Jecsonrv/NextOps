@@ -153,8 +153,8 @@ export function FileUploadZone({
                     transition-colors
                     ${
                         isDragging
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300 hover:border-gray-400"
+                            ? "border-blue-500 bg-primary/10"
+                            : "border-border hover:border-border"
                     }
                 `}
                 onClick={() => inputRef.current?.click()}
@@ -168,24 +168,24 @@ export function FileUploadZone({
                     ref={inputRef}
                 />
 
-                <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
 
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                     {isDragging
                         ? "Suelta los archivos aquí"
                         : "Arrastra archivos aquí o haz click para seleccionar"}
                 </h3>
 
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                     PDF, JSON, XML - Máximo {maxFiles} archivos de 10MB cada uno
                 </p>
             </div>
 
             {/* Errors */}
             {errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                     <div className="flex items-start gap-2">
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <h4 className="font-semibold text-red-800 mb-1">
                                 Errores de validación
@@ -204,7 +204,7 @@ export function FileUploadZone({
             {files.length > 0 && (
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-gray-700">
+                        <h4 className="font-semibold text-foreground">
                             Archivos seleccionados ({files.length})
                         </h4>
                         <Button
@@ -221,15 +221,15 @@ export function FileUploadZone({
                         {files.map((file, index) => (
                             <div
                                 key={index}
-                                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                                className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border"
                             >
-                                <FileText className="w-8 h-8 text-blue-600 flex-shrink-0" />
+                                <FileText className="w-8 h-8 text-primary flex-shrink-0" />
 
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-gray-900 truncate">
+                                    <p className="font-medium text-foreground truncate">
                                         {file.name}
                                     </p>
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-sm text-muted-foreground">
                                         {formatFileSize(file.size)}
                                     </p>
                                 </div>

@@ -64,8 +64,8 @@ export function UserProfilePage() {
                     <AvatarFallback>{getInitials(user?.full_name)}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">{user?.full_name}</h1>
-                    <p className="text-md text-gray-500">@{user?.username} &middot; <span className="font-medium">{user?.role_display}</span></p>
+                    <h1 className="text-3xl font-bold text-foreground">{user?.full_name}</h1>
+                    <p className="text-md text-muted-foreground">@{user?.username} &middot; <span className="font-medium">{user?.role_display}</span></p>
                 </div>
             </div>
 

@@ -71,7 +71,7 @@ export function DisputeDetailPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -79,11 +79,11 @@ export function DisputeDetailPage() {
     if (error || !dispute) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                     Error al cargar la disputa
                 </h2>
-                <p className="text-gray-600 mb-4">{error?.message || "Disputa no encontrada"}</p>
+                <p className="text-muted-foreground mb-4">{error?.message || "Disputa no encontrada"}</p>
                 <Button onClick={handleGoBack}>
                     Volver a Disputas
                 </Button>
@@ -108,10 +108,10 @@ export function DisputeDetailPage() {
                         Volver
                     </Button>
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900">
+                        <h1 className="text-4xl font-bold text-foreground">
                             Disputa: {dispute.numero_caso}
                         </h1>
-                        <p className="text-gray-600 mt-1">Detalle completo de la disputa</p>
+                        <p className="text-muted-foreground mt-1">Detalle completo de la disputa</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -135,8 +135,8 @@ export function DisputeDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="text-sm font-medium text-gray-500 mb-2">Monto Factura</div>
-                        <div className="text-2xl font-bold text-gray-900">
+                        <div className="text-sm font-medium text-muted-foreground mb-2">Monto Factura</div>
+                        <div className="text-2xl font-bold text-foreground">
                             ${dispute.invoice_data?.monto?.toLocaleString("es-MX", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -146,15 +146,15 @@ export function DisputeDetailPage() {
                 </Card>
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="text-sm font-medium text-gray-500 mb-2">Monto en Disputa</div>
-                        <div className="text-2xl font-bold text-red-600">
+                        <div className="text-sm font-medium text-muted-foreground mb-2">Monto en Disputa</div>
+                        <div className="text-2xl font-bold text-destructive">
                             ${dispute.monto_disputa?.toLocaleString("es-MX", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                             })}
                         </div>
                         {dispute.invoice_data?.monto && (
-                            <div className="text-sm text-gray-500 mt-1">
+                            <div className="text-sm text-muted-foreground mt-1">
                                 {((dispute.monto_disputa / dispute.invoice_data.monto) * 100).toFixed(0)}% del total
                             </div>
                         )}
@@ -162,18 +162,18 @@ export function DisputeDetailPage() {
                 </Card>
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="text-sm font-medium text-gray-500 mb-2">
+                        <div className="text-sm font-medium text-muted-foreground mb-2">
                             {dispute.monto_recuperado > 0 ? "Monto Recuperado" : "Tipo de Disputa"}
                         </div>
                         {dispute.monto_recuperado > 0 ? (
-                            <div className="text-2xl font-bold text-green-600">
+                            <div className="text-2xl font-bold text-emerald-600">
                                 ${dispute.monto_recuperado?.toLocaleString("es-MX", {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                 })}
                             </div>
                         ) : (
-                            <div className="text-xl font-semibold text-gray-900">
+                            <div className="text-xl font-semibold text-foreground">
                                 {dispute.tipo_disputa_display}
                             </div>
                         )}
@@ -202,63 +202,63 @@ export function DisputeDetailPage() {
                     <CardContent className="p-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div>
-                                <label className="text-sm font-medium text-gray-500">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Número de Caso
                                 </label>
-                                <p className="text-lg font-mono font-semibold text-blue-600 mt-1">
+                                <p className="text-lg font-mono font-semibold text-primary mt-1">
                                     {dispute.numero_caso}
                                 </p>
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium text-gray-500">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Fecha de Creación
                                 </label>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                    <p className="text-base font-medium text-gray-900">
+                                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                                    <p className="text-base font-medium text-foreground">
                                         {formatDate(dispute.created_at)}
                                     </p>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium text-gray-500">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Operativo Responsable
                                 </label>
-                                <p className="text-base font-medium text-gray-900 mt-1">
+                                <p className="text-base font-medium text-foreground mt-1">
                                     {dispute.operativo || dispute.ot_data?.operativo || (
-                                        <span className="text-gray-400 italic">Sin asignar</span>
+                                        <span className="text-muted-foreground italic">Sin asignar</span>
                                     )}
                                 </p>
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium text-gray-500">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Cliente
                                 </label>
-                                <p className="text-base font-medium text-gray-900 mt-1">
+                                <p className="text-base font-medium text-foreground mt-1">
                                     {dispute.ot_data?.cliente_nombre || (
-                                        <span className="text-gray-400 italic">-</span>
+                                        <span className="text-muted-foreground italic">-</span>
                                     )}
                                 </p>
                             </div>
 
                             <div className="col-span-2">
-                                <label className="text-sm font-medium text-gray-500">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Detalle de la Disputa
                                 </label>
-                                <p className="text-gray-900 mt-2 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg min-h-[60px]">
+                                <p className="text-foreground mt-2 leading-relaxed whitespace-pre-wrap bg-muted p-4 rounded-lg min-h-[60px]">
                                     {dispute.detalle}
                                 </p>
                             </div>
 
                             {dispute.resolucion && (
                                 <div className="col-span-2">
-                                    <label className="text-sm font-medium text-gray-500">
+                                    <label className="text-sm font-medium text-muted-foreground">
                                         Descripción de la Resolución
                                     </label>
-                                    <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="mt-2 bg-primary/10 border border-blue-200 rounded-lg p-4">
                                         <p className="text-sm text-blue-900 whitespace-pre-wrap">
                                             {dispute.resolucion}
                                         </p>
@@ -283,15 +283,15 @@ export function DisputeDetailPage() {
                             <CardContent className="p-4">
                                 <Link
                                     to={`/invoices/${dispute.invoice_data.id}`}
-                                    className="block hover:bg-gray-50 rounded-lg p-3 -m-3 transition-colors"
+                                    className="block hover:bg-muted rounded-lg p-3 -m-3 transition-colors"
                                 >
-                                    <p className="font-semibold text-blue-600 hover:text-blue-800">
+                                    <p className="font-semibold text-primary hover:text-blue-800">
                                         {dispute.invoice_data.numero_factura}
                                     </p>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         {dispute.invoice_data.proveedor_nombre}
                                     </p>
-                                    <p className="text-sm font-semibold text-gray-900 mt-2">
+                                    <p className="text-sm font-semibold text-foreground mt-2">
                                         $
                                         {parseFloat(dispute.invoice_data.monto).toLocaleString(
                                             "es-MX",
@@ -317,16 +317,16 @@ export function DisputeDetailPage() {
                             <CardContent className="p-4">
                                 <Link
                                     to={`/ots/${dispute.ot_data.id}`}
-                                    className="block hover:bg-gray-50 rounded-lg p-3 -m-3 transition-colors"
+                                    className="block hover:bg-muted rounded-lg p-3 -m-3 transition-colors"
                                 >
-                                    <p className="font-semibold text-blue-600 hover:text-blue-800">
+                                    <p className="font-semibold text-primary hover:text-blue-800">
                                         {dispute.ot_data.numero_ot}
                                     </p>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         {dispute.ot_data.cliente_nombre}
                                     </p>
                                     {dispute.ot_data.master_bl && (
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             MBL: {dispute.ot_data.master_bl}
                                         </p>
                                     )}
@@ -345,7 +345,7 @@ export function DisputeDetailPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4">
-                                <p className="font-semibold text-gray-900">
+                                <p className="font-semibold text-foreground">
                                     {dispute.invoice_data.proveedor_nombre}
                                 </p>
                             </CardContent>

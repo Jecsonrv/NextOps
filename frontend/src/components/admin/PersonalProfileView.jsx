@@ -136,7 +136,7 @@ export function PersonalProfileView({ user }) {
                         <CardContent>
                             <Label htmlFor="full_name">Nombre Completo</Label>
                             <Input id="full_name" {...registerName("full_name")} />
-                            {nameErrors.full_name && <p className="text-red-500 text-xs mt-1">{nameErrors.full_name.message}</p>}
+                            {nameErrors.full_name && <p className="text-destructive text-xs mt-1">{nameErrors.full_name.message}</p>}
                         </CardContent>
                         <CardFooter>
                             <Button type="submit" disabled={updateNameMutation.isPending || !isNameDirty}>
@@ -157,12 +157,12 @@ export function PersonalProfileView({ user }) {
                             <div>
                                 <Label htmlFor="email">Email</Label>
                                 <Input id="email" type="email" {...registerEmail("email")} />
-                                {emailErrors.email && <p className="text-red-500 text-xs mt-1">{emailErrors.email.message}</p>}
+                                {emailErrors.email && <p className="text-destructive text-xs mt-1">{emailErrors.email.message}</p>}
                             </div>
                             <div className="!mt-6 border-t pt-6">
                                 <Label htmlFor="current_password_email">Contraseña Actual (para confirmar)</Label>
                                 <Input id="current_password_email" type="password" {...registerEmail("current_password")} />
-                                {emailErrors.current_password && <p className="text-red-500 text-xs mt-1">{emailErrors.current_password.message}</p>}
+                                {emailErrors.current_password && <p className="text-destructive text-xs mt-1">{emailErrors.current_password.message}</p>}
                             </div>
                         </CardContent>
                         <CardFooter>
@@ -185,17 +185,17 @@ export function PersonalProfileView({ user }) {
                         <div>
                             <Label htmlFor="old_password">Contraseña Actual</Label>
                             <Input id="old_password" type="password" {...registerPassword("old_password")} />
-                            {passwordErrors.old_password && <p className="text-red-500 text-xs mt-1">{passwordErrors.old_password.message}</p>}
+                            {passwordErrors.old_password && <p className="text-destructive text-xs mt-1">{passwordErrors.old_password.message}</p>}
                         </div>
                         <div>
                             <Label htmlFor="new_password">Nueva Contraseña</Label>
                             <Input id="new_password" type="password" {...registerPassword("new_password")} />
-                            {passwordErrors.new_password && <p className="text-red-500 text-xs mt-1">{passwordErrors.new_password.message}</p>}
+                            {passwordErrors.new_password && <p className="text-destructive text-xs mt-1">{passwordErrors.new_password.message}</p>}
                         </div>
                         <div>
                             <Label htmlFor="new_password_confirm">Confirmar Nueva Contraseña</Label>
                             <Input id="new_password_confirm" type="password" {...registerPassword("new_password_confirm")} />
-                            {passwordErrors.new_password_confirm && <p className="text-red-500 text-xs mt-1">{passwordErrors.new_password_confirm.message}</p>}
+                            {passwordErrors.new_password_confirm && <p className="text-destructive text-xs mt-1">{passwordErrors.new_password_confirm.message}</p>}
                         </div>
                     </CardContent>
                     <CardFooter>

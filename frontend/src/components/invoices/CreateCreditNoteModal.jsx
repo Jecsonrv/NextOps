@@ -308,7 +308,7 @@ export function CreateCreditNoteModal({
                 <div className="border-b p-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <FileMinus className="w-6 h-6 text-red-600" />
+                            <FileMinus className="w-6 h-6 text-destructive" />
                             <h2 className="text-xl font-semibold">
                                 Crear Nota de Crédito
                             </h2>
@@ -322,7 +322,7 @@ export function CreateCreditNoteModal({
                             <X className="w-5 h-5" />
                         </Button>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                         Asocie una nota de crédito a una factura existente
                     </p>
                 </div>
@@ -332,7 +332,7 @@ export function CreateCreditNoteModal({
                     {!selectedInvoice ? (
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Buscar Factura *
                                 </label>
                                 <div className="flex gap-2 items-center">
@@ -347,7 +347,7 @@ export function CreateCreditNoteModal({
                                         />
                                         {isSearching && (
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                                             </div>
                                         )}
                                     </div>
@@ -362,11 +362,11 @@ export function CreateCreditNoteModal({
                                     </Button>
                                 </div>
                                 {formErrors.invoice && (
-                                    <p className="text-xs text-red-600 mt-1">
+                                    <p className="text-xs text-destructive mt-1">
                                         {formErrors.invoice}
                                     </p>
                                 )}
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     {isSearching
                                         ? "Buscando..."
                                         : searchTerm
@@ -389,7 +389,7 @@ export function CreateCreditNoteModal({
                                     {searchResults.map((invoice) => (
                                         <div
                                             key={invoice.id}
-                                            className="cursor-pointer hover:bg-gray-50 transition-colors border rounded-lg border-gray-200"
+                                            className="cursor-pointer hover:bg-muted transition-colors border rounded-lg border-border"
                                             onClick={() =>
                                                 setSelectedInvoice(invoice)
                                             }
@@ -418,7 +418,7 @@ export function CreateCreditNoteModal({
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-2 text-sm">
                                                             <div>
-                                                                <span className="text-gray-600">
+                                                                <span className="text-muted-foreground">
                                                                     Proveedor:
                                                                 </span>
                                                                 <p className="font-medium">
@@ -427,7 +427,7 @@ export function CreateCreditNoteModal({
                                                                 </p>
                                                             </div>
                                                             <div>
-                                                                <span className="text-gray-600">
+                                                                <span className="text-muted-foreground">
                                                                     Fecha:
                                                                 </span>
                                                                 <p className="font-medium">
@@ -437,7 +437,7 @@ export function CreateCreditNoteModal({
                                                             </div>
                                                             {invoice.ot_data && (
                                                                 <div>
-                                                                    <span className="text-gray-600">
+                                                                    <span className="text-muted-foreground">
                                                                         OT:
                                                                     </span>
                                                                     <p className="font-medium">
@@ -450,7 +450,7 @@ export function CreateCreditNoteModal({
                                                                 </div>
                                                             )}
                                                             <div>
-                                                                <span className="text-gray-600">
+                                                                <span className="text-muted-foreground">
                                                                     Estado:
                                                                 </span>
                                                                 <Badge
@@ -470,16 +470,16 @@ export function CreateCreditNoteModal({
                                 </div>
                             ) : searchTerm && !isSearching ? (
                                 <div className="text-center py-12">
-                                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                    <p className="text-gray-600">
+                                    <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                                    <p className="text-muted-foreground">
                                         No se encontraron facturas con &ldquo;
                                         {searchTerm}&rdquo;
                                     </p>
                                 </div>
                             ) : !searchTerm ? (
                                 <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                    <p className="text-gray-600">
+                                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                                    <p className="text-muted-foreground">
                                         Ingresa un término de búsqueda para
                                         encontrar facturas
                                     </p>
@@ -491,7 +491,7 @@ export function CreateCreditNoteModal({
                             {/* Factura seleccionada */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-foreground">
                                         Factura Seleccionada
                                     </label>
                                     <Button
@@ -503,7 +503,7 @@ export function CreateCreditNoteModal({
                                         Cambiar
                                     </Button>
                                 </div>
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
                                     <div className="flex items-center gap-3 mb-2">
                                         <span className="font-semibold text-lg text-blue-900">
                                             {selectedInvoice.numero_factura}
@@ -519,19 +519,19 @@ export function CreateCreditNoteModal({
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                         <div>
-                                            <span className="text-gray-600">
+                                            <span className="text-muted-foreground">
                                                 Proveedor:
                                             </span>
-                                            <p className="font-medium text-gray-900">
+                                            <p className="font-medium text-foreground">
                                                 {selectedInvoice.proveedor_nombre ||
                                                     "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600">
+                                            <span className="text-muted-foreground">
                                                 Fecha:
                                             </span>
-                                            <p className="font-medium text-gray-900">
+                                            <p className="font-medium text-foreground">
                                                 {selectedInvoice.fecha_emision ||
                                                     "N/A"}
                                             </p>
@@ -542,13 +542,13 @@ export function CreateCreditNoteModal({
 
                             {/* Formulario de nota de crédito */}
                             <div className="space-y-4 border-t pt-4">
-                                <h3 className="font-semibold text-gray-900">
+                                <h3 className="font-semibold text-foreground">
                                     Información de la Nota de Crédito
                                 </h3>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Número de Nota *
                                         </label>
                                         <Input
@@ -559,14 +559,14 @@ export function CreateCreditNoteModal({
                                             disabled={isSubmitting}
                                         />
                                         {formErrors.numero_nota && (
-                                            <p className="text-xs text-red-600 mt-1">
+                                            <p className="text-xs text-destructive mt-1">
                                                 {formErrors.numero_nota}
                                             </p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Monto * (USD)
                                         </label>
                                         <Input
@@ -580,11 +580,11 @@ export function CreateCreditNoteModal({
                                             disabled={isSubmitting}
                                         />
                                         {formErrors.monto && (
-                                            <p className="text-xs text-red-600 mt-1">
+                                            <p className="text-xs text-destructive mt-1">
                                                 {formErrors.monto}
                                             </p>
                                         )}
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Se aplicará como valor negativo.
                                             Máximo: $
                                             {selectedInvoice
@@ -597,7 +597,7 @@ export function CreateCreditNoteModal({
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Fecha de Emisión *
                                         </label>
                                         <Input
@@ -608,14 +608,14 @@ export function CreateCreditNoteModal({
                                             disabled={isSubmitting}
                                         />
                                         {formErrors.fecha_emision && (
-                                            <p className="text-xs text-red-600 mt-1">
+                                            <p className="text-xs text-destructive mt-1">
                                                 {formErrors.fecha_emision}
                                             </p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Archivo PDF *
                                         </label>
                                         <div className="relative">
@@ -629,7 +629,7 @@ export function CreateCreditNoteModal({
                                             />
                                             <label
                                                 htmlFor="pdf-upload"
-                                                className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                                                className="flex items-center justify-center gap-2 px-4 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors"
                                             >
                                                 <Upload className="w-4 h-4" />
                                                 {formData.pdf_file
@@ -638,7 +638,7 @@ export function CreateCreditNoteModal({
                                             </label>
                                         </div>
                                         {formErrors.pdf_file && (
-                                            <p className="text-xs text-red-600 mt-1">
+                                            <p className="text-xs text-destructive mt-1">
                                                 {formErrors.pdf_file}
                                             </p>
                                         )}
@@ -657,7 +657,7 @@ export function CreateCreditNoteModal({
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                         Motivo (opcional)
                                     </label>
                                     <textarea
@@ -665,7 +665,7 @@ export function CreateCreditNoteModal({
                                         value={formData.motivo}
                                         onChange={handleInputChange}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Describe el motivo de la nota de crédito..."
                                         disabled={isSubmitting}
                                     />
@@ -691,8 +691,8 @@ export function CreateCreditNoteModal({
 
                     {/* Error */}
                     {error && !successMessage && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="font-semibold text-red-900">
                                     Error
@@ -706,7 +706,7 @@ export function CreateCreditNoteModal({
                 </div>
 
                 {/* Footer con acciones */}
-                <div className="border-t p-6 flex items-center justify-between bg-gray-50">
+                <div className="border-t p-6 flex items-center justify-between bg-muted">
                     <Button
                         variant="outline"
                         onClick={onClose}

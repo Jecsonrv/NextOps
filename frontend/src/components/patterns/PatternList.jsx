@@ -43,11 +43,11 @@ export default function PatternList({ groupId, onEditPattern }) {
         <div className="space-y-2">
             {patterns.length > 0 ? (
                 patterns.map(pattern => (
-                    <div key={pattern.id} className="border p-3 rounded-md bg-gray-50">
+                    <div key={pattern.id} className="border p-3 rounded-md bg-muted">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="font-semibold">{pattern.nombre}</p>
-                                <p className="text-sm text-gray-600 font-mono">{pattern.campo_objetivo}</p>
+                                <p className="text-sm text-muted-foreground font-mono">{pattern.campo_objetivo}</p>
                             </div>
                             <Button size="sm" variant="ghost" onClick={() => onEditPattern(pattern)}>
                                 <Edit className="w-4 h-4" />
@@ -56,7 +56,7 @@ export default function PatternList({ groupId, onEditPattern }) {
                     </div>
                 ))
             ) : (
-                <p className="text-sm text-gray-500">No hay patrones en este grupo.</p>
+                <p className="text-sm text-muted-foreground">No hay patrones en este grupo.</p>
             )}
         </div>
     );

@@ -1,8 +1,14 @@
-import { useState } from 'react';
-import PropTypes from 'prop-types';
-import { DollarSign } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
-import { toast } from 'sonner'; // Assuming sonner or react-hot-toast is used, will check imports in page
+import { useState } from "react";
+import PropTypes from "prop-types";
+import { DollarSign } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../ui/Select";
+import toast from "react-hot-toast";
 
 export function InvoiceCostTypeEditable({ invoice, options, onSave }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -28,7 +34,7 @@ export function InvoiceCostTypeEditable({ invoice, options, onSave }) {
 
     if (isEditing) {
         return (
-             <div className="w-[200px]" onClick={(e) => e.stopPropagation()}>
+            <div className="w-[200px]" onClick={(e) => e.stopPropagation()}>
                 <Select
                     value={invoice.tipo_costo}
                     onValueChange={handleValueChange}
@@ -39,11 +45,15 @@ export function InvoiceCostTypeEditable({ invoice, options, onSave }) {
                     }}
                 >
                     <SelectTrigger className="h-8 text-xs bg-white">
-                         <SelectValue placeholder="Seleccionar..." />
+                        <SelectValue placeholder="Seleccionar..." />
                     </SelectTrigger>
                     <SelectContent>
                         {options.map((option) => (
-                            <SelectItem key={option.code} value={option.code} className="text-xs">
+                            <SelectItem
+                                key={option.code}
+                                value={option.code}
+                                className="text-xs"
+                            >
                                 {option.name}
                             </SelectItem>
                         ))}
@@ -54,7 +64,7 @@ export function InvoiceCostTypeEditable({ invoice, options, onSave }) {
     }
 
     return (
-        <div 
+        <div
             onClick={(e) => {
                 e.stopPropagation();
                 setIsEditing(true);

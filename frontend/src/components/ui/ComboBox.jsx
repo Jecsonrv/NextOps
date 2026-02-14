@@ -65,7 +65,7 @@ export function Combobox({ options = [], value, onChange, placeholder, searchPla
                   key={option.value}
                   value={option.label}
                   disabled={false}
-                  className="cursor-pointer hover:bg-gray-100 aria-selected:bg-gray-100"
+                  className="cursor-pointer hover:bg-muted aria-selected:bg-muted"
                   onSelect={() => {
                     onChange(option.value)
                     setSearchValue("")

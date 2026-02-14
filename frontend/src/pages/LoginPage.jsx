@@ -70,7 +70,7 @@ export function LoginPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center min-h-screen bg-muted">
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-2 text-center">
                     <div className="flex justify-center mb-2">
@@ -87,7 +87,7 @@ export function LoginPage() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (
-                            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                                 {error}
                             </div>
                         )}
@@ -95,7 +95,7 @@ export function LoginPage() {
                         <div className="space-y-2">
                             <label
                                 htmlFor="email"
-                                className="text-sm font-medium text-gray-700"
+                                className="text-sm font-medium text-foreground"
                             >
                                 Usuario o Email
                             </label>
@@ -114,7 +114,7 @@ export function LoginPage() {
                         <div className="space-y-2">
                             <label
                                 htmlFor="password"
-                                className="text-sm font-medium text-gray-700"
+                                className="text-sm font-medium text-foreground"
                             >
                                 Contraseña
                             </label>

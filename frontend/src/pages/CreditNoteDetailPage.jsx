@@ -229,7 +229,7 @@ export function CreditNoteDetailPage() {
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-                    <p className="text-gray-600">Cargando nota de crédito...</p>
+                    <p className="text-muted-foreground">Cargando nota de crédito...</p>
                 </div>
             </div>
         );
@@ -238,11 +238,11 @@ export function CreditNoteDetailPage() {
     if (error || !creditNote) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                     Error al cargar nota de crédito
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-muted-foreground mb-6">
                     {error?.message || "No se encontró la nota de crédito"}
                 </p>
                 <Button onClick={() => navigate("/invoices/credit-notes")}>
@@ -268,12 +268,12 @@ export function CreditNoteDetailPage() {
                     </Button>
                     <div>
                         <div className="flex items-center gap-3">
-                            <FileMinus className="w-10 h-10 text-red-600" />
-                            <h1 className="text-4xl font-bold text-gray-900">
+                            <FileMinus className="w-10 h-10 text-destructive" />
+                            <h1 className="text-4xl font-bold text-foreground">
                                 {creditNote.numero_nota || `NC #${id}`}
                             </h1>
                         </div>
-                        <p className="text-gray-600 mt-1 text-sm">
+                        <p className="text-muted-foreground mt-1 text-sm">
                             {creditNote.proveedor_nombre || "Sin proveedor"} •
                             Creada {formatDateTime(creditNote.created_at)}
                         </p>
@@ -332,7 +332,7 @@ export function CreditNoteDetailPage() {
                     {/* Información de la Factura Relacionada */}
                     {creditNote.invoice_data && (
                         <Card className="border-blue-200">
-                            <CardHeader className="bg-blue-50 border-b border-blue-200">
+                            <CardHeader className="bg-primary/10 border-b border-blue-200">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-blue-900">
                                         <FileText className="w-5 h-5" />
@@ -343,7 +343,7 @@ export function CreditNoteDetailPage() {
                                         state={{
                                             from: `/invoices/credit-notes/${id}`,
                                         }}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-700 bg-card border border-blue-300 rounded-md hover:bg-primary/10 hover:border-blue-400 transition-colors"
                                     >
                                         <Eye className="w-4 h-4" />
                                         Ver Detalle
@@ -353,10 +353,10 @@ export function CreditNoteDetailPage() {
                             <CardContent className="pt-6">
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Número de Factura
                                         </label>
-                                        <p className="text-lg font-bold text-blue-600 mt-1">
+                                        <p className="text-lg font-bold text-primary mt-1">
                                             {
                                                 creditNote.invoice_data
                                                     .numero_factura
@@ -364,10 +364,10 @@ export function CreditNoteDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Estado
                                         </label>
-                                        <p className="text-sm text-gray-700 mt-1 capitalize">
+                                        <p className="text-sm text-foreground mt-1 capitalize">
                                             {creditNote.invoice_data
                                                 .estado_provision_display ||
                                                 creditNote.invoice_data
@@ -377,12 +377,12 @@ export function CreditNoteDetailPage() {
                                 </div>
 
                                 {/* Cálculo de montos */}
-                                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+                                <div className="mt-4 p-4 bg-muted border border-border rounded-lg space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-700">
+                                        <span className="text-sm text-foreground">
                                             Monto Original de Factura:
                                         </span>
-                                        <span className="font-semibold text-gray-900">
+                                        <span className="font-semibold text-foreground">
                                             $
                                             {parseFloat(
                                                 creditNote.invoice_data.monto ||
@@ -393,10 +393,10 @@ export function CreditNoteDetailPage() {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-700">
+                                        <span className="text-sm text-foreground">
                                             Nota de Crédito:
                                         </span>
-                                        <span className="font-medium text-red-600">
+                                        <span className="font-medium text-destructive">
                                             -$
                                             {Math.abs(
                                                 parseFloat(
@@ -407,12 +407,12 @@ export function CreditNoteDetailPage() {
                                             })}
                                         </span>
                                     </div>
-                                    <div className="pt-3 border-t-2 border-gray-300">
+                                    <div className="pt-3 border-t-2 border-border">
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-gray-800">
+                                            <span className="font-bold text-foreground">
                                                 Monto Restante de Factura:
                                             </span>
-                                            <span className="text-xl font-bold text-green-600">
+                                            <span className="text-xl font-bold text-emerald-600">
                                                 $
                                                 {(
                                                     parseFloat(
@@ -430,7 +430,7 @@ export function CreditNoteDetailPage() {
                                                 })}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-1 text-right">
+                                        <p className="text-xs text-muted-foreground mt-1 text-right">
                                             Monto aplicable tras NC
                                         </p>
                                     </div>
@@ -453,7 +453,7 @@ export function CreditNoteDetailPage() {
                                         state={{
                                             from: `/invoices/credit-notes/${id}`,
                                         }}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-white border border-indigo-300 rounded-md hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-card border border-indigo-300 rounded-md hover:bg-indigo-50 hover:border-indigo-400 transition-colors"
                                     >
                                         <Eye className="w-4 h-4" />
                                         Ver Detalle
@@ -464,12 +464,12 @@ export function CreditNoteDetailPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     {creditNote.ot_data.operativo && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Operativo
                                             </label>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <User className="w-4 h-4 text-gray-400" />
-                                                <p className="font-medium text-gray-900">
+                                                <User className="w-4 h-4 text-muted-foreground" />
+                                                <p className="font-medium text-foreground">
                                                     {
                                                         creditNote.ot_data
                                                             .operativo
@@ -479,7 +479,7 @@ export function CreditNoteDetailPage() {
                                         </div>
                                     )}
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Número OT
                                         </label>
                                         <p className="text-lg font-bold text-indigo-600 mt-1">
@@ -488,10 +488,10 @@ export function CreditNoteDetailPage() {
                                     </div>
                                     {creditNote.ot_data.cliente_nombre && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Cliente
                                             </label>
-                                            <p className="font-medium text-gray-900 mt-1">
+                                            <p className="font-medium text-foreground mt-1">
                                                 {
                                                     creditNote.ot_data
                                                         .cliente_nombre
@@ -501,22 +501,22 @@ export function CreditNoteDetailPage() {
                                     )}
                                     {creditNote.ot_data.master_bl && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 MBL
                                             </label>
-                                            <p className="font-mono text-sm text-gray-900 mt-1">
+                                            <p className="font-mono text-sm text-foreground mt-1">
                                                 {creditNote.ot_data.master_bl}
                                             </p>
                                         </div>
                                     )}
                                     {creditNote.ot_data.naviera && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Naviera
                                             </label>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <Ship className="w-4 h-4 text-gray-400" />
-                                                <p className="text-gray-900">
+                                                <Ship className="w-4 h-4 text-muted-foreground" />
+                                                <p className="text-foreground">
                                                     {creditNote.ot_data.naviera}
                                                 </p>
                                             </div>
@@ -524,10 +524,10 @@ export function CreditNoteDetailPage() {
                                     )}
                                     {creditNote.ot_data.barco && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Barco
                                             </label>
-                                            <p className="text-gray-900 mt-1">
+                                            <p className="text-foreground mt-1">
                                                 {creditNote.ot_data.barco}
                                             </p>
                                         </div>
@@ -541,26 +541,26 @@ export function CreditNoteDetailPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <FileMinus className="w-5 h-5 text-red-600" />
+                                <FileMinus className="w-5 h-5 text-destructive" />
                                 Detalles de la Nota de Crédito
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Número de Nota
                                     </label>
-                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                    <p className="text-lg font-bold text-foreground mt-1">
                                         {creditNote.numero_nota || "SIN NÚMERO"}
                                     </p>
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Monto
                                     </label>
-                                    <p className="text-2xl font-bold text-red-600 mt-1">
+                                    <p className="text-2xl font-bold text-destructive mt-1">
                                         -$
                                         {Math.abs(
                                             parseFloat(creditNote.monto || 0)
@@ -571,12 +571,12 @@ export function CreditNoteDetailPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Fecha de Emisión
                                     </label>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <Calendar className="w-4 h-4 text-gray-400" />
-                                        <p className="text-gray-900">
+                                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                                        <p className="text-foreground">
                                             {formatDateLocalized(
                                                 creditNote.fecha_emision
                                             )}
@@ -586,10 +586,10 @@ export function CreditNoteDetailPage() {
 
                                 {creditNote.motivo && (
                                     <div className="col-span-2">
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Motivo
                                         </label>
-                                        <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap bg-gray-50 p-3 rounded border border-gray-200">
+                                        <p className="text-sm text-foreground mt-2 whitespace-pre-wrap bg-muted p-3 rounded border border-border">
                                             {creditNote.motivo}
                                         </p>
                                     </div>
@@ -609,10 +609,10 @@ export function CreditNoteDetailPage() {
                         <CardContent>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Nombre
                                     </label>
-                                    <p className="text-lg font-bold text-gray-900 mt-1">
+                                    <p className="text-lg font-bold text-foreground mt-1">
                                         {creditNote.proveedor?.nombre ||
                                             creditNote.proveedor_nombre ||
                                             "Sin especificar"}
@@ -631,10 +631,10 @@ export function CreditNoteDetailPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     {creditNote.proveedor?.tipo && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Categoría
                                             </label>
-                                            <p className="text-gray-900 mt-1 capitalize">
+                                            <p className="text-foreground mt-1 capitalize">
                                                 {creditNote.proveedor
                                                     .tipo_display ||
                                                     creditNote.proveedor.tipo}
@@ -644,10 +644,10 @@ export function CreditNoteDetailPage() {
 
                                     {creditNote.proveedor?.payment_terms && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Condiciones de Crédito
                                             </label>
-                                            <p className="text-gray-900 mt-1">
+                                            <p className="text-foreground mt-1">
                                                 {
                                                     creditNote.proveedor
                                                         .payment_terms
@@ -685,7 +685,7 @@ export function CreditNoteDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-600 mb-2">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">
                                     Estado de la Nota
                                 </p>
                                 <Badge
@@ -721,10 +721,10 @@ export function CreditNoteDetailPage() {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <label className="text-xs font-medium text-gray-600 uppercase">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase">
                                         Nombre del Archivo
                                     </label>
-                                    <p className="text-sm text-gray-900 mt-1 break-words font-mono">
+                                    <p className="text-sm text-foreground mt-1 break-words font-mono">
                                         {creditNote.uploaded_file_data
                                             .filename || "NC.pdf"}
                                     </p>
@@ -733,10 +733,10 @@ export function CreditNoteDetailPage() {
                                 <div className="grid grid-cols-2 gap-3">
                                     {creditNote.uploaded_file_data.size_mb && (
                                         <div>
-                                            <label className="text-xs font-medium text-gray-600 uppercase">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase">
                                                 Tamaño
                                             </label>
-                                            <p className="text-sm text-gray-900 mt-1">
+                                            <p className="text-sm text-foreground mt-1">
                                                 {
                                                     creditNote
                                                         .uploaded_file_data
@@ -747,10 +747,10 @@ export function CreditNoteDetailPage() {
                                         </div>
                                     )}
                                     <div>
-                                        <label className="text-xs font-medium text-gray-600 uppercase">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase">
                                             Tipo
                                         </label>
-                                        <p className="text-sm text-gray-900 mt-1 font-medium">
+                                        <p className="text-sm text-foreground mt-1 font-medium">
                                             {creditNote.uploaded_file_data
                                                 .content_type ===
                                             "application/pdf"
@@ -763,7 +763,7 @@ export function CreditNoteDetailPage() {
                                     </div>
                                 </div>
 
-                                <div className="pt-3 border-t border-gray-200 space-y-2">
+                                <div className="pt-3 border-t border-border space-y-2">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -797,7 +797,7 @@ export function CreditNoteDetailPage() {
                                             : "Descargar archivo"}
                                     </Button>
                                     {fileActions.error && (
-                                        <p className="text-xs text-red-600 text-center">
+                                        <p className="text-xs text-destructive text-center">
                                             {fileActions.error}
                                         </p>
                                     )}
@@ -821,7 +821,7 @@ export function CreditNoteDetailPage() {
                             ¿Estás seguro de que deseas eliminar esta nota de
                             crédito?
                         </p>
-                        <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm">
+                        <div className="bg-muted p-3 rounded border border-border text-sm">
                             <p>
                                 <strong>Número:</strong>{" "}
                                 {creditNote?.numero_nota}
@@ -843,7 +843,7 @@ export function CreditNoteDetailPage() {
                                 </p>
                             )}
                         </div>
-                        <p className="mt-3 text-red-600 font-medium">
+                        <p className="mt-3 text-destructive font-medium">
                             Esta acción no se puede deshacer. Si la nota está
                             aplicada, se revertirá el monto en la factura.
                         </p>

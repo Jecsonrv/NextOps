@@ -51,7 +51,7 @@ export function AssociateSalesInvoiceModal({ invoice, onClose, onSuccess }) {
             <CardTitle>Asociar Factura de Venta</CardTitle>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -59,7 +59,7 @@ export function AssociateSalesInvoiceModal({ invoice, onClose, onSuccess }) {
         </CardHeader>
         <CardContent>
           <div className="mb-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-900">
                 <strong>Factura de Costo:</strong> {invoice.numero_factura}
               </p>
@@ -92,16 +92,16 @@ export function AssociateSalesInvoiceModal({ invoice, onClose, onSuccess }) {
             <div>
               {!invoice?.ot?.id ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">Esta factura de costo no tiene OT asignada.</p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-muted-foreground">Esta factura de costo no tiene OT asignada.</p>
+                  <p className="text-sm text-muted-foreground mt-2">
                     Asigna una OT primero para poder asociar facturas de venta.
                   </p>
                 </div>
               ) : salesInvoices.length === 0 ? (
                 <div className="text-center py-8">
-                  <Upload className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-600">No hay facturas de venta para esta OT</p>
-                  <p className="text-sm text-gray-500 mt-2">Crea una nueva factura de venta</p>
+                  <Upload className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No hay facturas de venta para esta OT</p>
+                  <p className="text-sm text-muted-foreground mt-2">Crea una nueva factura de venta</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -111,15 +111,15 @@ export function AssociateSalesInvoiceModal({ invoice, onClose, onSuccess }) {
                       onClick={() => setSelectedSalesInvoice(si)}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         selectedSalesInvoice?.id === si.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-500 bg-primary/10'
+                          : 'border-border hover:border-border'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{si.numero_factura}</p>
-                          <p className="text-sm text-gray-600">Cliente: {si.cliente_nombre || 'N/A'}</p>
-                          <p className="text-sm text-gray-500">Fecha: {si.fecha_emision}</p>
+                          <p className="font-semibold text-foreground">{si.numero_factura}</p>
+                          <p className="text-sm text-muted-foreground">Cliente: {si.cliente_nombre || 'N/A'}</p>
+                          <p className="text-sm text-muted-foreground">Fecha: {si.fecha_emision}</p>
                         </div>
                         <div className="text-right">
                                                       <p className="text-lg font-bold text-green-600">
@@ -145,8 +145,8 @@ export function AssociateSalesInvoiceModal({ invoice, onClose, onSuccess }) {
           ) : (
             <div>
               <div className="text-center py-8">
-                <Plus className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-600 mb-4">Crear nueva factura de venta</p>
+                <Plus className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground mb-4">Crear nueva factura de venta</p>
                 <Button
                   onClick={() => {
                     navigate(`/sales/invoices/new?ot_id=${invoice.ot?.id}&cost_invoice_id=${invoice.id}`);

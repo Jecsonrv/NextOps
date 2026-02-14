@@ -40,49 +40,49 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
             <div className="inline-block min-w-full align-middle">
                 <table className="min-w-full text-sm border-separate border-spacing-0">
                     <thead>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-muted">
                             {/* OT - fija */}
-                            <th className="sticky left-0 z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-0 z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 OT
                             </th>
 
                             {/* ESTATUS - fija */}
-                            <th className="sticky left-[100px] sm:left-[130px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[100px] sm:left-[130px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 Estatus
                             </th>
 
                             {/* OPERATIVO - fija */}
-                            <th className="sticky left-[200px] sm:left-[250px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[200px] sm:left-[250px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 Operativo
                             </th>
 
                             {/* CLIENTE - fija */}
-                            <th className="sticky left-[300px] sm:left-[370px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[300px] sm:left-[370px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 Cliente
                             </th>
 
                             {/* MBL - última fija */}
-                            <th className="sticky left-[420px] sm:left-[510px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r-2 border-gray-400 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                            <th className="sticky left-[420px] sm:left-[510px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                 MBL
                             </th>
 
                             {/* Resto de columnas - scrollables */}
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Contenedores
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Naviera
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Barco
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 F. Provisión
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 F. Facturación
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Acciones
                             </th>
                         </tr>
@@ -92,14 +92,14 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                         {ots.map((ot) => (
                             <tr
                                 key={ot.id}
-                                className="hover:bg-blue-50 transition-colors"
+                                className="hover:bg-primary/10 transition-colors"
                             >
                                 {/* OT - fija */}
-                                <td className="sticky left-0 z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-0 z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                         <Link
                                             to={`/ots/${ot.id}`}
-                                            className="font-medium text-xs sm:text-sm text-blue-600 hover:text-blue-800"
+                                            className="font-medium text-xs sm:text-sm text-primary hover:text-blue-800"
                                         >
                                             {ot.numero_ot}
                                         </Link>
@@ -112,7 +112,7 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                 </td>
 
                                 {/* ESTATUS - fija */}
-                                <td className="sticky left-[100px] sm:left-[130px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[100px] sm:left-[130px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     <Badge
                                         variant={estadoColors[ot.estado] || "default"}
                                         className="text-xs"
@@ -122,42 +122,42 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                 </td>
 
                                 {/* OPERATIVO - fija */}
-                                <td className="sticky left-[200px] sm:left-[250px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[200px] sm:left-[250px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {ot.operativo || "-"}
                                 </td>
 
                                 {/* CLIENTE - fija */}
-                                <td className="sticky left-[300px] sm:left-[370px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[300px] sm:left-[370px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {ot.cliente_nombre || "-"}
                                 </td>
 
                                 {/* MBL - última fija */}
-                                <td className="sticky left-[420px] sm:left-[510px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-r-2 border-gray-400 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                                <td className="sticky left-[420px] sm:left-[510px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                     {ot.mbl || "-"}
                                 </td>
 
                                 {/* Resto de columnas - scrollables */}
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {ot.contenedores_list || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {ot.proveedor_nombre || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {ot.barco || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {formatDate(ot.fecha_provision)}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {formatDate(ot.fecha_recepcion_factura)}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-right border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-right border-b border-border whitespace-nowrap">
                                     <div className="flex justify-end gap-1">
                                         <Button
                                             variant="ghost"
@@ -185,7 +185,7 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                             disabled={deletingId === ot.id}
                                             className="h-8 w-8"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600" />
+                                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive" />
                                         </Button>
                                     </div>
                                 </td>

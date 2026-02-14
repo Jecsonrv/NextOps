@@ -7,6 +7,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from django.core.files.storage import storages
@@ -50,10 +51,10 @@ from .serializers import (
     CreditNoteUpdateSerializer,
 )
 from common.permissions import IsAdminOrJefeOps, IsAdminOrFinanzas, CanImportData
-from common.mixins import RoleBasedFieldValidationMixin
+from common.mixins import RoleBasedFieldValidationMixin, CloudinaryFileMixin
 
 
-class InvoiceViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
+class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestión de facturas.
     
@@ -74,6 +75,20 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
         'ot', 'proveedor', 'uploaded_file'
     )
     lookup_value_regex = r'[0-9]+'
+    cloudinary_file_field = 'uploaded_file'
+
+    def get_download_filename(self, obj):
+        friendly = self._generate_friendly_filename(obj)
+        if friendly:
+            return friendly
+        if obj.uploaded_file and obj.uploaded_file.filename:
+            return obj.uploaded_file.filename
+        return f"factura_{obj.numero_factura}.pdf"
+
+    def get_file_content_type(self, obj):
+        if obj.uploaded_file and obj.uploaded_file.content_type:
+            return obj.uploaded_file.content_type
+        return 'application/octet-stream'
 
     # Define editable fields by role for RoleBasedFieldValidationMixin
     role_editable_fields = {
@@ -249,189 +264,6 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
         ).order_by('estado_prioridad', '-fecha_emision', '-created_at')
 
         return queryset.distinct()
-    
-    @action(detail=True, methods=['get'], url_path='file')
-    def retrieve_file(self, request, pk=None):
-        """Permite descargar o previsualizar el archivo original de la factura."""
-        from django.shortcuts import redirect
-        from django.conf import settings
-
-        invoice = self.get_object()
-
-        if not invoice.uploaded_file:
-            return Response(
-                {'detail': 'La factura no tiene archivo asociado.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        storage_path = invoice.uploaded_file.path
-
-        # If using Cloudinary, fetch and serve file (proxy)
-        # CRITICAL: Cloudinary raw files (PDFs) cannot be accessed directly via public URLs
-        # We need to download from Cloudinary using signed URLs and serve through our backend
-        if getattr(settings, 'USE_CLOUDINARY', False):
-            try:
-                import cloudinary.utils
-                import requests
-
-                logger.info(f"Fetching file from Cloudinary: {storage_path}")
-                logger.info(f"Invoice ID: {invoice.id}, Filename: {invoice.uploaded_file.filename}")
-
-                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
-                # But we may have saved it WITH extension in older uploads
-                # Try both approaches
-
-                import os
-                base_name, ext = os.path.splitext(storage_path)
-                ext_clean = ext.lstrip('.')
-
-                # Try 1: Without extension (correct for raw files)
-                public_id_candidates = []
-                if ext:
-                    public_id_candidates.append(base_name)
-                public_id_candidates.append(storage_path)
-                unique_candidates = []
-                for candidate in public_id_candidates:
-                    if candidate and candidate not in unique_candidates:
-                        unique_candidates.append(candidate)
-
-                cloudinary_response = None
-                last_status = None
-
-                for public_id in unique_candidates:
-                    logger.info(f"Trying public_id: {public_id}")
-                    for cloudinary_type in ('authenticated', 'upload'):
-                        try:
-                            format_arg = None
-                            if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
-                                format_arg = ext_clean
-
-                            cloudinary_options = {
-                                'resource_type': 'raw',
-                                'type': cloudinary_type,
-                                'secure': True,
-                                'sign_url': True,
-                            }
-                            if format_arg:
-                                cloudinary_options['format'] = format_arg
-
-                            download_url, _ = cloudinary.utils.cloudinary_url(
-                                public_id,
-                                **cloudinary_options,
-                            )
-                            logger.info(f"Generated signed CDN URL ({cloudinary_type}): {download_url[:100]}...")
-                        except Exception as url_error:
-                            logger.error(f"Error generating signed URL ({cloudinary_type}): {url_error}")
-                            continue
-
-                        logger.info(f"Downloading from Cloudinary CDN...")
-                        response = requests.get(download_url, timeout=30)
-                        logger.info(f"Cloudinary response status: {response.status_code}")
-
-                        if response.status_code == 200:
-                            cloudinary_response = response
-                            break
-
-                        if response.status_code == 404:
-                            logger.error(f"File not found in Cloudinary: {public_id}")
-                            last_status = 404
-                            continue
-
-                        logger.error(f"Cloudinary download failed: {response.status_code}")
-                        logger.error(f"Response: {response.text[:500]}")
-                        last_status = response.status_code
-
-                    if cloudinary_response:
-                        break
-
-                if not cloudinary_response:
-                    if last_status == 404:
-                        return Response(
-                            {'detail': f'Archivo no encontrado en Cloudinary. Por favor, suba la factura nuevamente.'},
-                            status=status.HTTP_404_NOT_FOUND
-                        )
-
-                    detail_status = last_status or 'desconocido'
-                    return Response(
-                        {'detail': f'Error al descargar archivo de Cloudinary: {detail_status}'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-
-                # Serve file content through our backend
-                from django.http import HttpResponse
-
-                content_type = invoice.uploaded_file.content_type or 'application/pdf'
-                file_content = cloudinary_response.content
-
-                logger.info(f"File downloaded, size: {len(file_content)} bytes")
-
-                # Generate friendly filename
-                filename = self._generate_friendly_filename(invoice)
-                if not filename:
-                    filename = invoice.uploaded_file.filename or storage_path.split('/')[-1]
-
-                response = HttpResponse(file_content, content_type=content_type)
-
-                download_flag = str(request.query_params.get('download', '')).lower()
-                disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-                response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-                response['Content-Length'] = len(file_content)
-                response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-                logger.info(f"✓ File served successfully: {filename}")
-                return response
-
-            except requests.exceptions.Timeout:
-                logger.error(f'Timeout al descargar de Cloudinary')
-                return Response(
-                    {'detail': 'Timeout al descargar el archivo. Intente nuevamente.'},
-                    status=status.HTTP_504_GATEWAY_TIMEOUT
-                )
-            except requests.exceptions.RequestException as req_exc:
-                logger.error(f'Error de red al descargar de Cloudinary: {req_exc}', exc_info=True)
-                return Response(
-                    {'detail': f'Error de conexión con Cloudinary: {req_exc}'},
-                    status=status.HTTP_502_BAD_GATEWAY
-                )
-            except Exception as exc:
-                logger.error(f'Error inesperado al servir archivo de Cloudinary: {exc}', exc_info=True)
-                return Response(
-                    {'detail': f'Error al obtener archivo: {str(exc)}'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        # For local filesystem, serve file normally
-        if not get_storage().exists(storage_path):
-            return Response(
-                {'detail': 'Archivo no encontrado en el almacenamiento.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        try:
-            file_handle = get_storage().open(storage_path, 'rb')
-        except Exception as exc:  # pragma: no cover
-            return Response(
-                {'detail': f'No se pudo abrir el archivo: {exc}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        # Generar nombre de archivo amigable usando short_name del cliente si existe
-        filename = self._generate_friendly_filename(invoice)
-        if not filename:
-            # Fallback al nombre original
-            filename = invoice.uploaded_file.filename or storage_path.split('/')[-1]
-
-        content_type = invoice.uploaded_file.content_type or 'application/octet-stream'
-
-        response = FileResponse(file_handle, content_type=content_type)
-
-        download_flag = str(request.query_params.get('download', '')).lower()
-        disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-        response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-        response['Content-Length'] = invoice.uploaded_file.size
-        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-        return response
     
     def _generate_friendly_filename(self, invoice):
         """
@@ -1573,65 +1405,12 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
 
     def _fetch_cloudinary_file(self, invoice):
         """
-        Descarga un archivo desde Cloudinary con manejo robusto de errores.
+        Descarga un archivo desde Cloudinary usando la utilidad centralizada.
         """
-        import cloudinary.utils
-        import requests
-
-        logger = logging.getLogger(__name__)
+        from common.cloudinary_utils import download_from_cloudinary
 
         storage_path = invoice.uploaded_file.path
-        base_name, ext = os.path.splitext(storage_path)
-        ext_clean = ext.lstrip('.')
-
-        candidates = []
-        if ext:
-            candidates.append(base_name)
-        candidates.append(storage_path)
-
-        unique_candidates = []
-        for candidate in candidates:
-            if candidate and candidate not in unique_candidates:
-                unique_candidates.append(candidate)
-
-        last_status = None
-
-        for public_id in unique_candidates:
-            for cloudinary_type in ('authenticated', 'upload'):
-                try:
-                    options = {
-                        'resource_type': 'raw',
-                        'type': cloudinary_type,
-                        'secure': True,
-                        'sign_url': True,
-                    }
-                    if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
-                        options['format'] = ext_clean
-
-                    download_url, _ = cloudinary.utils.cloudinary_url(public_id, **options)
-                except Exception as error:
-                    logger.error(f"Error generando URL firmada ({cloudinary_type}) para factura {invoice.id}: {error}")
-                    continue
-
-                try:
-                    response = requests.get(download_url, timeout=30)
-                except requests.exceptions.Timeout:
-                    logger.error(f"Timeout descargando archivo Cloudinary para factura {invoice.id}")
-                    continue
-                except requests.exceptions.RequestException as req_exc:
-                    logger.error(f"Error de red descargando archivo Cloudinary para factura {invoice.id}: {req_exc}")
-                    continue
-
-                if response.status_code == 200:
-                    return response.content
-
-                last_status = response.status_code
-                logger.error(f"Error descargando archivo Cloudinary para factura {invoice.id}: {response.status_code}")
-
-        if last_status == 404:
-            raise FileNotFoundError(storage_path)
-
-        raise IOError(f"Cloudinary download failed with status {last_status}")
+        return download_from_cloudinary(storage_path)
 
 
 class UploadedFileViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1778,6 +1557,7 @@ class DisputeViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def resolve(self, request, pk=None):
         """
         Resolver disputa con opción de crear nota de crédito.
@@ -1956,7 +1736,7 @@ def create_dispute(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CreditNoteViewSet(viewsets.ModelViewSet):
+class CreditNoteViewSet(CloudinaryFileMixin, viewsets.ModelViewSet):
     """
     ViewSet para gestión de notas de crédito.
 
@@ -1968,6 +1748,17 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
     queryset = CreditNote.objects.filter(is_deleted=False).select_related(
         'proveedor', 'invoice_relacionada', 'uploaded_file'
     )
+    cloudinary_file_field = 'uploaded_file'
+
+    def get_download_filename(self, obj):
+        if obj.uploaded_file and obj.uploaded_file.filename:
+            return obj.uploaded_file.filename
+        return f"NC_{obj.numero_nota}.pdf"
+
+    def get_file_content_type(self, obj):
+        if obj.uploaded_file and obj.uploaded_file.content_type:
+            return obj.uploaded_file.content_type
+        return 'application/pdf'
 
     def get_permissions(self):
         """Permisos diferenciados por acción"""
@@ -2299,147 +2090,6 @@ class CreditNoteViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error creando nota de crédito: {e}", exc_info=True)
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(detail=True, methods=['get'], url_path='file')
-    def retrieve_file(self, request, pk=None):
-        """
-        Permite descargar o previsualizar el archivo original de la nota de crédito.
-        Actúa como proxy para servir archivos desde Cloudinary.
-        """
-        from django.shortcuts import redirect
-        from django.conf import settings
-
-        credit_note = self.get_object()
-
-        if not credit_note.uploaded_file:
-            return Response(
-                {'detail': 'La nota de crédito no tiene archivo asociado.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        storage_path = credit_note.uploaded_file.path
-
-        # Si usamos Cloudinary, servir archivo como proxy (igual que facturas de costo)
-        if getattr(settings, 'USE_CLOUDINARY', False):
-            try:
-                import cloudinary.utils
-                import requests
-
-                logger.info(f"Fetching credit note file from Cloudinary: {storage_path}")
-                logger.info(f"Credit Note ID: {credit_note.id}, Filename: {credit_note.uploaded_file.filename}")
-
-                # CRITICAL: Cloudinary stores raw files WITHOUT extension in the public_id
-                # But we may have saved it WITH extension in older uploads
-                # Try both approaches
-
-                import os
-                base_name, ext = os.path.splitext(storage_path)
-                ext_clean = ext.lstrip('.')
-
-                # Try 1: Without extension (correct for raw files)
-                public_id_candidates = []
-                if ext:
-                    public_id_candidates.append(base_name)
-                public_id_candidates.append(storage_path)
-                unique_candidates = []
-                for candidate in public_id_candidates:
-                    if candidate and candidate not in unique_candidates:
-                        unique_candidates.append(candidate)
-
-                cloudinary_response = None
-                last_status = None
-
-                for public_id in unique_candidates:
-                    logger.info(f"Trying public_id: {public_id}")
-                    for cloudinary_type in ('authenticated', 'upload'):
-                        try:
-                            format_arg = None
-                            if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
-                                format_arg = ext_clean
-
-                            cloudinary_options = {
-                                'resource_type': 'raw',
-                                'type': cloudinary_type,
-                                'secure': True,
-                                'sign_url': True,
-                            }
-                            if format_arg:
-                                cloudinary_options['format'] = format_arg
-
-                            download_url, _ = cloudinary.utils.cloudinary_url(
-                                public_id,
-                                **cloudinary_options,
-                            )
-                            logger.info(f"Generated signed CDN URL ({cloudinary_type}): {download_url[:100]}...")
-                        except Exception as url_error:
-                            logger.error(f"Error generating signed URL ({cloudinary_type}): {url_error}")
-                            continue
-
-                        logger.info(f"Downloading from Cloudinary CDN...")
-                        response = requests.get(download_url, timeout=30)
-                        logger.info(f"Cloudinary response status: {response.status_code}")
-
-                        if response.status_code == 200:
-                            cloudinary_response = response
-                            logger.info(f"✅ SUCCESS: Downloaded {len(response.content)} bytes")
-                            break
-                        elif response.status_code == 404:
-                            logger.warning(f"404: File not found with public_id={public_id}, type={cloudinary_type}")
-                        else:
-                            logger.warning(f"Unexpected status {response.status_code} for {public_id}")
-
-                    if cloudinary_response:
-                        break
-
-                if cloudinary_response is None:
-                    logger.error(f"All download attempts failed for credit note {credit_note.id}")
-                    return Response(
-                        {'detail': 'No se pudo descargar el archivo desde Cloudinary después de múltiples intentos.'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                # Servir el archivo descargado
-                filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
-                content_type = credit_note.uploaded_file.content_type or 'application/pdf'
-
-                response_file = HttpResponse(cloudinary_response.content, content_type=content_type)
-                download_flag = str(request.query_params.get('download', '')).lower()
-                disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-                response_file['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-                response_file['Content-Length'] = len(cloudinary_response.content)
-                response_file['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-                return response_file
-
-            except Exception as e:
-                logger.error(f"Error al obtener archivo de Cloudinary: {e}", exc_info=True)
-                return Response(
-                    {'detail': f'Error al obtener el archivo: {str(e)}'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        # Para almacenamiento local, servir normalmente
-        if not get_storage().exists(storage_path):
-            return Response(
-                {'detail': 'Archivo no encontrado en el almacenamiento.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        try:
-            file_handle = get_storage().open(storage_path, 'rb')
-        except Exception as exc:
-            return Response(
-                {'detail': f'No se pudo abrir el archivo: {exc}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        filename = credit_note.uploaded_file.filename or f"NC_{credit_note.numero_nota}.pdf"
-        content_type = credit_note.uploaded_file.content_type or 'application/octet-stream'
-        response = FileResponse(file_handle, content_type=content_type)
-        download_flag = str(request.query_params.get('download', '')).lower()
-        disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-        response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-        response['Content-Length'] = credit_note.uploaded_file.size
-        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-        return response
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

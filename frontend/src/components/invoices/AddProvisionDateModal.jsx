@@ -57,10 +57,10 @@ export function AddProvisionDateModal({ isOpen, onClose, invoice }) {
                 <CardHeader className="border-b">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-full bg-blue-100">
-                                <Calendar className="w-6 h-6 text-blue-600" />
+                            <div className="p-2 rounded-full bg-primary/10">
+                                <Calendar className="w-6 h-6 text-primary" />
                             </div>
-                            <CardTitle className="text-xl font-bold text-gray-900">
+                            <CardTitle className="text-xl font-bold text-foreground">
                                 Agregar Fecha de Provisión
                             </CardTitle>
                         </div>
@@ -72,11 +72,11 @@ export function AddProvisionDateModal({ isOpen, onClose, invoice }) {
 
                 <CardContent className="p-6 space-y-5">
                     {/* Info de la factura */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                    <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-foreground mb-2">
                             Factura: {invoice.numero_factura}
                         </h3>
-                        <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+                        <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
                             <p>
                                 <span className="font-medium">Estado:</span>{" "}
                                 {invoice.estado_provision === "anulada_parcialmente"
@@ -112,9 +112,9 @@ export function AddProvisionDateModal({ isOpen, onClose, invoice }) {
                     <div>
                         <label
                             htmlFor="fecha_provision"
-                            className="block text-sm font-medium text-gray-700 mb-2"
+                            className="block text-sm font-medium text-foreground mb-2"
                         >
-                            Fecha de Provisión <span className="text-red-500">*</span>
+                            Fecha de Provisión <span className="text-destructive">*</span>
                         </label>
                         <Input
                             type="date"
@@ -129,18 +129,18 @@ export function AddProvisionDateModal({ isOpen, onClose, invoice }) {
                             }}
                             className={errors.fecha_provision ? "border-red-500" : ""}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Selecciona la fecha en que se provisionará esta factura
                         </p>
                         {errors.fecha_provision && (
-                            <p className="mt-1 text-sm text-red-600">
+                            <p className="mt-1 text-sm text-destructive">
                                 {errors.fecha_provision[0]}
                             </p>
                         )}
                     </div>
                 </CardContent>
 
-                <div className="border-t px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+                <div className="border-t px-6 py-4 bg-muted flex items-center justify-end gap-3">
                     <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
                         Cancelar
                     </Button>

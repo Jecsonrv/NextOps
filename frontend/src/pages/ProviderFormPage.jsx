@@ -161,8 +161,8 @@ export function ProviderFormPage() {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-                    <p className="mt-2 text-gray-600">Cargando proveedor...</p>
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-muted-foreground">Cargando proveedor...</p>
                 </div>
             </div>
         );
@@ -180,10 +180,10 @@ export function ProviderFormPage() {
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         {isEditing ? "Editar Proveedor" : "Nuevo Proveedor"}
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-muted-foreground mt-1">
                         {isEditing
                             ? "Modifica los datos del proveedor"
                             : "Completa la información del nuevo proveedor"}
@@ -203,7 +203,7 @@ export function ProviderFormPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Nombre del Proveedor *
                                 </label>
                                 <Input
@@ -218,14 +218,14 @@ export function ProviderFormPage() {
                                     }
                                 />
                                 {errors.nombre && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.nombre}
                                     </p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     NIT
                                 </label>
                                 <Input
@@ -240,14 +240,14 @@ export function ProviderFormPage() {
                                     }
                                 />
                                 {errors.nit && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.nit}
                                     </p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Tipo *
                                 </label>
                                 <select
@@ -258,7 +258,7 @@ export function ProviderFormPage() {
                                     className={`w-full px-3 py-2 border rounded-md ${
                                         errors.tipo
                                             ? "border-red-500"
-                                            : "border-gray-300"
+                                            : "border-border"
                                     }`}
                                 >
                                     {types?.map((t) => (
@@ -268,14 +268,14 @@ export function ProviderFormPage() {
                                     ))}
                                 </select>
                                 {errors.tipo && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.tipo}
                                     </p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Categoría *
                                 </label>
                                 <select
@@ -289,7 +289,7 @@ export function ProviderFormPage() {
                                     className={`w-full px-3 py-2 border rounded-md ${
                                         errors.categoria
                                             ? "border-red-500"
-                                            : "border-gray-300"
+                                            : "border-border"
                                     }`}
                                 >
                                     {categories?.map((c) => (
@@ -299,7 +299,7 @@ export function ProviderFormPage() {
                                     ))}
                                 </select>
                                 {errors.categoria && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.categoria}
                                     </p>
                                 )}
@@ -316,9 +316,9 @@ export function ProviderFormPage() {
                                                 e.target.checked
                                             )
                                         }
-                                        className="w-4 h-4 text-blue-600 rounded"
+                                        className="w-4 h-4 text-primary rounded"
                                     />
-                                    <span className="text-sm font-medium text-gray-700">
+                                    <span className="text-sm font-medium text-foreground">
                                         Proveedor Activo
                                     </span>
                                 </label>
@@ -335,7 +335,7 @@ export function ProviderFormPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Persona de Contacto
                                 </label>
                                 <Input
@@ -349,7 +349,7 @@ export function ProviderFormPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Teléfono
                                 </label>
                                 <Input
@@ -363,7 +363,7 @@ export function ProviderFormPage() {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Email
                                 </label>
                                 <Input
@@ -378,14 +378,14 @@ export function ProviderFormPage() {
                                     }
                                 />
                                 {errors.email && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.email}
                                     </p>
                                 )}
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Dirección
                                 </label>
                                 <Input
@@ -421,11 +421,11 @@ export function ProviderFormPage() {
                                         e.target.checked
                                     )
                                 }
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                className="w-4 h-4 text-primary rounded focus:ring-blue-500"
                             />
                             <label
                                 htmlFor="tiene_credito"
-                                className="text-sm font-medium text-gray-700 cursor-pointer"
+                                className="text-sm font-medium text-foreground cursor-pointer"
                             >
                                 Este proveedor maneja crédito
                             </label>
@@ -435,7 +435,7 @@ export function ProviderFormPage() {
                             <div className="space-y-4 pl-7 border-l-2 border-blue-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block text-sm font-medium text-foreground mb-1">
                                             Días de Crédito
                                         </label>
                                         <Input
@@ -451,14 +451,14 @@ export function ProviderFormPage() {
                                             }
                                             placeholder="30"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Número de días para pago a crédito
                                         </p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Condiciones de Pago
                                     </label>
                                     <textarea
@@ -471,12 +471,12 @@ export function ProviderFormPage() {
                                         }
                                         placeholder="Ej: 30% adelanto, 70% contra entrega. Penalidad por mora: 2% mensual..."
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Notas de Crédito
                                     </label>
                                     <textarea
@@ -489,7 +489,7 @@ export function ProviderFormPage() {
                                         }
                                         placeholder="Información adicional sobre términos de crédito..."
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
                             </div>
@@ -510,7 +510,7 @@ export function ProviderFormPage() {
                             }
                             placeholder="Información adicional sobre el proveedor..."
                             rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </CardContent>
                 </Card>

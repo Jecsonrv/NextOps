@@ -140,35 +140,35 @@ export default function SupplierPaymentForm({
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Facturas seleccionadas */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                         Facturas a Pagar
                     </label>
-                    <div className="border border-gray-300 rounded-md divide-y max-h-40 overflow-y-auto bg-white">
+                    <div className="border border-border rounded-md divide-y max-h-40 overflow-y-auto bg-white">
                         {invoices.map((inv) => (
                             <div
                                 key={inv.id}
-                                className="p-2.5 flex justify-between items-center text-sm hover:bg-gray-50"
+                                className="p-2.5 flex justify-between items-center text-sm hover:bg-muted"
                             >
                                 <div className="flex-1">
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-gray-700">
+                                        <span className="font-medium text-foreground">
                                             {inv.numero_factura}
                                         </span>
                                         <div className="flex gap-3 mt-0.5">
                                             {inv.ot_number && (
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     {inv.ot_number}
                                                 </span>
                                             )}
                                             {inv.ot_data?.cliente && (
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     • {inv.ot_data.cliente}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                                <span className="font-bold text-gray-900">
+                                <span className="font-bold text-foreground">
                                     $
                                     {parseFloat(inv.monto_pendiente).toFixed(2)}
                                 </span>
@@ -179,9 +179,9 @@ export default function SupplierPaymentForm({
 
                 {/* Fecha de pago */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                         <Calendar className="w-4 h-4" />
-                        Fecha de Pago <span className="text-red-500">*</span>
+                        Fecha de Pago <span className="text-destructive">*</span>
                     </label>
                     <Input
                         id="fecha_pago"
@@ -201,10 +201,10 @@ export default function SupplierPaymentForm({
 
                 {/* Referencia */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                         <FileText className="w-4 h-4" />
                         Referencia de Pago{" "}
-                        <span className="text-red-500">*</span>
+                        <span className="text-destructive">*</span>
                     </label>
                     <Input
                         id="referencia"
@@ -224,14 +224,14 @@ export default function SupplierPaymentForm({
 
                 {/* Comprobante */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                    <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                         <Upload className="w-4 h-4" />
                         Comprobante de Pago{" "}
-                        <span className="text-gray-400 text-xs font-normal">
+                        <span className="text-muted-foreground text-xs font-normal">
                             (opcional)
                         </span>
                     </label>
-                    <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
+                    <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-border rounded-md cursor-pointer hover:bg-muted hover:border-blue-400 transition-all">
                         <input
                             id="comprobante"
                             type="file"
@@ -249,14 +249,14 @@ export default function SupplierPaymentForm({
                             {formData.archivo_comprobante ? (
                                 <>
                                     <Check className="mx-auto h-6 w-6 text-green-600" />
-                                    <span className="mt-1 block text-xs font-medium text-gray-900 truncate max-w-xs px-4">
+                                    <span className="mt-1 block text-xs font-medium text-foreground truncate max-w-xs px-4">
                                         {formData.archivo_comprobante.name}
                                     </span>
                                 </>
                             ) : (
                                 <>
-                                    <Upload className="mx-auto h-6 w-6 text-gray-400" />
-                                    <span className="mt-1 block text-xs text-gray-600">
+                                    <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+                                    <span className="mt-1 block text-xs text-muted-foreground">
                                         Subir comprobante (PDF, JPG, PNG)
                                     </span>
                                 </>
@@ -267,16 +267,16 @@ export default function SupplierPaymentForm({
 
                 {/* Notas */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                         Notas{" "}
-                        <span className="text-gray-400 text-xs font-normal">
+                        <span className="text-muted-foreground text-xs font-normal">
                             (opcional)
                         </span>
                     </label>
                     <textarea
                         id="notas"
                         rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                         placeholder="Observaciones adicionales..."
                         value={formData.notas}
                         onChange={(e) =>
@@ -286,7 +286,7 @@ export default function SupplierPaymentForm({
                 </div>
 
                 {/* Botones */}
-                <div className="flex gap-3 pt-4 border-t border-gray-200 mt-4">
+                <div className="flex gap-3 pt-4 border-t border-border mt-4">
                     <Button
                         type="button"
                         variant="outline"

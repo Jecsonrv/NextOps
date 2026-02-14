@@ -145,19 +145,19 @@ export const showConfirm = (message, onConfirm, onCancel) => {
                             </svg>
                         </div>
                         <div className="ml-3 flex-1">
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-foreground">
                                 {message}
                             </p>
                         </div>
                     </div>
                 </div>
-                <div className="flex border-t border-gray-200 divide-x divide-gray-200">
+                <div className="flex border-t border-border divide-x divide-border">
                     <button
                         onClick={() => {
                             if (onCancel) onCancel();
                             toast.dismiss(t.id);
                         }}
-                        className="w-full border-transparent rounded-none rounded-bl-lg px-4 py-3 flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                        className="w-full border-transparent rounded-none rounded-bl-lg px-4 py-3 flex items-center justify-center text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-500"
                     >
                         Cancelar
                     </button>
@@ -166,7 +166,7 @@ export const showConfirm = (message, onConfirm, onCancel) => {
                             if (onConfirm) onConfirm();
                             toast.dismiss(t.id);
                         }}
-                        className="w-full border-transparent rounded-none rounded-br-lg px-4 py-3 flex items-center justify-center text-sm font-medium text-blue-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border-transparent rounded-none rounded-br-lg px-4 py-3 flex items-center justify-center text-sm font-medium text-primary hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         Confirmar
                     </button>

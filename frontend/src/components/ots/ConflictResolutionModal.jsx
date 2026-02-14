@@ -101,7 +101,7 @@ export function ConflictResolutionModal({
                         </div>
                         <div>
                             <div>Conflictos de Importación Detectados</div>
-                            <div className="text-sm font-normal text-gray-500 mt-1">
+                            <div className="text-sm font-normal text-muted-foreground mt-1">
                                 Se encontraron {conflicts.length} conflicto
                                 {conflicts.length !== 1 ? "s" : ""} en los
                                 campos{" "}
@@ -115,20 +115,20 @@ export function ConflictResolutionModal({
                             </div>
                         </div>
                     </DialogTitle>
-                    <DialogDescription className="text-sm text-gray-600 pt-2">
+                    <DialogDescription className="text-sm text-muted-foreground pt-2">
                         Por favor, seleccione qué valor desea mantener para cada
                         caso. Los demás campos se actualizarán automáticamente
                         sin generar conflictos.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="bg-gray-50 rounded-lg p-4 border">
+                <div className="bg-muted rounded-lg p-4 border">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium text-gray-700">
+                            <div className="text-sm font-medium text-foreground">
                                 Acciones rápidas:
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                                 Aplicar a todos los conflictos
                             </span>
                         </div>
@@ -138,7 +138,7 @@ export function ConflictResolutionModal({
                                 size="sm"
                                 onClick={handleKeepAllCurrent}
                                 disabled={isResolving}
-                                className="bg-white hover:bg-gray-100 border-gray-300"
+                                className="bg-white hover:bg-muted border-border"
                             >
                                 <Database className="h-4 w-4 mr-2" />
                                 Mantener todos los actuales
@@ -148,7 +148,7 @@ export function ConflictResolutionModal({
                                 size="sm"
                                 onClick={handleApplyAllNew}
                                 disabled={isResolving}
-                                className="bg-white hover:bg-blue-50 border-blue-300 text-blue-700 hover:text-blue-800"
+                                className="bg-white hover:bg-primary/10 border-blue-300 text-blue-700 hover:text-blue-800"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
                                 Usar todos los del archivo
@@ -190,9 +190,9 @@ export function ConflictResolutionModal({
                                         return (
                                             <div
                                                 key={`${ot}-${idx}`}
-                                                className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                                                className="bg-white rounded-xl border-2 border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                                             >
-                                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3 border-b border-gray-200">
+                                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-3 border-b border-border">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
                                                             <Badge
@@ -211,34 +211,34 @@ export function ConflictResolutionModal({
                                                             className={`relative border-3 rounded-xl p-3 transition-all ${
                                                                 currentResolution ===
                                                                 "mantener_actual"
-                                                                    ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-200"
-                                                                    : "border-gray-300 bg-gray-50"
+                                                                    ? "border-blue-500 bg-primary/10 shadow-lg shadow-blue-200"
+                                                                    : "border-border bg-muted"
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <Database className="h-4 w-4 text-gray-600" />
-                                                                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                                                                <Database className="h-4 w-4 text-muted-foreground" />
+                                                                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
                                                                     Valor Actual
                                                                     (BD)
                                                                 </div>
                                                             </div>
-                                                            <div className="text-base font-bold text-gray-900 break-words">
+                                                            <div className="text-base font-bold text-foreground break-words">
                                                                 {conflict.valor_actual || (
-                                                                    <span className="text-gray-400 italic">
+                                                                    <span className="text-muted-foreground italic">
                                                                         (vacío)
                                                                     </span>
                                                                 )}
                                                             </div>
                                                             {currentResolution ===
                                                                 "mantener_actual" && (
-                                                                <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-1">
+                                                                <div className="absolute -top-2 -right-2 bg-primary/100 text-white rounded-full p-1">
                                                                     <CheckCircle className="h-5 w-5" />
                                                                 </div>
                                                             )}
                                                         </div>
 
                                                         <div className="flex items-center justify-center">
-                                                            <ArrowRight className="h-6 w-6 text-gray-400" />
+                                                            <ArrowRight className="h-6 w-6 text-muted-foreground" />
                                                         </div>
 
                                                         <div
@@ -246,19 +246,19 @@ export function ConflictResolutionModal({
                                                                 currentResolution ===
                                                                 "usar_nuevo"
                                                                     ? "border-green-500 bg-green-50 shadow-lg shadow-green-200"
-                                                                    : "border-gray-300 bg-gray-50"
+                                                                    : "border-border bg-muted"
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <FileText className="h-4 w-4 text-gray-600" />
-                                                                <div className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
                                                                     Valor Nuevo
                                                                     (Archivo)
                                                                 </div>
                                                             </div>
-                                                            <div className="text-base font-bold text-gray-900 break-words">
+                                                            <div className="text-base font-bold text-foreground break-words">
                                                                 {conflict.valor_nuevo || (
-                                                                    <span className="text-gray-400 italic">
+                                                                    <span className="text-muted-foreground italic">
                                                                         (vacío)
                                                                     </span>
                                                                 )}
@@ -284,8 +284,8 @@ export function ConflictResolutionModal({
                                                             className={`group relative py-2.5 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
                                                                 currentResolution ===
                                                                 "mantener_actual"
-                                                                    ? "bg-blue-500 text-white shadow-md shadow-blue-300 scale-[1.02]"
-                                                                    : "bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
+                                                                    ? "bg-primary/100 text-white shadow-md shadow-blue-300 scale-[1.02]"
+                                                                    : "bg-white border-2 border-border text-foreground hover:border-blue-400 hover:bg-primary/10"
                                                             }`}
                                                         >
                                                             <div className="flex items-center justify-center gap-2">
@@ -314,7 +314,7 @@ export function ConflictResolutionModal({
                                                                 currentResolution ===
                                                                 "usar_nuevo"
                                                                     ? "bg-green-500 text-white shadow-md shadow-green-300 scale-[1.02]"
-                                                                    : "bg-white border-2 border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50"
+                                                                    : "bg-white border-2 border-border text-foreground hover:border-green-400 hover:bg-green-50"
                                                             }`}
                                                         >
                                                             <div className="flex items-center justify-center gap-2">
@@ -340,11 +340,11 @@ export function ConflictResolutionModal({
                     )}
                 </div>
 
-                <div className="border-t bg-gray-50 -mx-6 -mb-6 rounded-b-lg">
+                <div className="border-t bg-muted -mx-6 -mb-6 rounded-b-lg">
                     <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-6 mx-1">
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                             Total de conflictos:{" "}
-                            <strong className="text-gray-900">
+                            <strong className="text-foreground">
                                 {conflicts.length}
                             </strong>
                         </div>

@@ -198,7 +198,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
             <Card className="w-full max-w-3xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
                 <CardHeader className="border-b sticky top-0 bg-white z-10">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-bold text-gray-900">
+                        <CardTitle className="text-xl font-bold text-foreground">
                             {dispute ? "Editar Disputa" : "Nueva Disputa"}
                         </CardTitle>
                         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -209,18 +209,18 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
 
                 <CardContent className="p-6 space-y-5">
                     {errors.non_field_errors && (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                        <div className="bg-destructive/10 border-l-4 border-red-500 p-4 rounded">
                             <div className="flex items-start">
-                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
+                                <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 mr-3" />
                                 <p className="text-red-800 text-sm">{errors.non_field_errors.join(", ")}</p>
                             </div>
                         </div>
                     )}
 
                     {errors.invoice_id && Array.isArray(errors.invoice_id) && errors.invoice_id.length > 0 && (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                        <div className="bg-destructive/10 border-l-4 border-red-500 p-4 rounded">
                             <div className="flex items-start">
-                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
+                                <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 mr-3" />
                                 <p className="text-red-800 text-sm">{errors.invoice_id[0]}</p>
                             </div>
                         </div>
@@ -268,16 +268,16 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     {/* Mostrar factura en modo edición o con factura preseleccionada */}
                     {(dispute || invoice) && selectedInvoice && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Factura Asociada
                             </label>
-                            <Card className="border-blue-200 bg-blue-50">
+                            <Card className="border-blue-200 bg-primary/10">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
-                                        <p className="font-semibold text-gray-900">
+                                        <p className="font-semibold text-foreground">
                                             {selectedInvoice.numero_factura}
                                         </p>
-                                        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                                             <p>
                                                 <span className="font-medium">Proveedor:</span>{" "}
                                                 {selectedInvoice.proveedor_nombre}
@@ -302,13 +302,13 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                     )}
 
                     {errors.invoice_id && (
-                        <p className="text-sm text-red-600 -mt-3">{errors.invoice_id[0]}</p>
+                        <p className="text-sm text-destructive -mt-3">{errors.invoice_id[0]}</p>
                     )}
 
                     {/* Tipo de disputa */}
                     <div>
-                        <label htmlFor="tipo_disputa" className="block text-sm font-medium text-gray-700 mb-2">
-                            Tipo de Disputa <span className="text-red-500">*</span>
+                        <label htmlFor="tipo_disputa" className="block text-sm font-medium text-foreground mb-2">
+                            Tipo de Disputa <span className="text-destructive">*</span>
                         </label>
                         <select
                             id="tipo_disputa"
@@ -316,7 +316,7 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             value={formData.tipo_disputa}
                             onChange={handleChange}
                             className={`w-full px-3 py-2 border ${
-                                errors.tipo_disputa ? "border-red-500" : "border-gray-300"
+                                errors.tipo_disputa ? "border-red-500" : "border-border"
                             } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         >
                             {TIPO_DISPUTA_CHOICES.map((choice) => (
@@ -326,14 +326,14 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             ))}
                         </select>
                         {errors.tipo_disputa && (
-                            <p className="mt-1 text-sm text-red-600">{errors.tipo_disputa[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.tipo_disputa[0]}</p>
                         )}
                     </div>
 
                     {/* Número de caso */}
                     <div>
-                        <label htmlFor="numero_caso" className="block text-sm font-medium text-gray-700 mb-2">
-                            Número de Caso <span className="text-red-500">*</span>
+                        <label htmlFor="numero_caso" className="block text-sm font-medium text-foreground mb-2">
+                            Número de Caso <span className="text-destructive">*</span>
                         </label>
                         <Input
                             type="text"
@@ -344,18 +344,18 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             placeholder="Ej: CASO-2024-001, REF-MAERSK-123"
                             className={errors.numero_caso ? "border-red-500" : ""}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Número de referencia con el proveedor, naviera u otra entidad externa
                         </p>
                         {errors.numero_caso && (
-                            <p className="mt-1 text-sm text-red-600">{errors.numero_caso[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.numero_caso[0]}</p>
                         )}
                     </div>
 
                     {/* Fecha de Disputa */}
                     <div>
-                        <label htmlFor="fecha_disputa" className="block text-sm font-medium text-gray-700 mb-2">
-                            Fecha de la Disputa <span className="text-red-500">*</span>
+                        <label htmlFor="fecha_disputa" className="block text-sm font-medium text-foreground mb-2">
+                            Fecha de la Disputa <span className="text-destructive">*</span>
                         </label>
                         <Input
                             type="date"
@@ -366,19 +366,19 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             max={new Date().toISOString().split('T')[0]}
                             className={errors.fecha_disputa ? "border-red-500" : ""}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Fecha en que se reportó o aperturó la disputa con el proveedor
                         </p>
                         {errors.fecha_disputa && (
-                            <p className="mt-1 text-sm text-red-600">{errors.fecha_disputa[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.fecha_disputa[0]}</p>
                         )}
                     </div>
 
                     {/* Operativo */}
                     <div>
-                        <label htmlFor="operativo" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="operativo" className="block text-sm font-medium text-foreground mb-2">
                             Operativo Responsable
-                            <span className="text-gray-500 font-normal ml-1">(opcional)</span>
+                            <span className="text-muted-foreground font-normal ml-1">(opcional)</span>
                         </label>
                         <Input
                             type="text"
@@ -389,18 +389,18 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             placeholder="Nombre del operativo"
                             className={errors.operativo ? "border-red-500" : ""}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Operativo asignado para dar seguimiento a la disputa
                         </p>
                         {errors.operativo && (
-                            <p className="mt-1 text-sm text-red-600">{errors.operativo[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.operativo[0]}</p>
                         )}
                     </div>
 
                     {/* Monto en disputa */}
                     <div>
-                        <label htmlFor="monto_disputa" className="block text-sm font-medium text-gray-700 mb-2">
-                            Monto en Disputa (USD) <span className="text-red-500">*</span>
+                        <label htmlFor="monto_disputa" className="block text-sm font-medium text-foreground mb-2">
+                            Monto en Disputa (USD) <span className="text-destructive">*</span>
                         </label>
                         <Input
                             type="number"
@@ -414,14 +414,14 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             className={errors.monto_disputa ? "border-red-500" : ""}
                         />
                         {errors.monto_disputa && (
-                            <p className="mt-1 text-sm text-red-600">{errors.monto_disputa[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.monto_disputa[0]}</p>
                         )}
                     </div>
 
                     {/* Detalle */}
                     <div>
-                        <label htmlFor="detalle" className="block text-sm font-medium text-gray-700 mb-2">
-                            Detalle de la Disputa <span className="text-red-500">*</span>
+                        <label htmlFor="detalle" className="block text-sm font-medium text-foreground mb-2">
+                            Detalle de la Disputa <span className="text-destructive">*</span>
                         </label>
                         <textarea
                             id="detalle"
@@ -431,17 +431,17 @@ export function DisputeFormModal({ isOpen, onClose, dispute, invoice }) {
                             onChange={handleChange}
                             placeholder="Describe el motivo de la disputa con el mayor detalle posible..."
                             className={`w-full px-3 py-2 border ${
-                                errors.detalle ? "border-red-500" : "border-gray-300"
+                                errors.detalle ? "border-red-500" : "border-border"
                             } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         />
                         {errors.detalle && (
-                            <p className="mt-1 text-sm text-red-600">{errors.detalle[0]}</p>
+                            <p className="mt-1 text-sm text-destructive">{errors.detalle[0]}</p>
                         )}
                     </div>
 
                 </CardContent>
 
-                <div className="border-t px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 sticky bottom-0">
+                <div className="border-t px-6 py-4 bg-muted flex items-center justify-end gap-3 sticky bottom-0">
                     <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
                         Cancelar
                     </Button>

@@ -13,16 +13,24 @@ import {
     useToggleCostTypeActive,
 } from "../hooks/useCatalogs";
 import {
-        Card, CardContent, CardFooter, CardHeader, CardTitle,
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { StatCard } from "../components/common/StatCard";
 
 export function CostTypesPage() {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
-    const { data: costTypes, isLoading } = useCostTypes({ page, page_size: pageSize });
+    const { data: costTypes, isLoading } = useCostTypes({
+        page,
+        page_size: pageSize,
+    });
     const deleteMutation = useDeleteCostType();
     const toggleActiveMutation = useToggleCostTypeActive();
 
@@ -71,7 +79,7 @@ export function CostTypesPage() {
         return (
             <div className="flex items-center gap-2">
                 <div
-                    className="w-3 h-3 rounded-full border border-gray-300"
+                    className="w-3 h-3 rounded-full border border-border"
                     style={{ backgroundColor: categoryDetails.color }}
                 />
                 <Badge variant="gray">{categoryDetails.name}</Badge>
@@ -81,75 +89,37 @@ export function CostTypesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Tipos de Costo
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Catálogo de tipos de costo para facturas y órdenes de
-                        trabajo
-                    </p>
-                </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end">
                 <Button onClick={() => navigate("/catalogs/cost-types/create")}>
                     <Plus className="w-4 h-4 mr-2" />
                     Nuevo Tipo de Costo
                 </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Tipos
-                        </CardTitle>
-                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {costTypes?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Tipos de costo
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Activos
-                        </CardTitle>
-                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {costTypes?.results?.filter((t) => t.is_active).length || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Habilitados
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Inactivos
-                        </CardTitle>
-                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-600">
-                            {costTypes?.results?.filter((t) => !t.is_active).length || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Deshabilitados
-                        </p>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                    label="Total Tipos"
+                    value={costTypes?.count || 0}
+                    icon={DollarSign}
+                />
+                <StatCard
+                    label="Activos"
+                    value={
+                        costTypes?.results?.filter((t) => t.is_active).length ||
+                        0
+                    }
+                    icon={DollarSign}
+                />
+                <StatCard
+                    label="Inactivos"
+                    value={
+                        costTypes?.results?.filter((t) => !t.is_active)
+                            .length || 0
+                    }
+                    icon={DollarSign}
+                />
             </div>
 
             {/* Tabla de Tipos de Costo */}
@@ -163,56 +133,58 @@ export function CostTypesPage() {
                     {isLoading ? (
                         <div className="text-center py-8">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-gray-600">
+                            <p className="mt-2 text-muted-foreground">
                                 Cargando tipos de costo...
                             </p>
                         </div>
                     ) : costTypes?.results && costTypes.results.length > 0 ? (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Código
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Nombre
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Categoría
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Descripción
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-card divide-y divide-border">
                                     {costTypes.results.map((type) => (
                                         <tr
                                             key={type.id}
-                                            className="hover:bg-gray-50 transition-colors"
+                                            className="hover:bg-muted transition-colors"
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                                                <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
                                                     {type.code}
                                                 </code>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
+                                                <div className="text-sm font-medium text-foreground">
                                                     {type.name}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {getCategoryBadge(type.category_details)}
+                                                {getCategoryBadge(
+                                                    type.category_details,
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-600 max-w-md truncate">
+                                                <div className="text-sm text-muted-foreground max-w-md truncate">
                                                     {type.description || "-"}
                                                 </div>
                                             </td>
@@ -234,7 +206,7 @@ export function CostTypesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             navigate(
-                                                                `/catalogs/cost-types/${type.id}/edit`
+                                                                `/catalogs/cost-types/${type.id}/edit`,
                                                             )
                                                         }
                                                         title="Editar"
@@ -246,7 +218,7 @@ export function CostTypesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             handleToggleActive(
-                                                                type.id
+                                                                type.id,
                                                             )
                                                         }
                                                         disabled={
@@ -261,8 +233,8 @@ export function CostTypesPage() {
                                                         <Power
                                                             className={`w-4 h-4 ${
                                                                 type.is_active
-                                                                    ? "text-green-600"
-                                                                    : "text-gray-400"
+                                                                    ? "text-emerald-600"
+                                                                    : "text-muted-foreground"
                                                             }`}
                                                         />
                                                     </Button>
@@ -271,7 +243,7 @@ export function CostTypesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             handleDelete(
-                                                                type.id
+                                                                type.id,
                                                             )
                                                         }
                                                         disabled={
@@ -280,7 +252,7 @@ export function CostTypesPage() {
                                                         className={
                                                             deleteConfirm ===
                                                             type.id
-                                                                ? "border-red-500 text-red-600"
+                                                                ? "border-red-500 text-destructive"
                                                                 : ""
                                                         }
                                                         title={
@@ -301,11 +273,11 @@ export function CostTypesPage() {
                         </div>
                     ) : (
                         <div className="text-center py-12">
-                            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                                 No hay tipos de costo definidos
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Comienza creando un nuevo tipo de costo
                             </p>
                             <div className="mt-6">
@@ -323,13 +295,16 @@ export function CostTypesPage() {
                 </CardContent>
                 <CardFooter className="flex items-center justify-between py-4">
                     <div className="text-sm text-muted-foreground">
-                        Mostrando {costTypes?.results?.length || 0} de {costTypes?.count || 0} tipos de costo.
+                        Mostrando {costTypes?.results?.length || 0} de{" "}
+                        {costTypes?.count || 0} tipos de costo.
                     </div>
                     <div className="flex items-center gap-4">
                         <select
                             value={pageSize}
-                            onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
-                            className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                            onChange={(e) =>
+                                setPageSize(parseInt(e.target.value, 10))
+                            }
+                            className="px-2 py-1 border border-border rounded-md text-sm"
                         >
                             <option value="20">20 / página</option>
                             <option value="50">50 / página</option>
@@ -348,7 +323,9 @@ export function CostTypesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setPage(page + 1)}
-                                disabled={page * pageSize >= (costTypes?.count || 0)}
+                                disabled={
+                                    page * pageSize >= (costTypes?.count || 0)
+                                }
                             >
                                 Siguiente
                             </Button>

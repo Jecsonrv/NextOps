@@ -24,6 +24,7 @@ import {
     AlertCircle,
     Calendar,
 } from "lucide-react";
+import { StatCard } from "../../components/common/StatCard";
 
 export default function FinanceDashboardPage() {
     const [dateRange, setDateRange] = useState({
@@ -64,7 +65,9 @@ export default function FinanceDashboardPage() {
             <div className="space-y-6">
                 <Card>
                     <CardContent className="text-center py-8">
-                        <p className="text-gray-600">Cargando dashboard...</p>
+                        <p className="text-muted-foreground">
+                            Cargando dashboard...
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -76,7 +79,7 @@ export default function FinanceDashboardPage() {
             <div className="space-y-6">
                 <Card>
                     <CardContent className="text-center py-8">
-                        <p className="text-red-600">
+                        <p className="text-destructive">
                             Error al cargar el dashboard
                         </p>
                     </CardContent>
@@ -87,17 +90,6 @@ export default function FinanceDashboardPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Dashboard Financiero
-                    </h1>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Resumen de ventas, pagos y métricas financieras
-                    </p>
-                </div>
-            </div>
-
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -108,12 +100,12 @@ export default function FinanceDashboardPage() {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Fecha Inicio
                             </label>
                             <input
                                 type="date"
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={dateRange.start}
                                 onChange={(e) =>
                                     setDateRange((prev) => ({
@@ -124,12 +116,12 @@ export default function FinanceDashboardPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Fecha Fin
                             </label>
                             <input
                                 type="date"
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 value={dateRange.end}
                                 onChange={(e) =>
                                     setDateRange((prev) => ({
@@ -143,80 +135,27 @@ export default function FinanceDashboardPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <DollarSign className="h-8 w-8 text-green-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">
-                                    Total Vendido
-                                </p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {formatCurrency(dashboard?.total_vendido)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <CheckCircle2 className="h-8 w-8 text-blue-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">
-                                    Total Cobrado
-                                </p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {formatCurrency(dashboard?.total_cobrado)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Clock className="h-8 w-8 text-orange-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">
-                                    Por Cobrar
-                                </p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {formatCurrency(dashboard?.por_cobrar)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <TrendingUp className="h-8 w-8 text-purple-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">
-                                    Margen Bruto
-                                </p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {formatCurrency(
-                                        dashboard?.margen_bruto_total
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Vendido"
+                    value={formatCurrency(dashboard?.total_vendido)}
+                    icon={DollarSign}
+                />
+                <StatCard
+                    label="Total Cobrado"
+                    value={formatCurrency(dashboard?.total_cobrado)}
+                    icon={CheckCircle2}
+                />
+                <StatCard
+                    label="Por Cobrar"
+                    value={formatCurrency(dashboard?.por_cobrar)}
+                    icon={Clock}
+                />
+                <StatCard
+                    label="Margen Bruto"
+                    value={formatCurrency(dashboard?.margen_bruto_total)}
+                    icon={TrendingUp}
+                />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -227,15 +166,15 @@ export default function FinanceDashboardPage() {
                     <CardContent>
                         <dl className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Total de Facturas
                                 </dt>
-                                <dd className="text-lg font-bold text-gray-900">
+                                <dd className="text-lg font-bold text-foreground">
                                     {dashboard?.total_facturas || 0}
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Facturas Cobradas
                                 </dt>
                                 <dd className="text-lg font-bold text-green-600">
@@ -243,7 +182,7 @@ export default function FinanceDashboardPage() {
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Facturas Pendientes
                                 </dt>
                                 <dd className="text-lg font-bold text-orange-600">
@@ -251,10 +190,10 @@ export default function FinanceDashboardPage() {
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Facturas Vencidas
                                 </dt>
-                                <dd className="text-lg font-bold text-red-600">
+                                <dd className="text-lg font-bold text-destructive">
                                     {dashboard?.facturas_vencidas || 0}
                                 </dd>
                             </div>
@@ -269,15 +208,15 @@ export default function FinanceDashboardPage() {
                     <CardContent>
                         <dl className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Total de Pagos
                                 </dt>
-                                <dd className="text-lg font-bold text-gray-900">
+                                <dd className="text-lg font-bold text-foreground">
                                     {dashboard?.total_pagos || 0}
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Pagos Validados
                                 </dt>
                                 <dd className="text-lg font-bold text-green-600">
@@ -285,7 +224,7 @@ export default function FinanceDashboardPage() {
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Pagos Pendientes
                                 </dt>
                                 <dd className="text-lg font-bold text-orange-600">
@@ -293,12 +232,12 @@ export default function FinanceDashboardPage() {
                                 </dd>
                             </div>
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-gray-600">
+                                <dt className="text-sm font-medium text-muted-foreground">
                                     Monto Pendiente Validación
                                 </dt>
-                                <dd className="text-lg font-bold text-blue-600">
+                                <dd className="text-lg font-bold text-primary">
                                     {formatCurrency(
-                                        dashboard?.monto_pendiente_validacion
+                                        dashboard?.monto_pendiente_validacion,
                                     )}
                                 </dd>
                             </div>
@@ -316,58 +255,58 @@ export default function FinanceDashboardPage() {
                     dashboard.top_ots_margen.length > 0 ? (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-muted border-b border-border">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                             OT
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                             Cliente
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                             Vendido
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                             Costos
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                             Margen Bruto
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                             % Margen
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-card divide-y divide-border">
                                     {dashboard.top_ots_margen.map((ot) => (
                                         <tr
                                             key={ot.id}
-                                            className="hover:bg-gray-50"
+                                            className="hover:bg-muted"
                                         >
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                            <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                 <Link
                                                     to={`/ots/${ot.id}`}
-                                                    className="text-blue-600 hover:text-blue-800"
+                                                    className="text-primary hover:text-blue-800"
                                                 >
                                                     {ot.numero_ot}
                                                 </Link>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-gray-500">
+                                            <td className="px-4 py-3 text-sm text-muted-foreground">
                                                 {ot.cliente_nombre}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                            <td className="px-4 py-3 text-sm text-right text-foreground">
                                                 {formatCurrency(
-                                                    ot.monto_total_vendido
+                                                    ot.monto_total_vendido,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right text-gray-900">
+                                            <td className="px-4 py-3 text-sm text-right text-foreground">
                                                 {formatCurrency(
-                                                    ot.monto_total_costos
+                                                    ot.monto_total_costos,
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                                            <td className="px-4 py-3 text-sm text-right font-medium text-foreground">
                                                 {formatCurrency(
-                                                    ot.margen_bruto
+                                                    ot.margen_bruto,
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-sm text-right">
@@ -377,16 +316,16 @@ export default function FinanceDashboardPage() {
                                                         30
                                                             ? "success"
                                                             : ot.porcentaje_margen >=
-                                                              15
-                                                            ? "info"
-                                                            : ot.porcentaje_margen >=
-                                                              5
-                                                            ? "warning"
-                                                            : "destructive"
+                                                                15
+                                                              ? "info"
+                                                              : ot.porcentaje_margen >=
+                                                                  5
+                                                                ? "warning"
+                                                                : "destructive"
                                                     }
                                                 >
                                                     {formatPercentage(
-                                                        ot.porcentaje_margen
+                                                        ot.porcentaje_margen,
                                                     )}
                                                 </Badge>
                                             </td>
@@ -396,7 +335,7 @@ export default function FinanceDashboardPage() {
                             </table>
                         </div>
                     ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
+                        <p className="text-sm text-muted-foreground text-center py-4">
                             No hay datos de OTs en el período seleccionado
                         </p>
                     )}
@@ -417,58 +356,58 @@ export default function FinanceDashboardPage() {
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                    <thead className="bg-muted border-b border-border">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                 Factura
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                 Cliente
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                 Fecha Vencimiento
                                             </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                                 Saldo Pendiente
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                 Acciones
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-card divide-y divide-border">
                                         {dashboard.facturas_proximas_vencer.map(
                                             (factura) => (
                                                 <tr
                                                     key={factura.id}
-                                                    className="hover:bg-gray-50"
+                                                    className="hover:bg-muted"
                                                 >
-                                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                         {factura.numero_factura}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {factura.cliente_nombre}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">
+                                                    <td className="px-4 py-3 text-sm text-foreground">
                                                         {formatDate(
-                                                            factura.fecha_vencimiento
+                                                            factura.fecha_vencimiento,
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-right font-medium text-red-600">
+                                                    <td className="px-4 py-3 text-sm text-right font-medium text-destructive">
                                                         {formatCurrency(
-                                                            factura.saldo_pendiente
+                                                            factura.saldo_pendiente,
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">
                                                         <Link
                                                             to={`/sales/invoices/${factura.id}`}
-                                                            className="text-blue-600 hover:text-blue-800"
+                                                            className="text-primary hover:text-blue-800"
                                                         >
                                                             Ver Detalle
                                                         </Link>
                                                     </td>
                                                 </tr>
-                                            )
+                                            ),
                                         )}
                                     </tbody>
                                 </table>

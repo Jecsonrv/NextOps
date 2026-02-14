@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import PropTypes from "prop-types";
 import { getTodayString } from "../../utils/dateHelpers";
 import {
@@ -81,13 +81,13 @@ export function AddPaymentModal({
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
-                }
+                },
             );
             return response.data;
         },
         onSuccess: () => {
             toast.success(
-                "Pago registrado exitosamente. Pendiente de validación."
+                "Pago registrado exitosamente. Pendiente de validación.",
             );
             queryClient.invalidateQueries(["salesInvoice", salesInvoiceId]);
             queryClient.invalidateQueries(["salesInvoices"]);
@@ -108,7 +108,7 @@ export function AddPaymentModal({
                 for (const key in err.response.data) {
                     if (Array.isArray(err.response.data[key])) {
                         toast.error(
-                            `${key}: ${err.response.data[key].join(", ")}`
+                            `${key}: ${err.response.data[key].join(", ")}`,
                         );
                     } else if (typeof err.response.data[key] === "string") {
                         toast.error(`${key}: ${err.response.data[key]}`);
@@ -155,7 +155,7 @@ export function AddPaymentModal({
                                 )}
                             />
                             {errors.fecha_pago && (
-                                <p className="text-red-500 text-sm mt-1">
+                                <p className="text-destructive text-sm mt-1">
                                     {errors.fecha_pago.message}
                                 </p>
                             )}
@@ -186,7 +186,7 @@ export function AddPaymentModal({
                                 )}
                             />
                             {errors.monto && (
-                                <p className="text-red-500 text-sm mt-1">
+                                <p className="text-destructive text-sm mt-1">
                                     {errors.monto.message}
                                 </p>
                             )}
@@ -223,7 +223,7 @@ export function AddPaymentModal({
                             )}
                         />
                         {errors.metodo_pago && (
-                            <p className="text-red-500 text-sm mt-1">
+                            <p className="text-destructive text-sm mt-1">
                                 {errors.metodo_pago.message}
                             </p>
                         )}
@@ -242,7 +242,7 @@ export function AddPaymentModal({
                             )}
                         />
                         {errors.referencia && (
-                            <p className="text-red-500 text-sm mt-1">
+                            <p className="text-destructive text-sm mt-1">
                                 {errors.referencia.message}
                             </p>
                         )}

@@ -156,8 +156,8 @@ export function UserManagementPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-                    <p className="text-sm text-gray-500">Crear, editar y administrar cuentas de usuario.</p>
+                    <h1 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h1>
+                    <p className="text-sm text-muted-foreground">Crear, editar y administrar cuentas de usuario.</p>
                 </div>
                 <Button onClick={handleCreateUser}>
                     <PlusCircle className="h-4 w-4 mr-2" />
@@ -169,7 +169,7 @@ export function UserManagementPage() {
                 <CardHeader className="!p-4 border-b">
                     <div className="flex items-center justify-between gap-4">
                          <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Buscar por nombre o email..."
                                 className="pl-8"
@@ -224,7 +224,7 @@ export function UserManagementPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                     {isLoading && <p className="p-4">Cargando usuarios...</p>}
-                    {error && <p className="p-4 text-red-500">Error al cargar usuarios: {error.message}</p>}
+                    {error && <p className="p-4 text-destructive">Error al cargar usuarios: {error.message}</p>}
                     {users && (
                         <>
                             <Table>

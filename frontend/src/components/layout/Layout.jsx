@@ -7,7 +7,6 @@ import {
     Ship,
     Users,
     Building2,
-    Mail,
     LogOut,
     Menu,
     X,
@@ -17,18 +16,17 @@ import {
     Link2,
     DollarSign,
     Regex,
-    Target,
     Layers,
     FileMinus,
     AlertCircle,
     UserCog,
-    User,
     Receipt,
     TrendingUp,
     Wallet,
+    ChevronsLeft,
+    ChevronsRight,
 } from "lucide-react";
-import { Button } from "../ui/Button";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { filterMenuItems } from "../../utils/permissions";
 
 /**
@@ -38,26 +36,17 @@ import { filterMenuItems } from "../../utils/permissions";
  * - Con 'roles': visible solo para los roles especificados
  */
 const navigation = [
-    // Todos los usuarios pueden acceder (sin 'roles')
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "OTs", href: "/ots", icon: Ship },
     { name: "Facturas", href: "/invoices", icon: FileText },
-
-    // Disputas - Todos pueden ver/crear, solo Admin/Finanzas pueden resolver
-    // Se muestra para todos, la restricción está en las acciones dentro de la página
     { name: "Disputas", href: "/disputes", icon: AlertCircle },
-
-    // Notas de Crédito - Solo Admin y Finanzas pueden crear/modificar
     {
         name: "Notas de Crédito",
         href: "/invoices/credit-notes",
         icon: FileMinus,
-        roles: ["admin", "finanzas"], // Ocultar para operativos y jefe_operaciones
+        roles: ["admin", "finanzas"],
     },
-
     { name: "Clientes", href: "/clients", icon: Users },
-
-    // Módulo de Finanzas - Solo Admin y Finanzas
     {
         name: "Finanzas",
         icon: TrendingUp,
@@ -79,7 +68,7 @@ const navigation = [
                 name: "Pagos Recibidos",
                 href: "/sales/payments",
                 icon: Wallet,
-                roles: ["admin"], // MÓDULO OCULTO: Solo Admin
+                roles: ["admin"],
             },
             {
                 name: "Pagos a Proveedores",
@@ -89,9 +78,6 @@ const navigation = [
             },
         ],
     },
-
-    // Catálogos - Todos pueden ver (sin restricciones de roles en el menú)
-    // La edición está protegida a nivel de componente y backend
     {
         name: "Catálogos",
         icon: FolderOpen,
@@ -101,11 +87,7 @@ const navigation = [
                 href: "/catalogs/providers",
                 icon: Building2,
             },
-            {
-                name: "Patrones",
-                href: "/patterns",
-                icon: Regex,
-            },
+            { name: "Patrones", href: "/patterns", icon: Regex },
             {
                 name: "Alias de Clientes",
                 href: "/catalogs/aliases",
@@ -123,298 +105,399 @@ const navigation = [
             },
         ],
     },
-
-    // Automatización - Solo Admin
-    {
-        name: "Automatización",
-        href: "/automation",
-        icon: Mail,
-        roles: ["admin"],
-    },
 ];
 
+// ─── Section label ─────────────────────────────────────────────
+function SectionLabel({ children, collapsed }) {
+    if (collapsed) return <div className="h-4" />;
+    return (
+        <p className="px-3 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground/40 select-none">
+            {children}
+        </p>
+    );
+}
+
+SectionLabel.propTypes = {
+    children: PropTypes.node,
+    collapsed: PropTypes.bool,
+};
+
+// ─── Nav item ──────────────────────────────────────────────────
+function NavItem({ item, isActive, collapsed, onClick }) {
+    return (
+        <Link
+            to={item.href}
+            onClick={onClick}
+            title={collapsed ? item.name : undefined}
+            className={`
+                group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150
+                ${collapsed ? "justify-center px-2" : ""}
+                ${
+                    isActive
+                        ? "bg-white/15 text-white shadow-sm"
+                        : "text-primary-foreground/70 hover:bg-white/10 hover:text-white"
+                }
+            `}
+        >
+            <item.icon
+                className={`h-[18px] w-[18px] flex-shrink-0 ${isActive ? "text-white" : "text-primary-foreground/60 group-hover:text-white"}`}
+            />
+            {!collapsed && <span className="truncate">{item.name}</span>}
+        </Link>
+    );
+}
+
+NavItem.propTypes = {
+    item: PropTypes.object.isRequired,
+    isActive: PropTypes.bool,
+    collapsed: PropTypes.bool,
+    onClick: PropTypes.func,
+};
+
+// ─── Nav group (collapsible) ───────────────────────────────────
+function NavGroup({ item, location, collapsed, onNavigate }) {
+    const isAnyChildActive = item.children.some(
+        (child) =>
+            location.pathname === child.href ||
+            location.pathname.startsWith(`${child.href}/`),
+    );
+    const [open, setOpen] = useState(isAnyChildActive);
+
+    if (collapsed) {
+        return (
+            <button
+                title={item.name}
+                onClick={() => setOpen(!open)}
+                className={`
+                    group flex w-full items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition-all duration-150
+                    ${isAnyChildActive ? "bg-white/15 text-white" : "text-primary-foreground/70 hover:bg-white/10 hover:text-white"}
+                `}
+            >
+                <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+            </button>
+        );
+    }
+
+    return (
+        <div>
+            <button
+                onClick={() => setOpen(!open)}
+                className={`
+                    group flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150
+                    ${isAnyChildActive ? "bg-white/15 text-white" : "text-primary-foreground/70 hover:bg-white/10 hover:text-white"}
+                `}
+            >
+                <div className="flex items-center gap-3">
+                    <item.icon
+                        className={`h-[18px] w-[18px] flex-shrink-0 ${isAnyChildActive ? "text-white" : "text-primary-foreground/60 group-hover:text-white"}`}
+                    />
+                    <span className="truncate">{item.name}</span>
+                </div>
+                {open ? (
+                    <ChevronDown className="h-4 w-4 text-primary-foreground/50" />
+                ) : (
+                    <ChevronRight className="h-4 w-4 text-primary-foreground/50" />
+                )}
+            </button>
+
+            {open && (
+                <div className="ml-5 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+                    {item.children.map((child) => {
+                        const active =
+                            location.pathname === child.href ||
+                            location.pathname.startsWith(`${child.href}/`);
+                        return (
+                            <Link
+                                key={child.name}
+                                to={child.href}
+                                onClick={onNavigate}
+                                className={`
+                                    flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-all duration-150
+                                    ${active ? "bg-white/15 text-white font-medium" : "text-primary-foreground/60 hover:bg-white/10 hover:text-white"}
+                                `}
+                            >
+                                <child.icon className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{child.name}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+NavGroup.propTypes = {
+    item: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
+    collapsed: PropTypes.bool,
+    onNavigate: PropTypes.func,
+};
+
+// ─── Main Layout ───────────────────────────────────────────────
 export function Layout({ children }) {
     const { user, logout } = useAuth();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [salesOpen, setSalesOpen] = useState(
-        location.pathname.startsWith("/sales")
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
+
+    const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+    // Filter navigation by user role
+    const filteredNavigation = useMemo(() => {
+        const filtered = filterMenuItems(user, navigation);
+        if (user?.role === "admin") {
+            return [
+                ...filtered,
+                {
+                    name: "Usuarios",
+                    href: "/admin/users",
+                    icon: UserCog,
+                    roles: ["admin"],
+                },
+            ];
+        }
+        return filtered;
+    }, [user]);
+
+    // Separate into logical sections
+    const operationsItems = filteredNavigation.filter(
+        (item) => !item.children && !["Usuarios"].includes(item.name),
     );
-    const [catalogsOpen, setCatalogsOpen] = useState(
-        location.pathname.startsWith("/catalogs")
+    const financeGroup = filteredNavigation.find(
+        (item) => item.name === "Finanzas",
+    );
+    const catalogGroup = filteredNavigation.find(
+        (item) => item.name === "Catálogos",
+    );
+    const adminItems = filteredNavigation.filter(
+        (item) => item.name === "Usuarios",
     );
 
-    // Filtrar items del menú según el rol del usuario
-    const filteredNavigation = filterMenuItems(user, navigation);
+    // Current page title
+    const pageTitle = useMemo(() => {
+        const flat = [];
+        for (const item of navigation) {
+            if (item.href) flat.push(item);
+            if (item.children) flat.push(...item.children);
+        }
+        const exact = flat.find((i) => i.href === location.pathname);
+        if (exact) return exact.name;
+        const prefix = flat.find(
+            (i) => i.href !== "/" && location.pathname.startsWith(`${i.href}/`),
+        );
+        if (prefix) return prefix.name;
+        if (location.pathname.startsWith("/admin")) return "Usuarios";
+        if (location.pathname.startsWith("/profile")) return "Perfil";
+        return "Dashboard";
+    }, [location.pathname]);
 
-    // Agregar Gestión de Usuarios solo para Admin
-    const navigationItems = [
-        ...filteredNavigation,
-        ...(user?.role === "admin"
-            ? [
-                  {
-                      name: "Usuarios",
-                      href: "/admin/users",
-                      icon: UserCog,
-                      roles: ["admin"],
-                  },
-              ]
-            : []),
-    ];
+    const sidebarWidth = collapsed ? "w-[68px]" : "w-64";
+
+    // ── Sidebar content (shared mobile/desktop) ──
+    const sidebarContent = (
+        <div
+            className="flex h-full flex-col text-white"
+            style={{
+                background: "linear-gradient(to bottom, #071428, #0c2240)",
+            }}
+        >
+            {/* Brand */}
+            <div
+                className={`flex h-16 items-center border-b border-white/10 ${collapsed ? "justify-center px-2" : "justify-between px-5"}`}
+            >
+                {!collapsed ? (
+                    <Link
+                        to="/"
+                        className="flex items-center gap-2"
+                        onClick={closeMobile}
+                    >
+                        <img
+                            src="/nextops-logo.svg"
+                            alt="NextOps"
+                            className="h-10 w-auto brightness-0 invert"
+                        />
+                    </Link>
+                ) : (
+                    <Link
+                        to="/"
+                        className="flex items-center"
+                        onClick={closeMobile}
+                    >
+                        <Ship className="h-6 w-6 text-white" />
+                    </Link>
+                )}
+                <button
+                    className="lg:hidden text-white/70 hover:text-white"
+                    onClick={closeMobile}
+                    aria-label="Cerrar menú"
+                >
+                    <X className="h-5 w-5" />
+                </button>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
+                {/* Operations section */}
+                <SectionLabel collapsed={collapsed}>Operaciones</SectionLabel>
+                {operationsItems.map((item) => (
+                    <NavItem
+                        key={item.name}
+                        item={item}
+                        isActive={
+                            item.href === "/"
+                                ? location.pathname === "/"
+                                : location.pathname === item.href ||
+                                  location.pathname.startsWith(`${item.href}/`)
+                        }
+                        collapsed={collapsed}
+                        onClick={closeMobile}
+                    />
+                ))}
+
+                {/* Finance section */}
+                {financeGroup && (
+                    <>
+                        <SectionLabel collapsed={collapsed}>
+                            Finanzas
+                        </SectionLabel>
+                        <NavGroup
+                            item={financeGroup}
+                            location={location}
+                            collapsed={collapsed}
+                            onNavigate={closeMobile}
+                        />
+                    </>
+                )}
+
+                {/* Catalog section */}
+                {catalogGroup && (
+                    <>
+                        <SectionLabel collapsed={collapsed}>
+                            Configuración
+                        </SectionLabel>
+                        <NavGroup
+                            item={catalogGroup}
+                            location={location}
+                            collapsed={collapsed}
+                            onNavigate={closeMobile}
+                        />
+                    </>
+                )}
+
+                {/* Admin section */}
+                {adminItems.length > 0 && (
+                    <>
+                        <SectionLabel collapsed={collapsed}>Admin</SectionLabel>
+                        {adminItems.map((item) => (
+                            <NavItem
+                                key={item.name}
+                                item={item}
+                                isActive={location.pathname.startsWith(
+                                    item.href,
+                                )}
+                                collapsed={collapsed}
+                                onClick={closeMobile}
+                            />
+                        ))}
+                    </>
+                )}
+            </nav>
+
+            {/* Collapse toggle (desktop) */}
+            <div className="hidden lg:block px-3 pb-2">
+                <button
+                    onClick={() => setCollapsed(!collapsed)}
+                    className="flex w-full items-center justify-center rounded-lg py-1.5 text-primary-foreground/50 hover:bg-white/10 hover:text-white transition-colors"
+                    title={collapsed ? "Expandir menú" : "Colapsar menú"}
+                >
+                    {collapsed ? (
+                        <ChevronsRight className="h-4 w-4" />
+                    ) : (
+                        <ChevronsLeft className="h-4 w-4" />
+                    )}
+                </button>
+            </div>
+
+            {/* User section */}
+            <div
+                className={`border-t border-white/10 p-3 ${collapsed ? "flex flex-col items-center gap-2" : ""}`}
+            >
+                <Link
+                    to="/profile"
+                    onClick={closeMobile}
+                    className={`flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/10 ${collapsed ? "justify-center" : ""}`}
+                >
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold uppercase text-white">
+                        {user?.email?.[0] || "U"}
+                    </div>
+                    {!collapsed && (
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-white">
+                                {user?.email}
+                            </p>
+                            <p className="truncate text-xs text-primary-foreground/50">
+                                {user?.role_display || user?.role || "Usuario"}
+                            </p>
+                        </div>
+                    )}
+                </Link>
+                <button
+                    onClick={logout}
+                    className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-primary-foreground/60 transition-colors hover:bg-white/10 hover:text-white ${collapsed ? "justify-center w-full" : "w-full mt-1"}`}
+                    title="Cerrar sesión"
+                >
+                    <LogOut className="h-4 w-4 flex-shrink-0" />
+                    {!collapsed && <span>Cerrar sesión</span>}
+                </button>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Mobile sidebar backdrop */}
-            {sidebarOpen && (
+        <div className="min-h-screen bg-background">
+            {/* Mobile backdrop */}
+            {mobileOpen && (
                 <div
-                    className="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
+                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+                    onClick={closeMobile}
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Mobile sidebar */}
             <aside
-                className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 
-          transform transition-transform duration-200 ease-in-out lg:translate-x-0
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+                className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 ease-in-out lg:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
             >
-                <div className="flex flex-col h-full">
-                    {/* Logo */}
-                    <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-                        <Link to="/" className="flex items-center">
-                            <img
-                                src="/nextops-logo.svg"
-                                alt="NextOps"
-                                className="h-14 w-auto"
-                            />
-                        </Link>
-                        <button
-                            className="lg:hidden"
-                            onClick={() => setSidebarOpen(false)}
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
-                    </div>
+                {sidebarContent}
+            </aside>
 
-                    {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                        {navigationItems.map((item) => {
-                            // Handle parent items with children (Sales, Catalogs, etc.)
-                            if (item.children) {
-                                const isSalesSection =
-                                    item.name === "Finanzas";
-                                const isCatalogsSection =
-                                    item.name === "Catálogos";
-                                const isOpen = isSalesSection
-                                    ? salesOpen
-                                    : isCatalogsSection
-                                    ? catalogsOpen
-                                    : false;
-                                const toggleOpen = isSalesSection
-                                    ? () => setSalesOpen(!salesOpen)
-                                    : () => setCatalogsOpen(!catalogsOpen);
-
-                                // Check if any child is active
-                                const isAnyChildActive = item.children.some(
-                                    (child) =>
-                                        location.pathname.startsWith(child.href)
-                                );
-
-                                return (
-                                    <div key={item.name}>
-                                        <button
-                                            onClick={toggleOpen}
-                                            className={`
-                                                w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
-                                                ${
-                                                    isAnyChildActive
-                                                        ? "bg-blue-50 text-blue-600"
-                                                        : "text-gray-700 hover:bg-gray-100"
-                                                }
-                                            `}
-                                        >
-                                            <div className="flex items-center">
-                                                <item.icon className="w-5 h-5 mr-3" />
-                                                {item.name}
-                                            </div>
-                                            {isOpen ? (
-                                                <ChevronDown className="w-4 h-4" />
-                                            ) : (
-                                                <ChevronRight className="w-4 h-4" />
-                                            )}
-                                        </button>
-
-                                        {/* Submenu */}
-                                        {isOpen && (
-                                            <div className="ml-4 mt-1 space-y-1">
-                                                {item.children.map((child) => {
-                                                    const isActive =
-                                                        location.pathname ===
-                                                            child.href ||
-                                                        location.pathname.startsWith(
-                                                            `${child.href}/`
-                                                        );
-                                                    return (
-                                                        <Link
-                                                            key={child.name}
-                                                            to={child.href}
-                                                            className={`
-                                                                flex items-center px-4 py-2 text-sm rounded-lg transition-colors
-                                                                ${
-                                                                    isActive
-                                                                        ? "bg-blue-100 text-blue-700 font-medium"
-                                                                        : "text-gray-600 hover:bg-gray-50"
-                                                                }
-                                                            `}
-                                                            onClick={() =>
-                                                                setSidebarOpen(
-                                                                    false
-                                                                )
-                                                            }
-                                                        >
-                                                            <child.icon className="w-4 h-4 mr-2" />
-                                                            {child.name}
-                                                        </Link>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
-
-                            // Handle regular navigation items
-                            const isActive = location.pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    className={`
-                                        flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors
-                                        ${
-                                            isActive
-                                                ? "bg-blue-50 text-blue-600"
-                                                : "text-gray-700 hover:bg-gray-100"
-                                        }
-                                    `}
-                                    onClick={() => setSidebarOpen(false)}
-                                >
-                                    <item.icon className="w-5 h-5 mr-3" />
-                                    {item.name}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    {/* User info */}
-                    <div className="p-4 border-t border-gray-200">
-                        <Link
-                            to="/profile"
-                            className="block hover:bg-gray-50 p-2 rounded-lg"
-                        >
-                            <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {user?.email}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        {user?.role_display ||
-                                            user?.role ||
-                                            "Usuario"}
-                                    </p>
-                                </div>
-                                <User className="w-5 h-5 text-gray-400" />
-                            </div>
-                        </Link>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start mt-4"
-                            onClick={logout}
-                        >
-                            <LogOut className="w-4 h-4 mr-2" />
-                            Cerrar sesión
-                        </Button>
-                    </div>
-                </div>
+            {/* Desktop sidebar */}
+            <aside
+                className={`fixed inset-y-0 left-0 z-40 hidden lg:block ${sidebarWidth} transition-all duration-200`}
+            >
+                {sidebarContent}
             </aside>
 
             {/* Main content */}
-            <div className="lg:pl-64">
+            <div
+                className={`transition-all duration-200 ${collapsed ? "lg:pl-[68px]" : "lg:pl-64"}`}
+            >
                 {/* Header */}
-                <header className="sticky top-0 z-30 flex items-center h-14 sm:h-16 px-3 sm:px-4 lg:px-8 bg-white border-b border-gray-200">
+                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-card/80 px-4 backdrop-blur-md sm:h-16 lg:px-8">
                     <button
-                        className="lg:hidden mr-2 sm:mr-4"
-                        onClick={() => setSidebarOpen(true)}
+                        className="lg:hidden"
+                        onClick={() => setMobileOpen(true)}
+                        aria-label="Abrir menú"
                     >
-                        <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <Menu className="h-5 w-5 text-foreground" />
                     </button>
-
-                    <div className="flex-1 min-w-0">
-                        <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-                            {(() => {
-                                // Find navigation item for current page (exact match)
-                                const currentNav = navigationItems.find(
-                                    (item) => item.href === location.pathname
-                                );
-                                if (currentNav) return currentNav.name;
-
-                                // Check in navigation children (exact match)
-                                for (const item of navigation) {
-                                    if (item.children) {
-                                        const child = item.children.find(
-                                            (c) => c.href === location.pathname
-                                        );
-                                        if (child) return child.name;
-                                    }
-                                }
-
-                                // Check in navigation children (startsWith match)
-                                for (const item of navigation) {
-                                    if (item.children) {
-                                        const child = item.children.find(
-                                            (c) => location.pathname.startsWith(`${c.href}/`)
-                                        );
-                                        if (child) return child.name;
-                                    }
-                                }
-
-                                // Check if in specific sections with startsWith
-                                if (location.pathname.startsWith("/catalogs")) {
-                                    const catalogNav = navigation.find(
-                                        (item) => item.name === "Catálogos"
-                                    );
-                                    if (catalogNav?.children) {
-                                        const currentCatalog =
-                                            catalogNav.children.find(
-                                                (child) =>
-                                                    location.pathname ===
-                                                        child.href ||
-                                                    location.pathname.startsWith(
-                                                        `${child.href}/`
-                                                    )
-                                            );
-                                        if (currentCatalog)
-                                            return currentCatalog.name;
-                                    }
-                                    return "Catálogos";
-                                }
-
-                                // Check top-level navigation with startsWith
-                                const navStartsWith = navigationItems.find(
-                                    (item) => item.href !== "/" && location.pathname.startsWith(item.href)
-                                );
-                                if (navStartsWith) return navStartsWith.name;
-
-                                return "Dashboard";
-                            })()}
-                        </h2>
-                    </div>
+                    <h1 className="text-base font-semibold text-foreground sm:text-lg">
+                        {pageTitle}
+                    </h1>
                 </header>
 
-                {/* Page content */}
-                <main className="p-3 sm:p-4 lg:p-8">{children}</main>
+                {/* Page */}
+                <main className="p-4 sm:p-6 lg:p-8">{children}</main>
             </div>
         </div>
     );

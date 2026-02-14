@@ -13,12 +13,23 @@ import {
     useToggleCostCategoryActive,
 } from "../hooks/useCatalogs";
 import {
-        Card, CardContent, CardFooter, CardHeader, CardTitle,
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { StatCard } from "../components/common/StatCard";
 import { Input } from "../components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../components/ui/Select";
 
 export function CostCategoriesPage() {
     const navigate = useNavigate();
@@ -83,17 +94,8 @@ export function CostCategoriesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Categorías de Costo
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Administra las categorías para organizar los tipos de
-                        costo
-                    </p>
-                </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end">
                 <Button
                     onClick={() => navigate("/catalogs/cost-categories/create")}
                 >
@@ -102,58 +104,23 @@ export function CostCategoriesPage() {
                 </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Categorías
-                        </CardTitle>
-                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {totalCount}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            En el sistema
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Activas
-                        </CardTitle>
-                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {activeCount}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Habilitadas
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Inactivas
-                        </CardTitle>
-                        <Tag className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-600">
-                            {inactiveCount}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Deshabilitadas
-                        </p>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                    label="Total Categorías"
+                    value={totalCount}
+                    icon={Tag}
+                />
+                <StatCard
+                    label="Activas"
+                    value={activeCount}
+                    icon={Tag}
+                />
+                <StatCard
+                    label="Inactivas"
+                    value={inactiveCount}
+                    icon={Tag}
+                />
             </div>
 
             {/* Filtros */}
@@ -212,14 +179,14 @@ export function CostCategoriesPage() {
                     {isLoading ? (
                         <div className="text-center py-12">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-gray-600">
+                            <p className="mt-2 text-muted-foreground">
                                 Cargando categorías...
                             </p>
                         </div>
                     ) : categories.length === 0 ? (
                         <div className="text-center py-12">
-                            <Tag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600">
+                            <Tag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
                                 No hay categorías disponibles
                             </p>
                             <Button
@@ -236,26 +203,26 @@ export function CostCategoriesPage() {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-gray-200">
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                    <tr className="border-b border-border">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Código
                                         </th>
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Nombre
                                         </th>
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Color
                                         </th>
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Descripción
                                         </th>
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Orden
                                         </th>
-                                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-left py-3 px-4 font-semibold text-foreground">
                                             Estado
                                         </th>
-                                        <th className="text-right py-3 px-4 font-semibold text-gray-700">
+                                        <th className="text-right py-3 px-4 font-semibold text-foreground">
                                             Acciones
                                         </th>
                                     </tr>
@@ -264,7 +231,7 @@ export function CostCategoriesPage() {
                                     {categories.map((category) => (
                                         <tr
                                             key={category.id}
-                                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                                            className="border-b border-border hover:bg-muted transition-colors"
                                         >
                                             <td className="py-3 px-4">
                                                 <span className="font-mono text-sm">
@@ -277,19 +244,19 @@ export function CostCategoriesPage() {
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center gap-2">
                                                     <div
-                                                        className="w-6 h-6 rounded border border-gray-300"
+                                                        className="w-6 h-6 rounded border border-border"
                                                         style={{
                                                             backgroundColor:
                                                                 category.color,
                                                         }}
                                                         title={category.color}
                                                     />
-                                                    <span className="font-mono text-xs text-gray-600">
+                                                    <span className="font-mono text-xs text-muted-foreground">
                                                         {category.color}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-4 text-sm text-gray-600 max-w-xs truncate">
+                                            <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate">
                                                 {category.description || "-"}
                                             </td>
                                             <td className="py-3 px-4 text-center">
@@ -313,7 +280,7 @@ export function CostCategoriesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             navigate(
-                                                                `/catalogs/cost-categories/${category.id}/edit`
+                                                                `/catalogs/cost-categories/${category.id}/edit`,
                                                             )
                                                         }
                                                         title="Editar"
@@ -325,7 +292,7 @@ export function CostCategoriesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             handleToggleActive(
-                                                                category.id
+                                                                category.id,
                                                             )
                                                         }
                                                         disabled={
@@ -340,8 +307,8 @@ export function CostCategoriesPage() {
                                                         <Power
                                                             className={`w-4 h-4 ${
                                                                 category.is_active
-                                                                    ? "text-green-600"
-                                                                    : "text-gray-400"
+                                                                    ? "text-emerald-600"
+                                                                    : "text-muted-foreground"
                                                             }`}
                                                         />
                                                     </Button>
@@ -350,7 +317,7 @@ export function CostCategoriesPage() {
                                                         variant="outline"
                                                         onClick={() =>
                                                             handleDelete(
-                                                                category.id
+                                                                category.id,
                                                             )
                                                         }
                                                         disabled={
@@ -365,7 +332,7 @@ export function CostCategoriesPage() {
                                                         className={
                                                             deleteConfirm ===
                                                             category.id
-                                                                ? "border-red-500 bg-red-50"
+                                                                ? "border-red-500 bg-destructive/10"
                                                                 : ""
                                                         }
                                                     >
@@ -373,8 +340,8 @@ export function CostCategoriesPage() {
                                                             className={`w-4 h-4 ${
                                                                 deleteConfirm ===
                                                                 category.id
-                                                                    ? "text-red-600"
-                                                                    : "text-gray-600"
+                                                                    ? "text-destructive"
+                                                                    : "text-muted-foreground"
                                                             }`}
                                                         />
                                                     </Button>
@@ -389,12 +356,15 @@ export function CostCategoriesPage() {
                 </CardContent>
                 <CardFooter className="flex items-center justify-between py-4">
                     <div className="text-sm text-muted-foreground">
-                        Mostrando {categories.length} de {totalCount} categorías.
+                        Mostrando {categories.length} de {totalCount}{" "}
+                        categorías.
                     </div>
                     <div className="flex items-center gap-4">
                         <Select
                             value={pageSize.toString()}
-                            onValueChange={(value) => setPageSize(parseInt(value, 10))}
+                            onValueChange={(value) =>
+                                setPageSize(parseInt(value, 10))
+                            }
                         >
                             <SelectTrigger className="w-[120px]">
                                 <SelectValue />
@@ -402,7 +372,9 @@ export function CostCategoriesPage() {
                             <SelectContent>
                                 <SelectItem value="20">20 / página</SelectItem>
                                 <SelectItem value="50">50 / página</SelectItem>
-                                <SelectItem value="100">100 / página</SelectItem>
+                                <SelectItem value="100">
+                                    100 / página
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <div className="space-x-2">

@@ -43,11 +43,11 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
     return (
         <div className="space-y-3">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Factura <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                    Factura <span className="text-destructive">*</span>
                 </label>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                         placeholder="Buscar por número de factura, proveedor, OT..."
                         value={searchTerm}
@@ -55,7 +55,7 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
                         className="pl-10"
                     />
                     {isLoading && (
-                        <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
+                        <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-primary" />
                     )}
                 </div>
             </div>
@@ -67,12 +67,12 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FileText className="w-5 h-5 text-green-600" />
-                                    <span className="font-semibold text-gray-900">
+                                    <span className="font-semibold text-foreground">
                                         {selectedInvoice.numero_factura}
                                     </span>
                                     <CheckCircle className="w-5 h-5 text-green-600" />
                                 </div>
-                                <div className="space-y-1 text-sm text-gray-600">
+                                <div className="space-y-1 text-sm text-muted-foreground">
                                     <p>
                                         <span className="font-medium">Proveedor:</span>{" "}
                                         {selectedInvoice.proveedor_nombre}
@@ -105,13 +105,13 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
             )}
 
             {searchTerm && invoices.length > 0 && (
-                <div className="max-h-80 overflow-y-auto space-y-2 border rounded-lg p-2 bg-gray-50">
+                <div className="max-h-80 overflow-y-auto space-y-2 border rounded-lg p-2 bg-muted">
                     {invoices.map((invoice) => (
                         <Card
                             key={invoice.id}
                             className={`cursor-pointer transition-all hover:shadow-md ${
                                 selectedInvoice?.id === invoice.id
-                                    ? "ring-2 ring-blue-500 bg-blue-50"
+                                    ? "ring-2 ring-blue-500 bg-primary/10"
                                     : "hover:bg-white"
                             }`}
                             onClick={() => onSelect(invoice)}
@@ -120,27 +120,27 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-semibold text-gray-900">
+                                            <span className="font-semibold text-foreground">
                                                 {invoice.numero_factura}
                                             </span>
                                             {selectedInvoice?.id === invoice.id && (
-                                                <CheckCircle className="w-4 h-4 text-blue-600" />
+                                                <CheckCircle className="w-4 h-4 text-primary" />
                                             )}
                                         </div>
-                                        <div className="space-y-0.5 text-xs text-gray-600">
+                                        <div className="space-y-0.5 text-xs text-muted-foreground">
                                             <p>{invoice.proveedor_nombre}</p>
                                             {invoice.ot_number && (
-                                                <p className="text-blue-600">OT: {invoice.ot_number}</p>
+                                                <p className="text-primary">OT: {invoice.ot_number}</p>
                                             )}
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-semibold text-gray-900">
+                                        <p className="font-semibold text-foreground">
                                             ${parseFloat(invoice.monto).toLocaleString("es-MX", {
                                                 minimumFractionDigits: 2,
                                             })}
                                         </p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                             {formatDate(invoice.fecha_emision)}
                                         </p>
                                     </div>
@@ -152,8 +152,8 @@ export function InvoiceSelector({ selectedInvoice, onSelect }) {
             )}
 
             {searchTerm && !isLoading && invoices.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                    <FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                     <p className="text-sm">No se encontraron facturas</p>
                 </div>
             )}

@@ -42,8 +42,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     return createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{message}</p>
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
                 <div className="mt-6 flex justify-end gap-3">
                     <Button variant="outline" onClick={onClose}>
                         Cancelar
@@ -306,9 +306,9 @@ export function ManageCostAssociationsModal({
 
     const getMarginColor = (percentage) => {
         const pct = parseFloat(percentage);
-        if (pct < 10) return "text-red-600";
+        if (pct < 10) return "text-destructive";
         if (pct < 20) return "text-yellow-600";
-        if (pct < 30) return "text-blue-600";
+        if (pct < 30) return "text-primary";
         return "text-green-600";
     };
 
@@ -330,7 +330,7 @@ export function ManageCostAssociationsModal({
                             </CardTitle>
                             <button
                                 onClick={onClose}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                className="text-muted-foreground hover:text-muted-foreground transition-colors"
                             >
                                 <X className="h-5 w-5" />
                             </button>
@@ -366,8 +366,8 @@ export function ManageCostAssociationsModal({
                                     <div className="bg-white rounded-md p-4 border border-blue-200">
                                         <div className="space-y-2">
                                             {/* Total de la factura */}
-                                            <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">
+                                            <div className="flex justify-between items-center pb-2 border-b border-border">
+                                                <span className="text-sm font-medium text-foreground">
                                                     Total Factura Venta:
                                                 </span>
                                                 <span className="text-base font-bold text-blue-900">
@@ -379,11 +379,11 @@ export function ManageCostAssociationsModal({
                                             </div>
 
                                             {/* Total de costos */}
-                                            <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                                                <span className="text-sm font-medium text-gray-700">
+                                            <div className="flex justify-between items-center pb-2 border-b border-border">
+                                                <span className="text-sm font-medium text-foreground">
                                                     Total Costos Asociados:
                                                 </span>
-                                                <span className="text-base font-bold text-red-600">
+                                                <span className="text-base font-bold text-destructive">
                                                     -$
                                                     {formatCurrency(
                                                         mappingsData.total_costos_asignados
@@ -393,7 +393,7 @@ export function ManageCostAssociationsModal({
 
                                             {/* Margen resultante */}
                                             <div className="flex justify-between items-center pt-2">
-                                                <span className="text-sm font-semibold text-gray-900">
+                                                <span className="text-sm font-semibold text-foreground">
                                                     Margen Bruto:
                                                 </span>
                                                 <div className="text-right">
@@ -437,12 +437,12 @@ export function ManageCostAssociationsModal({
                             {loadingMappings ? (
                                 <Spinner />
                             ) : mappingsData?.cost_mappings?.length === 0 ? (
-                                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                    <p className="text-gray-500">
+                                <div className="text-center py-8 bg-muted rounded-lg border-2 border-dashed border-border">
+                                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                                    <p className="text-muted-foreground">
                                         No hay facturas de costo asociadas
                                     </p>
-                                    <p className="text-sm text-gray-400 mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         Agrega facturas para calcular el margen
                                     </p>
                                 </div>
@@ -452,12 +452,12 @@ export function ManageCostAssociationsModal({
                                         (mapping) => (
                                             <div
                                                 key={mapping.id}
-                                                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white"
+                                                className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted transition-colors bg-white"
                                             >
                                                 <div className="flex-1">
                                                     {/* Línea 1: Número de factura */}
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <span className="font-bold text-gray-900 text-base">
+                                                        <span className="font-bold text-foreground text-base">
                                                             {mapping.cost_invoice_numero ||
                                                                 mapping
                                                                     .cost_invoice_data
@@ -468,7 +468,7 @@ export function ManageCostAssociationsModal({
 
                                                     {/* Línea 2: Proveedor y Tipo de Costo */}
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-xs text-gray-500 font-medium">
+                                                        <span className="text-xs text-muted-foreground font-medium">
                                                             Proveedor:
                                                         </span>
                                                         <Badge
@@ -486,10 +486,10 @@ export function ManageCostAssociationsModal({
                                                                 .cost_invoice_data
                                                                 ?.tipo_costo_display) && (
                                                             <>
-                                                                <span className="text-gray-300">
+                                                                <span className="text-muted-foreground/50">
                                                                     |
                                                                 </span>
-                                                                <span className="text-xs text-gray-500 font-medium">
+                                                                <span className="text-xs text-muted-foreground font-medium">
                                                                     Tipo:
                                                                 </span>
                                                                 <Badge
@@ -506,12 +506,12 @@ export function ManageCostAssociationsModal({
                                                     </div>
 
                                                     {/* Línea 3: Montos */}
-                                                    <div className="flex items-center gap-4 text-sm text-gray-700">
+                                                    <div className="flex items-center gap-4 text-sm text-foreground">
                                                         <span>
-                                                            <span className="text-gray-500">
+                                                            <span className="text-muted-foreground">
                                                                 Total Factura:
                                                             </span>{" "}
-                                                            <span className="font-semibold text-gray-900">
+                                                            <span className="font-semibold text-foreground">
                                                                 $
                                                                 {formatCurrency(
                                                                     mapping
@@ -524,14 +524,14 @@ export function ManageCostAssociationsModal({
                                                                 )}
                                                             </span>
                                                         </span>
-                                                        <span className="text-gray-300">
+                                                        <span className="text-muted-foreground/50">
                                                             |
                                                         </span>
                                                         <span>
-                                                            <span className="text-gray-500">
+                                                            <span className="text-muted-foreground">
                                                                 Monto Asignado:
                                                             </span>{" "}
-                                                            <span className="font-bold text-blue-600">
+                                                            <span className="font-bold text-primary">
                                                                 $
                                                                 {formatCurrency(
                                                                     mapping.monto_asignado
@@ -540,7 +540,7 @@ export function ManageCostAssociationsModal({
                                                         </span>
                                                         {mapping.porcentaje_markup && (
                                                             <>
-                                                                <span className="text-gray-300">
+                                                                <span className="text-muted-foreground/50">
                                                                     |
                                                                 </span>
                                                                 <span className="text-green-600 font-medium">
@@ -558,7 +558,7 @@ export function ManageCostAssociationsModal({
 
                                                     {/* Línea 4: Notas (si existen) */}
                                                     {mapping.notas && (
-                                                        <p className="text-xs text-gray-500 mt-2 italic border-l-2 border-gray-300 pl-2">
+                                                        <p className="text-xs text-muted-foreground mt-2 italic border-l-2 border-border pl-2">
                                                             {mapping.notas}
                                                         </p>
                                                     )}
@@ -596,7 +596,7 @@ export function ManageCostAssociationsModal({
                         <div className="border-t pt-6">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                                    <Plus className="h-5 w-5 text-blue-600" />
+                                    <Plus className="h-5 w-5 text-primary" />
                                     Agregar Facturas de Costo
                                 </h3>
                                 {filteredAvailableInvoices.length > 0 && (
@@ -617,12 +617,12 @@ export function ManageCostAssociationsModal({
                                 <Spinner />
                             ) : availableData?.available_invoices?.length ===
                               0 ? (
-                                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                    <p className="text-gray-500">
+                                <div className="text-center py-8 bg-muted rounded-lg border-2 border-dashed border-border">
+                                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                                    <p className="text-muted-foreground">
                                         No hay facturas disponibles para asociar
                                     </p>
-                                    <p className="text-sm text-gray-400 mt-1">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         {salesInvoice.ot
                                             ? "No hay facturas provisionadas para esta OT"
                                             : "Asigna una OT a esta factura"}
@@ -632,7 +632,7 @@ export function ManageCostAssociationsModal({
                                 <div className="space-y-4">
                                     {/* Buscador */}
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <input
                                             type="text"
                                             placeholder="Buscar por número de factura o proveedor..."
@@ -640,15 +640,15 @@ export function ManageCostAssociationsModal({
                                             onChange={(e) =>
                                                 setSearchTerm(e.target.value)
                                             }
-                                            className="w-full rounded-md border border-gray-300 pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="w-full rounded-md border border-border pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
 
                                     {/* Lista de facturas con checkboxes */}
-                                    <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-3 bg-gray-50">
+                                    <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted">
                                         {filteredAvailableInvoices.length ===
                                         0 ? (
-                                            <p className="text-center text-gray-500 py-4">
+                                            <p className="text-center text-muted-foreground py-4">
                                                 No se encontraron facturas
                                             </p>
                                         ) : (
@@ -668,8 +668,8 @@ export function ManageCostAssociationsModal({
                                                             key={invoice.id}
                                                             className={`p-3 border rounded-lg bg-white transition-all ${
                                                                 isSelected
-                                                                    ? "border-blue-500 bg-blue-50"
-                                                                    : "border-gray-200"
+                                                                    ? "border-blue-500 bg-primary/10"
+                                                                    : "border-border"
                                                             } ${
                                                                 isDisabled
                                                                     ? "opacity-50 cursor-not-allowed"
@@ -691,12 +691,12 @@ export function ManageCostAssociationsModal({
                                                                             invoice
                                                                         )
                                                                     }
-                                                                    className="mt-1 h-4 w-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                                                                    className="mt-1 h-4 w-4 text-primary rounded focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
                                                                 />
                                                                 <div className="flex-1 min-w-0">
                                                                     {/* Línea 1: Número de factura */}
                                                                     <div className="flex items-center gap-2 mb-2">
-                                                                        <span className="font-bold text-gray-900 text-sm">
+                                                                        <span className="font-bold text-foreground text-sm">
                                                                             {
                                                                                 invoice.numero_factura
                                                                             }
@@ -705,7 +705,7 @@ export function ManageCostAssociationsModal({
 
                                                                     {/* Línea 2: Proveedor y Tipo */}
                                                                     <div className="flex items-center gap-2 mb-2">
-                                                                        <span className="text-xs text-gray-500 font-medium">
+                                                                        <span className="text-xs text-muted-foreground font-medium">
                                                                             Proveedor:
                                                                         </span>
                                                                         <Badge
@@ -718,10 +718,10 @@ export function ManageCostAssociationsModal({
                                                                         </Badge>
                                                                         {invoice.tipo_costo_display && (
                                                                             <>
-                                                                                <span className="text-gray-300">
+                                                                                <span className="text-muted-foreground/50">
                                                                                     |
                                                                                 </span>
-                                                                                <span className="text-xs text-gray-500 font-medium">
+                                                                                <span className="text-xs text-muted-foreground font-medium">
                                                                                     Tipo:
                                                                                 </span>
                                                                                 <Badge
@@ -737,19 +737,19 @@ export function ManageCostAssociationsModal({
                                                                     </div>
 
                                                                     {/* Línea 3: Montos */}
-                                                                    <div className="flex items-center gap-3 text-xs text-gray-700">
+                                                                    <div className="flex items-center gap-3 text-xs text-foreground">
                                                                         <span>
-                                                                            <span className="text-gray-500">
+                                                                            <span className="text-muted-foreground">
                                                                                 Total:
                                                                             </span>{" "}
-                                                                            <span className="font-semibold text-gray-900">
+                                                                            <span className="font-semibold text-foreground">
                                                                                 $
                                                                                 {formatCurrency(
                                                                                     invoice.monto_aplicable
                                                                                 )}
                                                                             </span>
                                                                         </span>
-                                                                        <span className="text-gray-300">
+                                                                        <span className="text-muted-foreground/50">
                                                                             |
                                                                         </span>
                                                                         <span
@@ -759,10 +759,10 @@ export function ManageCostAssociationsModal({
                                                                                 ) >
                                                                                 0
                                                                                     ? "text-green-600 font-medium"
-                                                                                    : "text-red-600 font-medium"
+                                                                                    : "text-destructive font-medium"
                                                                             }
                                                                         >
-                                                                            <span className="text-gray-500">
+                                                                            <span className="text-muted-foreground">
                                                                                 Disponible:
                                                                             </span>{" "}
                                                                             $
@@ -775,7 +775,7 @@ export function ManageCostAssociationsModal({
                                                                     {/* Input de monto si está seleccionado */}
                                                                     {isSelected && (
                                                                         <div className="mt-2">
-                                                                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                                            <label className="block text-xs font-medium text-foreground mb-1">
                                                                                 Monto
                                                                                 a
                                                                                 Asignar
@@ -808,10 +808,10 @@ export function ManageCostAssociationsModal({
                                                                                 ) =>
                                                                                     e.stopPropagation()
                                                                                 }
-                                                                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                                className="w-full rounded border border-border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                                                 placeholder="0.00"
                                                                             />
-                                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                            <p className="text-xs text-muted-foreground mt-1">
                                                                                 Máximo:
                                                                                 $
                                                                                 {formatCurrency(
@@ -872,8 +872,8 @@ export function ManageCostAssociationsModal({
                         </div>
 
                         {/* Footer con ayuda */}
-                        <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <p className="text-xs text-gray-600">
+                        <div className="mt-6 p-3 bg-muted rounded-lg border border-border">
+                            <p className="text-xs text-muted-foreground">
                                 <strong>Tip:</strong> Los márgenes se calculan
                                 automáticamente al agregar o quitar facturas de
                                 costo. Un margen bajo (menos del 10%) aparecerá

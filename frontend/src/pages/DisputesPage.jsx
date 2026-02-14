@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { StatCard } from "../components/common/StatCard";
 import {
     useDisputes,
     useDisputeStats,
@@ -15,6 +16,8 @@ import {
 import { DisputeFormModal } from "../components/disputes/DisputeFormModal";
 import { DisputesTableResponsive } from "../components/disputes/DisputesTableResponsive";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { TableSkeleton } from "../components/ui/Skeleton";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 import {
     Card,
@@ -35,30 +38,37 @@ import {
     ChevronUp,
     DollarSign,
     X,
-    Loader2,
 } from "lucide-react";
 
 export function DisputesPage() {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
-    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDispute, setSelectedDispute] = useState(null);
-    const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, dispute: null });
+    const [deleteDialog, setDeleteDialog] = useState({
+        isOpen: false,
+        dispute: null,
+    });
 
     const [filters, setFilters] = useState({
         estado: "",
         tipo_disputa: "",
         resultado: "",
     });
+    const debouncedSearch = useDebouncedValue(searchInput, 300);
 
     // Queries
-    const { data, isLoading, error: disputesError } = useDisputes({
+    const {
+        data,
+        isLoading,
+        error: disputesError,
+    } = useDisputes({
         page,
         page_size: pageSize,
-        search,
+        search: debouncedSearch,
         ...filters,
     });
     const { data: stats } = useDisputeStats();
@@ -78,7 +88,7 @@ export function DisputesPage() {
             tipo_disputa: "",
             resultado: "",
         });
-        setSearch("");
+        setSearchInput("");
         setPage(1);
     };
 
@@ -106,93 +116,40 @@ export function DisputesPage() {
     if (disputesError) {
         return (
             <div className="text-center py-12">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                     Error al cargar disputas
                 </h2>
-                <p className="text-gray-600">{disputesError.message}</p>
+                <p className="text-muted-foreground">{disputesError.message}</p>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Stats Cards */}
+            {/* Stats */}
             {stats && (
-                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Total Disputas
-                            </CardTitle>
-                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {stats.total}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                En el sistema
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Abiertas
-                            </CardTitle>
-                            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-red-600">
-                                {stats.abiertas}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Requieren atención
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Resueltas
-                            </CardTitle>
-                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {stats.resueltas}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Completadas
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Monto Total
-                            </CardTitle>
-                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-purple-600">
-                                ${stats.total_monto_disputado?.toLocaleString(
-                                    "es-MX",
-                                    {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                    }
-                                )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                En disputa
-                            </p>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                    <StatCard
+                        label="Total Disputas"
+                        value={stats.total}
+                        icon={AlertCircle}
+                    />
+                    <StatCard
+                        label="Abiertas"
+                        value={stats.abiertas}
+                        icon={XCircle}
+                    />
+                    <StatCard
+                        label="Resueltas"
+                        value={stats.resueltas}
+                        icon={CheckCircle}
+                    />
+                    <StatCard
+                        label="Monto Total"
+                        value={`$${stats.total_monto_disputado?.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                        icon={DollarSign}
+                    />
                 </div>
             )}
 
@@ -203,23 +160,23 @@ export function DisputesPage() {
                         {/* Search */}
                         <div className="flex-1">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Buscar por número de caso, factura, OT..."
-                                    value={search}
+                                    value={searchInput}
                                     onChange={(e) => {
-                                        setSearch(e.target.value);
+                                        setSearchInput(e.target.value);
                                         setPage(1);
                                     }}
                                     className="pl-10 h-10"
                                 />
-                                {search && (
+                                {searchInput && (
                                     <button
                                         onClick={() => {
-                                            setSearch("");
+                                            setSearchInput("");
                                             setPage(1);
                                         }}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
@@ -233,7 +190,11 @@ export function DisputesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={showFilters ? "bg-blue-50 border-blue-300" : ""}
+                                className={
+                                    showFilters
+                                        ? "bg-primary/10 border-blue-300"
+                                        : ""
+                                }
                             >
                                 {showFilters ? (
                                     <ChevronUp className="w-4 h-4 mr-2" />
@@ -241,8 +202,13 @@ export function DisputesPage() {
                                     <ChevronDown className="w-4 h-4 mr-2" />
                                 )}
                                 Filtros
-                                {(filters.estado || filters.tipo_disputa || filters.resultado) && (
-                                    <Badge variant="default" className="ml-2 px-1.5 py-0.5 text-xs">
+                                {(filters.estado ||
+                                    filters.tipo_disputa ||
+                                    filters.resultado) && (
+                                    <Badge
+                                        variant="default"
+                                        className="ml-2 px-1.5 py-0.5 text-xs"
+                                    >
                                         {[
                                             filters.estado ? 1 : 0,
                                             filters.tipo_disputa ? 1 : 0,
@@ -268,66 +234,116 @@ export function DisputesPage() {
                     {showFilters && (
                         <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Estado
                                 </label>
                                 <select
                                     value={filters.estado}
-                                    onChange={(e) => handleFilterChange("estado", e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "estado",
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Todos los estados</option>
                                     {filterValues?.estados?.map((estado) => (
                                         <option key={estado} value={estado}>
-                                            {estado === 'abierta' ? 'Abierta' :
-                                             estado === 'en_revision' ? 'En Revisión' :
-                                             estado === 'resuelta' ? 'Resuelta' :
-                                             estado === 'cerrada' ? 'Cerrada' : estado}
+                                            {estado === "abierta"
+                                                ? "Abierta"
+                                                : estado === "en_revision"
+                                                  ? "En Revisión"
+                                                  : estado === "resuelta"
+                                                    ? "Resuelta"
+                                                    : estado === "cerrada"
+                                                      ? "Cerrada"
+                                                      : estado}
                                         </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Tipo de Disputa
                                 </label>
                                 <select
                                     value={filters.tipo_disputa}
-                                    onChange={(e) => handleFilterChange("tipo_disputa", e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "tipo_disputa",
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Todos los tipos</option>
-                                    {filterValues?.tipos_disputa?.map((tipo) => (
-                                        <option key={tipo} value={tipo}>
-                                            {tipo === 'servicio_no_prestado' ? 'Servicio No Prestado' :
-                                             tipo === 'monto_incorrecto' ? 'Monto Incorrecto / Error de Facturación' :
-                                             tipo === 'almacenaje_no_aplica' ? 'Almacenaje No Aplica' :
-                                             tipo === 'demoras_no_aplican' ? 'Demoras No Aplican' :
-                                             tipo === 'dias_libres_incorrectos' ? 'Días Libres No Aplicados Correctamente' :
-                                             tipo === 'otro' ? 'Otro' : tipo}
-                                        </option>
-                                    ))}
+                                    {filterValues?.tipos_disputa?.map(
+                                        (tipo) => (
+                                            <option key={tipo} value={tipo}>
+                                                {tipo === "servicio_no_prestado"
+                                                    ? "Servicio No Prestado"
+                                                    : tipo ===
+                                                        "monto_incorrecto"
+                                                      ? "Monto Incorrecto / Error de Facturación"
+                                                      : tipo ===
+                                                          "almacenaje_no_aplica"
+                                                        ? "Almacenaje No Aplica"
+                                                        : tipo ===
+                                                            "demoras_no_aplican"
+                                                          ? "Demoras No Aplican"
+                                                          : tipo ===
+                                                              "dias_libres_incorrectos"
+                                                            ? "Días Libres No Aplicados Correctamente"
+                                                            : tipo === "otro"
+                                                              ? "Otro"
+                                                              : tipo}
+                                            </option>
+                                        ),
+                                    )}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                <label className="text-sm font-medium text-foreground mb-1 block">
                                     Resultado
                                 </label>
                                 <select
                                     value={filters.resultado || ""}
-                                    onChange={(e) => handleFilterChange("resultado", e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "resultado",
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <option value="">Todos los resultados</option>
-                                    {filterValues?.resultados?.map((resultado) => (
-                                        <option key={resultado} value={resultado}>
-                                            {resultado === 'pendiente' ? 'Pendiente' :
-                                             resultado === 'aprobada_total' ? 'Aprobada Total' :
-                                             resultado === 'aprobada_parcial' ? 'Aprobada Parcial' :
-                                             resultado === 'rechazada' ? 'Rechazada' :
-                                             resultado === 'anulada' ? 'Anulada' : resultado}
-                                        </option>
-                                    ))}
+                                    <option value="">
+                                        Todos los resultados
+                                    </option>
+                                    {filterValues?.resultados?.map(
+                                        (resultado) => (
+                                            <option
+                                                key={resultado}
+                                                value={resultado}
+                                            >
+                                                {resultado === "pendiente"
+                                                    ? "Pendiente"
+                                                    : resultado ===
+                                                        "aprobada_total"
+                                                      ? "Aprobada Total"
+                                                      : resultado ===
+                                                          "aprobada_parcial"
+                                                        ? "Aprobada Parcial"
+                                                        : resultado ===
+                                                            "rechazada"
+                                                          ? "Rechazada"
+                                                          : resultado ===
+                                                              "anulada"
+                                                            ? "Anulada"
+                                                            : resultado}
+                                            </option>
+                                        ),
+                                    )}
                                 </select>
                             </div>
                         </div>
@@ -336,39 +352,48 @@ export function DisputesPage() {
             </Card>
 
             {/* Indicadores de Filtros Activos */}
-            {(search || filters.estado || filters.tipo_disputa || filters.resultado) && (
+            {(searchInput ||
+                filters.estado ||
+                filters.tipo_disputa ||
+                filters.resultado) && (
                 <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-foreground">
                         Filtros activos:
                     </span>
-                    {search && (
+                    {debouncedSearch && (
                         <Badge variant="secondary" className="gap-1">
-                            Búsqueda: {search}
+                            Búsqueda: {debouncedSearch}
                             <button
                                 onClick={() => {
-                                    setSearch("");
+                                    setSearchInput("");
                                     setPage(1);
                                 }}
-                                className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                                className="ml-1 hover:bg-muted rounded-full p-0.5"
                             >
                                 <X className="w-3 h-3" />
                             </button>
                         </Badge>
                     )}
                     {filters.estado && (
-                        <Badge variant="secondary">Estado: {filters.estado}</Badge>
+                        <Badge variant="secondary">
+                            Estado: {filters.estado}
+                        </Badge>
                     )}
                     {filters.tipo_disputa && (
-                        <Badge variant="secondary">Tipo: {filters.tipo_disputa}</Badge>
+                        <Badge variant="secondary">
+                            Tipo: {filters.tipo_disputa}
+                        </Badge>
                     )}
                     {filters.resultado && (
-                        <Badge variant="secondary">Resultado: {filters.resultado}</Badge>
+                        <Badge variant="secondary">
+                            Resultado: {filters.resultado}
+                        </Badge>
                     )}
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={handleClearFilters}
-                        className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 font-medium"
+                        className="border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-red-300 hover:text-red-700 font-medium"
                     >
                         <X className="w-4 h-4 mr-1.5" />
                         Limpiar todos los filtros
@@ -382,33 +407,32 @@ export function DisputesPage() {
                     <div className="flex items-center justify-between">
                         <CardTitle>Disputas</CardTitle>
                         {data?.count > 0 && (
-                            <p className="text-sm text-gray-600">
-                                {data.count} {data.count === 1 ? "disputa" : "disputas"}
+                            <p className="text-sm text-muted-foreground">
+                                {data.count}{" "}
+                                {data.count === 1 ? "disputa" : "disputas"}
                             </p>
                         )}
                     </div>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div className="text-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-                            <p className="text-gray-600">
-                                Cargando disputas...
-                            </p>
-                        </div>
+                        <TableSkeleton rows={8} cols={8} />
                     ) : data?.results?.length === 0 ? (
                         <div className="text-center py-12">
-                            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-foreground mb-2">
                                 No hay disputas
                             </h3>
-                            <p className="text-gray-600 mb-4">
-                                No se encontraron disputas con los filtros aplicados
+                            <p className="text-muted-foreground mb-4">
+                                No se encontraron disputas con los filtros
+                                aplicados
                             </p>
-                            <Button onClick={() => {
-                                setSelectedDispute(null);
-                                setIsModalOpen(true);
-                            }}>
+                            <Button
+                                onClick={() => {
+                                    setSelectedDispute(null);
+                                    setIsModalOpen(true);
+                                }}
+                            >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Crear Primera Disputa
                             </Button>
@@ -419,35 +443,52 @@ export function DisputesPage() {
                                 disputes={data.results}
                                 onEdit={handleEdit}
                                 onDelete={handleDeleteClick}
-                                deletingId={deleteMutation.isPending ? deleteDialog.dispute?.id : null}
+                                deletingId={
+                                    deleteMutation.isPending
+                                        ? deleteDialog.dispute?.id
+                                        : null
+                                }
                             />
 
                             {/* Pagination */}
                             {data?.count > pageSize && (
                                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-muted-foreground">
                                         Mostrando {(page - 1) * pageSize + 1} -{" "}
-                                        {Math.min(page * pageSize, data.count)} de{" "}
-                                        {data.count} disputas
+                                        {Math.min(page * pageSize, data.count)}{" "}
+                                        de {data.count} disputas
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <select
                                             value={pageSize}
                                             onChange={(e) => {
-                                                setPageSize(parseInt(e.target.value, 10));
+                                                setPageSize(
+                                                    parseInt(
+                                                        e.target.value,
+                                                        10,
+                                                    ),
+                                                );
                                                 setPage(1);
                                             }}
-                                            className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                            className="px-2 py-1 border border-border rounded-md text-sm"
                                         >
-                                            <option value="20">20 / página</option>
-                                            <option value="50">50 / página</option>
-                                            <option value="100">100 / página</option>
+                                            <option value="20">
+                                                20 / página
+                                            </option>
+                                            <option value="50">
+                                                50 / página
+                                            </option>
+                                            <option value="100">
+                                                100 / página
+                                            </option>
                                         </select>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() =>
-                                                setPage((p) => Math.max(1, p - 1))
+                                                setPage((p) =>
+                                                    Math.max(1, p - 1),
+                                                )
                                             }
                                             disabled={!data.previous}
                                         >
@@ -456,7 +497,9 @@ export function DisputesPage() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setPage((p) => p + 1)}
+                                            onClick={() =>
+                                                setPage((p) => p + 1)
+                                            }
                                             disabled={!data.next}
                                         >
                                             Siguiente
@@ -483,7 +526,9 @@ export function DisputesPage() {
             {/* Dialog de confirmación para eliminar */}
             <ConfirmDialog
                 isOpen={deleteDialog.isOpen}
-                onClose={() => setDeleteDialog({ isOpen: false, dispute: null })}
+                onClose={() =>
+                    setDeleteDialog({ isOpen: false, dispute: null })
+                }
                 onConfirm={handleDeleteConfirm}
                 variant="danger"
                 title="Eliminar Disputa"

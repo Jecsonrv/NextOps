@@ -136,7 +136,7 @@ export function InvoiceAssignOTModal({
                             <X className="w-5 h-5" />
                         </Button>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                         Factura: <strong>{invoice?.numero_factura}</strong>
                     </p>
                 </div>
@@ -156,7 +156,7 @@ export function InvoiceAssignOTModal({
                                 />
                                 {isSearching && (
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
                                     </div>
                                 )}
                             </div>
@@ -168,7 +168,7 @@ export function InvoiceAssignOTModal({
                                 <Search className="w-4 h-4" />
                             </Button>
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             {isSearching
                                 ? "Buscando..."
                                 : searchTerm
@@ -198,8 +198,8 @@ export function InvoiceAssignOTModal({
 
                     {/* Error de búsqueda */}
                     {error && !successMessage && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <p className="font-semibold text-red-900">
                                     Error
@@ -214,7 +214,7 @@ export function InvoiceAssignOTModal({
                     {/* Resultados de búsqueda */}
                     {searchResults.length > 0 ? (
                         <div className="space-y-3">
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-foreground">
                                 Resultados ({searchResults.length})
                             </h3>
                             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -223,8 +223,8 @@ export function InvoiceAssignOTModal({
                                         key={ot.id}
                                         className={`cursor-pointer transition-all rounded-lg ${
                                             selectedOT?.id === ot.id
-                                                ? "border-2 border-blue-500 bg-blue-50 shadow-sm"
-                                                : "border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                                                ? "border-2 border-blue-500 bg-primary/10 shadow-sm"
+                                                : "border border-border hover:bg-muted hover:border-border"
                                         }`}
                                         onClick={() => setSelectedOT(ot)}
                                     >
@@ -237,12 +237,12 @@ export function InvoiceAssignOTModal({
                                                         </span>
                                                         {selectedOT?.id ===
                                                             ot.id && (
-                                                            <CheckCircle className="w-5 h-5 text-blue-600" />
+                                                            <CheckCircle className="w-5 h-5 text-primary" />
                                                         )}
                                                     </div>
                                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 Cliente:
                                                             </span>
                                                             <p className="font-medium">
@@ -251,7 +251,7 @@ export function InvoiceAssignOTModal({
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 MBL:
                                                             </span>
                                                             <p className="font-medium font-mono text-xs">
@@ -261,7 +261,7 @@ export function InvoiceAssignOTModal({
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 Contenedores:
                                                             </span>
                                                             <p className="font-medium text-xs">
@@ -271,7 +271,7 @@ export function InvoiceAssignOTModal({
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 Proveedor:
                                                             </span>
                                                             <p className="font-medium text-xs">
@@ -280,7 +280,7 @@ export function InvoiceAssignOTModal({
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 Barco:
                                                             </span>
                                                             <p className="font-medium">
@@ -289,7 +289,7 @@ export function InvoiceAssignOTModal({
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-600">
+                                                            <span className="text-muted-foreground">
                                                                 Estado:
                                                             </span>
                                                             <Badge
@@ -317,16 +317,16 @@ export function InvoiceAssignOTModal({
                         </div>
                     ) : searchTerm && !isSearching ? (
                         <div className="text-center py-12">
-                            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600">
+                            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-muted-foreground">
                                 No se encontraron OTs con el término &ldquo;
                                 {searchTerm}&rdquo;
                             </p>
                         </div>
                     ) : !searchTerm ? (
                         <div className="text-center py-12">
-                            <Search className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600">
+                            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-muted-foreground">
                                 Ingresa un término de búsqueda para encontrar
                                 OTs
                             </p>
@@ -336,10 +336,10 @@ export function InvoiceAssignOTModal({
                     {/* OT Actual */}
                     {invoice?.ot_data && (
                         <div className="border-t pt-6">
-                            <h3 className="font-semibold text-gray-900 mb-3">
+                            <h3 className="font-semibold text-foreground mb-3">
                                 OT Actualmente Asignada
                             </h3>
-                            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4 shadow-sm">
+                            <div className="bg-primary/10 border-2 border-blue-300 rounded-lg p-4 shadow-sm">
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div>
@@ -373,53 +373,53 @@ export function InvoiceAssignOTModal({
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 Operativo:
                                             </span>
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {invoice.ot_data.operativo ||
                                                     "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 Cliente:
                                             </span>
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {invoice.ot_data.cliente ||
                                                     "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 MBL:
                                             </span>
-                                            <p className="text-gray-900 font-mono text-xs">
+                                            <p className="text-foreground font-mono text-xs">
                                                 {invoice.ot_data.mbl || "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 Naviera:
                                             </span>
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {invoice.ot_data.naviera ||
                                                     "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 Barco:
                                             </span>
-                                            <p className="text-gray-900">
+                                            <p className="text-foreground">
                                                 {invoice.ot_data.barco || "N/A"}
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-600 font-medium">
+                                            <span className="text-muted-foreground font-medium">
                                                 Estado:
                                             </span>
-                                            <p className="text-gray-900 capitalize">
+                                            <p className="text-foreground capitalize">
                                                 {invoice.ot_data.estado ||
                                                     "N/A"}
                                             </p>
@@ -432,7 +432,7 @@ export function InvoiceAssignOTModal({
                 </div>
 
                 {/* Footer con acciones */}
-                <div className="border-t p-6 flex items-center justify-between bg-gray-50">
+                <div className="border-t p-6 flex items-center justify-between bg-muted">
                     <Button
                         variant="outline"
                         onClick={onClose}

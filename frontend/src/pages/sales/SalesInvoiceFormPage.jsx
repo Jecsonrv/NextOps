@@ -458,12 +458,12 @@ export default function SalesInvoiceFormPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         {isEdit
                             ? "Editar Factura de Venta"
                             : "Nueva Factura de Venta"}
                     </h1>
-                    <p className="mt-2 text-sm text-gray-600">
+                    <p className="mt-2 text-sm text-muted-foreground">
                         {isEdit
                             ? "Actualizar información de la factura"
                             : "Cargar nueva factura de venta emitida al cliente"}
@@ -490,7 +490,7 @@ export default function SalesInvoiceFormPage() {
                             {/* PASO 1: Tipo de Operación - Primero */}
                             {!isEdit && (
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                         Paso 1: Tipo de Operación *
                                     </label>
                                     <select
@@ -498,7 +498,7 @@ export default function SalesInvoiceFormPage() {
                                         onChange={(e) =>
                                             setTipoOperacion(e.target.value)
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value="nacional">
                                             Factura Nacional
@@ -513,15 +513,15 @@ export default function SalesInvoiceFormPage() {
                             {/* PASO 2: Archivo PDF - Drag & Drop Design */}
                             {!isEdit && (
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                         Paso 2: Archivo PDF de la Factura *
                                     </label>
 
                                     {!selectedFile ? (
-                                        <div className="mt-2 flex justify-center px-6 pt-10 pb-10 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                                        <div className="mt-2 flex justify-center px-6 pt-10 pb-10 border-2 border-border border-dashed rounded-lg hover:border-border transition-colors">
                                             <div className="space-y-2 text-center">
                                                 <svg
-                                                    className="mx-auto h-16 w-16 text-gray-400"
+                                                    className="mx-auto h-16 w-16 text-muted-foreground"
                                                     stroke="currentColor"
                                                     fill="none"
                                                     viewBox="0 0 48 48"
@@ -539,10 +539,10 @@ export default function SalesInvoiceFormPage() {
                                                         strokeLinecap="round"
                                                     />
                                                 </svg>
-                                                <div className="text-sm text-gray-600">
+                                                <div className="text-sm text-muted-foreground">
                                                     <label
                                                         htmlFor="pdf-upload"
-                                                        className="relative cursor-pointer rounded-md font-semibold text-blue-600 hover:text-blue-500"
+                                                        className="relative cursor-pointer rounded-md font-semibold text-primary hover:text-primary"
                                                     >
                                                         <span>
                                                             Arrastra archivos
@@ -560,7 +560,7 @@ export default function SalesInvoiceFormPage() {
                                                         />
                                                     </label>
                                                 </div>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-muted-foreground">
                                                     PDF, JSON, XML - Máximo 20
                                                     archivos de 10MB cada uno
                                                 </p>
@@ -568,14 +568,14 @@ export default function SalesInvoiceFormPage() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-300 rounded-lg">
+                                            <div className="flex items-center justify-between p-4 bg-muted border border-border rounded-lg">
                                                 <div className="flex items-center gap-3">
                                                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">
+                                                        <p className="text-sm font-medium text-foreground">
                                                             {selectedFile.name}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-muted-foreground">
                                                             {(
                                                                 selectedFile.size /
                                                                 1024 /
@@ -587,7 +587,7 @@ export default function SalesInvoiceFormPage() {
                                                 </div>
                                                 <label
                                                     htmlFor="pdf-upload-change"
-                                                    className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+                                                    className="text-sm text-primary hover:text-blue-700 cursor-pointer font-medium"
                                                 >
                                                     Cambiar
                                                     <input
@@ -651,7 +651,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Separador visual */}
                             <div className="md:col-span-2 border-t pt-6">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                                <h3 className="text-sm font-semibold text-foreground mb-4">
                                     Paso 3: Datos de la Factura
                                     (auto-completados o edita manualmente)
                                 </h3>
@@ -659,7 +659,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* OT - Con búsqueda */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Número de OT *{" "}
                                     {formData.ot_numero && (
                                         <CheckCircle2 className="inline h-4 w-4 text-green-600 ml-1" />
@@ -674,7 +674,7 @@ export default function SalesInvoiceFormPage() {
                                         className="w-full"
                                     />
                                     {otSearchTerm && ots?.results && (
-                                        <div className="max-h-48 overflow-y-auto border rounded-md bg-white shadow-lg">
+                                        <div className="max-h-48 overflow-y-auto border rounded-md bg-card shadow-lg">
                                             {ots.results
                                                 .filter(
                                                     (ot) =>
@@ -696,12 +696,12 @@ export default function SalesInvoiceFormPage() {
                                                             handleSelectOT(ot);
                                                             setOtSearchTerm("");
                                                         }}
-                                                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0"
+                                                        className="px-3 py-2 hover:bg-primary/10 cursor-pointer border-b last:border-b-0"
                                                     >
-                                                        <div className="font-medium text-gray-900">
+                                                        <div className="font-medium text-foreground">
                                                             {ot.numero_ot}
                                                         </div>
-                                                        <div className="text-sm text-gray-600">
+                                                        <div className="text-sm text-muted-foreground">
                                                             {ot.cliente_nombre}
                                                         </div>
                                                     </div>
@@ -711,14 +711,14 @@ export default function SalesInvoiceFormPage() {
                                     {selectedOT &&
                                         formData.ot_numero &&
                                         !otSearchTerm && (
-                                            <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-md">
+                                            <div className="px-3 py-2 bg-primary/10 border border-blue-200 rounded-md">
                                                 <div className="flex items-center gap-2">
                                                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                                                     <div>
-                                                        <div className="font-medium text-gray-900">
+                                                        <div className="font-medium text-foreground">
                                                             {formData.ot_numero}
                                                         </div>
-                                                        <div className="text-sm text-gray-600">
+                                                        <div className="text-sm text-muted-foreground">
                                                             {
                                                                 formData.cliente_nombre
                                                             }
@@ -728,7 +728,7 @@ export default function SalesInvoiceFormPage() {
                                             </div>
                                         )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Escribe para buscar. El cliente se
                                     auto-completará.
                                 </p>
@@ -736,7 +736,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Cliente - Auto-completado */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Cliente{" "}
                                     {formData.cliente_nombre && (
                                         <CheckCircle2 className="inline h-4 w-4 text-green-600 ml-1" />
@@ -750,7 +750,7 @@ export default function SalesInvoiceFormPage() {
                                     className={
                                         formData.cliente_nombre
                                             ? "bg-green-50 border-green-300"
-                                            : "bg-gray-50"
+                                            : "bg-muted"
                                     }
                                 />
                                 {!formData.cliente_nombre && (
@@ -769,7 +769,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Número de Factura */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Número de Factura *
                                 </label>
                                 <Input
@@ -788,7 +788,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Fecha de Emisión */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Fecha de Emisión *
                                 </label>
                                 <Input
@@ -806,7 +806,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Fecha de Vencimiento */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Fecha de Vencimiento
                                 </label>
                                 <Input
@@ -823,7 +823,7 @@ export default function SalesInvoiceFormPage() {
 
                             {/* Estado Facturación */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Estado de Facturación
                                 </label>
                                 <select
@@ -834,7 +834,7 @@ export default function SalesInvoiceFormPage() {
                                             e.target.value
                                         )
                                     }
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {ESTADO_FACTURACION_CHOICES.map(
                                         (choice) => (
@@ -854,7 +854,7 @@ export default function SalesInvoiceFormPage() {
                                 {/* Subtotal Gravado - Solo para Nacional */}
                                 {tipoOperacion === "nacional" && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Subtotal Gravado
                                         </label>
                                         <Input
@@ -869,7 +869,7 @@ export default function SalesInvoiceFormPage() {
                                             }
                                             placeholder="0.00"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Con IVA
                                         </p>
                                     </div>
@@ -878,7 +878,7 @@ export default function SalesInvoiceFormPage() {
                                 {/* Subtotal Exento - Solo para Nacional */}
                                 {tipoOperacion === "nacional" && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             Subtotal Exento
                                         </label>
                                         <Input
@@ -893,7 +893,7 @@ export default function SalesInvoiceFormPage() {
                                             }
                                             placeholder="0.00"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Sin IVA
                                         </p>
                                     </div>
@@ -902,7 +902,7 @@ export default function SalesInvoiceFormPage() {
                                 {/* % IVA - Solo para Nacional */}
                                 {tipoOperacion === "nacional" && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             % IVA
                                         </label>
                                         <Input
@@ -917,9 +917,9 @@ export default function SalesInvoiceFormPage() {
                                                 )
                                             }
                                             placeholder="13.00"
-                                            className="bg-blue-50"
+                                            className="bg-primary/10"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             El Salvador: 13%
                                         </p>
                                     </div>
@@ -928,7 +928,7 @@ export default function SalesInvoiceFormPage() {
                                 {/* IVA Total - Solo para Nacional */}
                                 {tipoOperacion === "nacional" && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-foreground mb-2">
                                             IVA Total
                                         </label>
                                         <Input
@@ -936,7 +936,7 @@ export default function SalesInvoiceFormPage() {
                                             step="0.01"
                                             value={formData.iva_total}
                                             readOnly
-                                            className="bg-gray-100 font-semibold"
+                                            className="bg-muted font-semibold"
                                             placeholder="0.00"
                                         />
                                         <p className="text-xs text-green-600 mt-1">
@@ -946,7 +946,7 @@ export default function SalesInvoiceFormPage() {
                                 )}
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                         Monto Total *
                                     </label>
                                     <Input
@@ -956,7 +956,7 @@ export default function SalesInvoiceFormPage() {
                                         readOnly={tipoOperacion === "nacional"}
                                         className={
                                             tipoOperacion === "nacional"
-                                                ? "bg-gray-100 font-bold text-lg"
+                                                ? "bg-muted font-bold text-lg"
                                                 : "font-bold text-lg"
                                         }
                                         value={formData.monto_total}
@@ -990,11 +990,11 @@ export default function SalesInvoiceFormPage() {
                                                     e.target.checked
                                                 )
                                             }
-                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            className="h-4 w-4 text-primary border-border rounded focus:ring-blue-500"
                                         />
                                         <label
                                             htmlFor="manualRetention"
-                                            className="text-sm font-medium text-gray-700"
+                                            className="text-sm font-medium text-foreground"
                                         >
                                             Aplicar Retención 1% (Gran
                                             Contribuyente)
@@ -1019,7 +1019,7 @@ export default function SalesInvoiceFormPage() {
                                             <CardContent>
                                                 <div className="space-y-2 text-sm">
                                                     <div className="flex justify-between">
-                                                        <span className="text-gray-700">
+                                                        <span className="text-foreground">
                                                             Total Factura:
                                                         </span>
                                                         <span className="font-mono">
@@ -1031,10 +1031,10 @@ export default function SalesInvoiceFormPage() {
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-gray-700">
+                                                        <span className="text-foreground">
                                                             (-) Retención 1%:
                                                         </span>
-                                                        <span className="font-mono text-red-600">
+                                                        <span className="font-mono text-destructive">
                                                             -$
                                                             {(
                                                                 parseFloat(
@@ -1045,7 +1045,7 @@ export default function SalesInvoiceFormPage() {
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between pt-2 border-t font-bold">
-                                                        <span className="text-gray-900">
+                                                        <span className="text-foreground">
                                                             Neto a Cobrar:
                                                         </span>
                                                         <span className="font-mono text-green-600">
@@ -1089,7 +1089,7 @@ export default function SalesInvoiceFormPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-gray-600 mb-3">
+                            <p className="text-sm text-muted-foreground mb-3">
                                 Selecciona las facturas de costo que deseas
                                 asociar a esta factura de venta:
                             </p>
@@ -1097,7 +1097,7 @@ export default function SalesInvoiceFormPage() {
                                 {provisionadas.map((factura) => (
                                     <label
                                         key={factura.id}
-                                        className="flex items-center p-3 border rounded-md hover:bg-gray-50 cursor-pointer transition-colors bg-white"
+                                        className="flex items-center p-3 border rounded-md hover:bg-muted cursor-pointer transition-colors bg-card"
                                     >
                                         <input
                                             type="checkbox"
@@ -1107,7 +1107,7 @@ export default function SalesInvoiceFormPage() {
                                             onChange={() =>
                                                 toggleCostInvoice(factura.id)
                                             }
-                                            className="mr-3 h-4 w-4 text-blue-600"
+                                            className="mr-3 h-4 w-4 text-primary"
                                         />
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
@@ -1127,7 +1127,7 @@ export default function SalesInvoiceFormPage() {
                                                     ).toFixed(2)}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {factura.proveedor_nombre} -{" "}
                                                 {factura.tipo_costo_display}
                                             </p>
@@ -1136,7 +1136,7 @@ export default function SalesInvoiceFormPage() {
                                 ))}
                             </div>
                             {selectedCostInvoices.length > 0 && (
-                                <div className="mt-3 p-2 bg-blue-50 rounded">
+                                <div className="mt-3 p-2 bg-primary/10 rounded">
                                     <p className="text-sm font-medium text-blue-900">
                                         {selectedCostInvoices.length} factura(s)
                                         de costo seleccionada(s)
@@ -1155,12 +1155,12 @@ export default function SalesInvoiceFormPage() {
                     <CardContent>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Notas
                                 </label>
                                 <textarea
                                     rows="3"
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={formData.notas}
                                     onChange={(e) =>
                                         handleInputChange(

@@ -25,10 +25,11 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Input } from "../components/ui/Input";
-import { NormalizationModal } from "../components/NormalizationModal";
+import { NormalizationModal } from "../components/clients/NormalizationModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { showConfirm } from "../utils/toast";
 import { InputDialog } from "../components/ui/InputDialog";
+import { StatCard } from "../components/common/StatCard";
 import {
     useSuggestAllMatches,
     useApplyNormalization,
@@ -61,14 +62,14 @@ function OverviewTab({
         ? Math.round(
               ((stats?.approved_matches || approvedMatches.length) /
                   totalAliases) *
-                  100
+                  100,
           )
         : 0;
     const pendingRatio = totalAliases
         ? Math.round(
               ((stats?.pending_matches || pendingMatches.length) /
                   totalAliases) *
-                  100
+                  100,
           )
         : 0;
 
@@ -88,7 +89,7 @@ function OverviewTab({
                     </CardHeader>
                     <CardContent>
                         {pendingMatches.length === 0 ? (
-                            <div className="py-10 text-center text-sm text-gray-500">
+                            <div className="py-10 text-center text-sm text-muted-foreground">
                                 No hay sugerencias en espera.
                             </div>
                         ) : (
@@ -101,7 +102,7 @@ function OverviewTab({
                                         match.alias_2?.original_name ||
                                         "Cliente";
                                     const similarity = Math.round(
-                                        match.similarity_score || 0
+                                        match.similarity_score || 0,
                                     );
 
                                     return (
@@ -111,10 +112,10 @@ function OverviewTab({
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-gray-900">
+                                                    <p className="text-sm font-semibold text-foreground">
                                                         {alias1Name}
                                                     </p>
-                                                    <p className="mt-1 text-sm text-gray-600">
+                                                    <p className="mt-1 text-sm text-muted-foreground">
                                                         ≈ {alias2Name}
                                                     </p>
                                                 </div>
@@ -138,7 +139,7 @@ function OverviewTab({
                     </CardHeader>
                     <CardContent>
                         {approvedMatches.length === 0 ? (
-                            <div className="py-10 text-center text-sm text-gray-500">
+                            <div className="py-10 text-center text-sm text-muted-foreground">
                                 Todavía no hay fusiones aprobadas.
                             </div>
                         ) : (
@@ -154,15 +155,15 @@ function OverviewTab({
                                     return (
                                         <div
                                             key={match.id}
-                                            className="rounded-lg border border-green-200 bg-green-50 px-3 py-3"
+                                            className="rounded-lg border border-green-200 bg-emerald-50 px-3 py-3"
                                         >
                                             <div className="flex items-start gap-3">
-                                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                                <div className="flex-1 text-sm text-gray-700">
-                                                    <p className="font-semibold text-gray-900">
+                                                <CheckCircle className="h-5 w-5 text-emerald-600" />
+                                                <div className="flex-1 text-sm text-foreground">
+                                                    <p className="font-semibold text-foreground">
                                                         {originAlias}
                                                     </p>
-                                                    <p className="text-xs text-gray-600">
+                                                    <p className="text-xs text-muted-foreground">
                                                         -&gt; {targetAlias}
                                                     </p>
                                                 </div>
@@ -185,7 +186,7 @@ function OverviewTab({
                     </CardHeader>
                     <CardContent>
                         {topAliases.length === 0 ? (
-                            <div className="py-10 text-center text-sm text-gray-500">
+                            <div className="py-10 text-center text-sm text-muted-foreground">
                                 Sin actividad registrada aún.
                             </div>
                         ) : (
@@ -193,17 +194,17 @@ function OverviewTab({
                                 {topAliases.map((alias) => (
                                     <div
                                         key={alias.id}
-                                        className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-3 transition-colors hover:bg-gray-100"
+                                        className="flex items-center justify-between rounded-lg bg-muted px-3 py-3 transition-colors hover:bg-muted"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Globe className="h-5 w-5 text-gray-400" />
+                                            <Globe className="h-5 w-5 text-muted-foreground" />
                                             <div>
-                                                <p className="font-medium text-gray-900">
+                                                <p className="font-medium text-foreground">
                                                     {alias.original_name}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-muted-foreground">
                                                     {alias.usage_count?.toLocaleString(
-                                                        "es-MX"
+                                                        "es-MX",
                                                     ) || 0}{" "}
                                                     OTs
                                                 </p>
@@ -211,7 +212,7 @@ function OverviewTab({
                                         </div>
                                         <Badge variant="secondary">
                                             {alias.usage_count?.toLocaleString(
-                                                "es-MX"
+                                                "es-MX",
                                             ) || 0}
                                         </Badge>
                                     </div>
@@ -226,14 +227,14 @@ function OverviewTab({
                         <CardTitle className="text-lg">Indicadores</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-3 text-sm text-gray-700">
-                            <div className="flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2">
+                        <div className="space-y-3 text-sm text-foreground">
+                            <div className="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2">
                                 <span>Total de clientes</span>
                                 <span className="font-semibold text-blue-700">
                                     {totalAliases.toLocaleString("es-MX")}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
+                            <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2">
                                 <span>% normalizados</span>
                                 <span className="font-semibold text-green-700">
                                     {normalizedRatio}%
@@ -267,11 +268,11 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
             <Card>
                 <CardContent className="py-12">
                     <div className="text-center">
-                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <CheckCircle className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground">
                             ¡Todo al día!
                         </h3>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             No hay sugerencias de duplicados pendientes de
                             revisión.
                         </p>
@@ -301,29 +302,29 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                                     <div className="flex items-center gap-3">
                                         <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
                                         <div className="flex-1">
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-foreground">
                                                 {alias1Name}
                                             </p>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 {alias1Count.toLocaleString(
-                                                    "es-MX"
+                                                    "es-MX",
                                                 )}{" "}
                                                 OTs
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="pl-8 text-sm text-gray-500">
+                                    <div className="pl-8 text-sm text-muted-foreground">
                                         ≈ Similar a
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <Package className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                        <Package className="w-5 h-5 text-primary flex-shrink-0" />
                                         <div className="flex-1">
-                                            <p className="font-semibold text-gray-900">
+                                            <p className="font-semibold text-foreground">
                                                 {alias2Name}
                                             </p>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 {alias2Count.toLocaleString(
-                                                    "es-MX"
+                                                    "es-MX",
                                                 )}{" "}
                                                 OTs
                                             </p>
@@ -382,7 +383,7 @@ function ApprovedTab({ matches, isLoading }) {
                 <CardContent className="py-12">
                     <div className="text-center">
                         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             Cargando...
                         </p>
                     </div>
@@ -396,11 +397,11 @@ function ApprovedTab({ matches, isLoading }) {
             <Card>
                 <CardContent className="py-12">
                     <div className="text-center">
-                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground">
                             Sin normalizaciones
                         </h3>
-                        <p className="mt-2 text-sm text-gray-600">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             Aún no hay clientes normalizados.
                         </p>
                     </div>
@@ -418,17 +419,17 @@ function ApprovedTab({ matches, isLoading }) {
                 return (
                     <Card
                         key={match.id}
-                        className="border-green-200 bg-green-50/30"
+                        className="border-green-200 bg-emerald-50/30"
                     >
                         <CardContent className="pt-6">
                             <div className="flex items-start gap-3">
-                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1 space-y-2">
-                                    <div className="text-sm text-gray-700">
-                                        <p className="font-semibold text-gray-900">
+                                    <div className="text-sm text-foreground">
+                                        <p className="font-semibold text-foreground">
                                             {originAlias}
                                         </p>
-                                        <p className="text-xs text-gray-600">
+                                        <p className="text-xs text-muted-foreground">
                                             -&gt; {targetAlias}
                                         </p>
                                     </div>
@@ -440,7 +441,7 @@ function ApprovedTab({ matches, isLoading }) {
                                             Aprobado
                                         </Badge>
                                         {match.notes && (
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {match.notes}
                                             </p>
                                         )}
@@ -472,7 +473,7 @@ function AllAliasesTab({
             .filter((alias) =>
                 alias.original_name
                     ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase())
+                    .includes(searchTerm.toLowerCase()),
             )
             .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0));
     }, [aliases, searchTerm]);
@@ -482,7 +483,7 @@ function AllAliasesTab({
             <Card>
                 <CardContent className="pt-6">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Buscar cliente..."
                             value={searchTerm}
@@ -491,7 +492,7 @@ function AllAliasesTab({
                         />
                     </div>
                     {searchTerm && (
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-muted-foreground">
                             Mostrando resultados para: {searchTerm}
                         </p>
                     )}
@@ -506,43 +507,43 @@ function AllAliasesTab({
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div className="py-12 text-center text-sm text-gray-600">
+                        <div className="py-12 text-center text-sm text-muted-foreground">
                             <div className="mx-auto mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
                             Cargando clientes...
                         </div>
                     ) : filteredAliases.length === 0 ? (
-                        <div className="py-12 text-center text-sm text-gray-600">
-                            <Users className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                        <div className="py-12 text-center text-sm text-muted-foreground">
+                            <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                             {searchTerm
                                 ? "No encontramos coincidencias para tu búsqueda."
                                 : "Aún no hay clientes en el sistema."}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                             Cliente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                             OTs
                                         </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
+                                <tbody className="divide-y divide-border bg-card">
                                     {filteredAliases.map((alias) => (
                                         <tr
                                             key={alias.id}
-                                            className="transition-colors hover:bg-gray-50"
+                                            className="transition-colors hover:bg-muted"
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <Globe className="h-5 w-5 text-gray-400" />
-                                                    <p className="text-sm font-medium text-gray-900">
+                                                    <Globe className="h-5 w-5 text-muted-foreground" />
+                                                    <p className="text-sm font-medium text-foreground">
                                                         {alias.original_name}
                                                     </p>
                                                 </div>
@@ -550,7 +551,7 @@ function AllAliasesTab({
                                             <td className="px-6 py-4">
                                                 <Badge variant="secondary">
                                                     {alias.usage_count?.toLocaleString(
-                                                        "es-MX"
+                                                        "es-MX",
                                                     ) || 0}
                                                 </Badge>
                                             </td>
@@ -596,7 +597,7 @@ export default function ClientsPage() {
             has_ots: "true",
             page_size: 10000,
         }),
-        []
+        [],
     );
     const [normalizationModal, setNormalizationModal] = useState({
         isOpen: false,
@@ -658,7 +659,7 @@ export default function ClientsPage() {
         (m) =>
             m.status === "pending" &&
             !m.alias_1.merged_into &&
-            !m.alias_2.merged_into
+            !m.alias_2.merged_into,
     );
     const approvedMatches = matches.filter((m) => m.status === "approved");
 
@@ -823,7 +824,7 @@ export default function ClientsPage() {
                             notes: `Fusión automática al intentar renombrar a un cliente existente.`,
                             finalDisplayName: newName,
                         });
-                    }
+                    },
                 );
             } else {
                 setResultDialog({
@@ -876,75 +877,28 @@ export default function ClientsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Clientes
-                        </CardTitle>
-                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {stats?.total_aliases || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Nombres en el sistema
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Duplicados Pendientes
-                        </CardTitle>
-                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
-                            {stats?.pending_matches || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Requieren revisión
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Normalizados
-                        </CardTitle>
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {stats?.approved_matches || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Fusiones aprobadas
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Verificados
-                        </CardTitle>
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                            {stats?.verified_count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Revisados manualmente
-                        </p>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Clientes"
+                    value={stats?.total_aliases || 0}
+                    icon={Users}
+                />
+                <StatCard
+                    label="Duplicados Pendientes"
+                    value={stats?.pending_matches || 0}
+                    icon={Clock}
+                />
+                <StatCard
+                    label="Normalizados"
+                    value={stats?.approved_matches || 0}
+                    icon={CheckCircle2}
+                />
+                <StatCard
+                    label="Verificados"
+                    value={stats?.verified_count || 0}
+                    icon={CheckCircle}
+                />
             </div>
 
             {/* Barra de búsqueda y acciones */}
@@ -994,7 +948,7 @@ export default function ClientsPage() {
             </Card>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 overflow-x-auto">
+            <div className="border-b border-border overflow-x-auto">
                 <nav className="-mb-px flex space-x-2 sm:space-x-4">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
@@ -1008,8 +962,8 @@ export default function ClientsPage() {
                                     flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap
                                     ${
                                         isActive
-                                            ? "border-blue-500 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-700"
+                                            ? "border-blue-500 text-primary"
+                                            : "border-transparent text-muted-foreground hover:text-foreground"
                                     }
                                 `}
                             >

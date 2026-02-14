@@ -6,7 +6,7 @@ import { Label } from "../../ui/Label";
 import { Textarea } from "../../ui/Textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/Select";
 import { Checkbox } from "../../ui/Checkbox";
-import { useProviderTypes } from "../../../hooks/useProviderTypes";
+import { useProviderTypes } from "../../../hooks/useCatalogs";
 
 export function InvoiceCreateForm({ onSubmit }) {
     const { control, handleSubmit, formState: { errors }, register } = useForm();
@@ -31,7 +31,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                     <Label htmlFor="file">Archivo de Factura (PDF, JSON, JPG, PNG)</Label>
                     <Input id="file" type="file" {...register("file", { required: "El archivo es requerido" })} />
                     {errors.file && (
-                        <p className="text-red-500 text-sm mt-1">{errors.file.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.file.message}</p>
                     )}
                 </div>
 
@@ -60,7 +60,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                         )}
                     />
                     {errors.numero_factura && (
-                        <p className="text-red-500 text-sm mt-1">{errors.numero_factura.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.numero_factura.message}</p>
                     )}
                 </div>
 
@@ -84,7 +84,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                         )}
                     />
                     {errors.monto && (
-                        <p className="text-red-500 text-sm mt-1">{errors.monto.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.monto.message}</p>
                     )}
                 </div>
 
@@ -98,7 +98,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                         )}
                     />
                     {errors.fecha_emision && (
-                        <p className="text-red-500 text-sm mt-1">{errors.fecha_emision.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.fecha_emision.message}</p>
                     )}
                 </div>
 
@@ -123,7 +123,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                         )}
                     />
                     {errors.proveedor_nombre && (
-                        <p className="text-red-500 text-sm mt-1">{errors.proveedor_nombre.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.proveedor_nombre.message}</p>
                     )}
                 </div>
 
@@ -200,7 +200,7 @@ export function InvoiceCreateForm({ onSubmit }) {
                         )}
                     />
                     {errors.tipo_costo && (
-                        <p className="text-red-500 text-sm mt-1">{errors.tipo_costo.message}</p>
+                        <p className="text-destructive text-sm mt-1">{errors.tipo_costo.message}</p>
                     )}
                 </div>
 

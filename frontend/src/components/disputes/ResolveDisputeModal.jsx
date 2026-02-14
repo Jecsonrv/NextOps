@@ -251,7 +251,7 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             <div className="p-2 rounded-full bg-green-100">
                                 <CheckCircle className="w-6 h-6 text-green-600" />
                             </div>
-                            <CardTitle className="text-xl font-bold text-gray-900">
+                            <CardTitle className="text-xl font-bold text-foreground">
                                 Resolver Disputa
                             </CardTitle>
                         </div>
@@ -263,9 +263,9 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
 
                 <CardContent className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
                     {/* Info de la disputa */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">Disputa: {dispute.codigo}</h3>
-                        <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+                    <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-foreground mb-2">Disputa: {dispute.codigo}</h3>
+                        <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
                             <p>
                                 <span className="font-medium">Tipo:</span> {dispute.tipo_disputa_display}
                             </p>
@@ -285,7 +285,7 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                     {/* Campos editables */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="numero_caso" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="numero_caso" className="block text-sm font-medium text-foreground mb-2">
                                 Número de Caso
                             </label>
                             <Input
@@ -298,7 +298,7 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             />
                         </div>
                         <div>
-                            <label htmlFor="operativo" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="operativo" className="block text-sm font-medium text-foreground mb-2">
                                 Operativo Responsable
                             </label>
                             <Input
@@ -314,7 +314,7 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
 
                     {/* Resultado */}
                     <div>
-                        <label htmlFor="resultado" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="resultado" className="block text-sm font-medium text-foreground mb-2">
                             Resultado de la Disputa
                         </label>
                         <select
@@ -322,7 +322,7 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             name="resultado"
                             value={formData.resultado}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                             <option value="pendiente">Pendiente - Sin resolver aún</option>
                             <option value="aprobada_total">Aprobada Total - Proveedor acepta 100% del reclamo. Factura será ANULADA.</option>
@@ -330,32 +330,32 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             <option value="rechazada">Rechazada por Proveedor - Proveedor rechaza el reclamo. Debemos pagar.</option>
                             <option value="anulada">Anulada (Error Interno) - Disputa creada por error. No procede.</option>
                         </select>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Selecciona el resultado final de la gestión con el proveedor
                         </p>
                         {formData.resultado === 'aprobada_total' && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div className="mt-2 p-3 bg-primary/10 border border-blue-200 rounded-md">
                                 <p className="text-sm text-blue-800">
                                     <strong>Impacto:</strong> La factura NO se pagará y se excluirá de estadísticas.
                                 </p>
                             </div>
                         )}
                         {formData.resultado === 'aprobada_parcial' && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div className="mt-2 p-3 bg-primary/10 border border-blue-200 rounded-md">
                                 <p className="text-sm text-blue-800">
                                     <strong>Impacto:</strong> La factura se pagará con el monto ajustado.
                                 </p>
                             </div>
                         )}
                         {formData.resultado === 'rechazada' && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div className="mt-2 p-3 bg-primary/10 border border-blue-200 rounded-md">
                                 <p className="text-sm text-blue-800">
                                     <strong>Impacto:</strong> La factura volverá a PENDIENTE y deberá provisionarse.
                                 </p>
                             </div>
                         )}
                         {formData.resultado === 'anulada' && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div className="mt-2 p-3 bg-primary/10 border border-blue-200 rounded-md">
                                 <p className="text-sm text-blue-800">
                                     <strong>Impacto:</strong> La factura volverá a PENDIENTE para revisión normal.
                                 </p>
@@ -365,8 +365,8 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
 
                     {formData.resultado === 'anulada' ? (
                         <div>
-                            <label htmlFor="resolucion" className="block text-sm font-medium text-gray-700 mb-2">
-                                Motivo de la Anulación <span className="text-red-500">*</span>
+                            <label htmlFor="resolucion" className="block text-sm font-medium text-foreground mb-2">
+                                Motivo de la Anulación <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="resolucion"
@@ -376,19 +376,19 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                 onChange={handleChange}
                                 placeholder="Describe brevemente por qué esta disputa fue un error y debe ser anulada..."
                                 className={`w-full px-3 py-2 border ${
-                                    errors.resolucion ? "border-red-500" : "border-gray-300"
+                                    errors.resolucion ? "border-red-500" : "border-border"
                                 } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
                             />
                             {errors.resolucion && (
-                                <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
+                                <p className="mt-1 text-sm text-destructive">{errors.resolucion[0]}</p>
                             )}
                         </div>
                     ) : (
                         <>
                             {/* Estado final */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Estado Final <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium text-foreground mb-2">
+                                    Estado Final <span className="text-destructive">*</span>
                                 </label>
                                 <div className="space-y-2">
                                     {ESTADO_CHOICES.map((choice) => (
@@ -396,8 +396,8 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                             key={choice.value}
                                             className={`flex items-start p-3 border rounded-lg cursor-pointer transition-all ${
                                                 formData.estado === choice.value
-                                                    ? "border-blue-500 bg-blue-50"
-                                                    : "border-gray-300 hover:border-blue-300"
+                                                    ? "border-blue-500 bg-primary/10"
+                                                    : "border-border hover:border-blue-300"
                                             }`}
                                         >
                                             <input
@@ -409,8 +409,8 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                                 className="mt-1 mr-3"
                                             />
                                             <div className="flex-1">
-                                                <div className="font-medium text-gray-900">{choice.label}</div>
-                                                <div className="text-sm text-gray-600">{choice.description}</div>
+                                                <div className="font-medium text-foreground">{choice.label}</div>
+                                                <div className="text-sm text-muted-foreground">{choice.description}</div>
                                             </div>
                                         </label>
                                     ))}
@@ -420,8 +420,8 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                             {/* Monto recuperado (solo si es aprobación parcial) */}
                             {formData.resultado === "aprobada_parcial" && (
                                 <div>
-                                    <label htmlFor="monto_recuperado" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Monto Recuperado (USD) <span className="text-red-500">*</span>
+                                    <label htmlFor="monto_recuperado" className="block text-sm font-medium text-foreground mb-2">
+                                        Monto Recuperado (USD) <span className="text-destructive">*</span>
                                     </label>
                                     <Input
                                         type="number"
@@ -435,19 +435,19 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                         max={dispute.monto_disputa}
                                         className={errors.monto_recuperado ? "border-red-500" : ""}
                                     />
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         Monto que el proveedor acepta ajustar. Máximo: ${dispute.monto_disputa?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                     </p>
                                     {errors.monto_recuperado && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.monto_recuperado[0]}</p>
+                                        <p className="mt-1 text-sm text-destructive">{errors.monto_recuperado[0]}</p>
                                     )}
                                 </div>
                             )}
 
                             {/* Resolución */}
                             <div>
-                                <label htmlFor="resolucion" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Descripción de la Resolución <span className="text-red-500">*</span>
+                                <label htmlFor="resolucion" className="block text-sm font-medium text-foreground mb-2">
+                                    Descripción de la Resolución <span className="text-destructive">*</span>
                                 </label>
                                 <textarea
                                     id="resolucion"
@@ -457,14 +457,14 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                     onChange={handleChange}
                                     placeholder="Describe cómo se resolvió la disputa, acuerdos alcanzados, notas de crédito emitidas, etc..."
                                     className={`w-full px-3 py-2 border ${
-                                        errors.resolucion ? "border-red-500" : "border-gray-300"
+                                        errors.resolucion ? "border-red-500" : "border-border"
                                     } rounded-md focus:outline-none focus:ring-2 focus:ring-green-500`}
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     Describe cómo se resolvió la disputa, acuerdos alcanzados, etc.
                                 </p>
                                 {errors.resolucion && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.resolucion[0]}</p>
+                                    <p className="mt-1 text-sm text-destructive">{errors.resolucion[0]}</p>
                                 )}
                             </div>
 
@@ -478,9 +478,9 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                             name="tiene_nota_credito"
                                             checked={formData.tiene_nota_credito}
                                             onChange={handleChange}
-                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                            className="w-4 h-4 text-primary border-border rounded focus:ring-blue-500"
                                         />
-                                        <label htmlFor="tiene_nota_credito" className="text-sm font-medium text-gray-700">
+                                        <label htmlFor="tiene_nota_credito" className="text-sm font-medium text-foreground">
                                             ¿Tiene nota de crédito?
                                         </label>
                                     </div>
@@ -489,8 +489,8 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                     <div className="space-y-4 pl-7 border-l-2 border-blue-200">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label htmlFor="nota_credito_numero" className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Número de Nota de Crédito <span className="text-red-500">*</span>
+                                                <label htmlFor="nota_credito_numero" className="block text-sm font-medium text-foreground mb-2">
+                                                    Número de Nota de Crédito <span className="text-destructive">*</span>
                                                 </label>
                                                 <Input
                                                     type="text"
@@ -502,13 +502,13 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                                     className={errors.nota_credito_numero ? "border-red-500" : ""}
                                                 />
                                                 {errors.nota_credito_numero && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.nota_credito_numero[0]}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.nota_credito_numero[0]}</p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label htmlFor="nota_credito_monto" className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Monto (USD) <span className="text-red-500">*</span>
+                                                <label htmlFor="nota_credito_monto" className="block text-sm font-medium text-foreground mb-2">
+                                                    Monto (USD) <span className="text-destructive">*</span>
                                                 </label>
                                                 <Input
                                                     type="number"
@@ -522,19 +522,19 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                                     className={errors.nota_credito_monto ? "border-red-500" : ""}
                                                 />
                                                 {errors.nota_credito_monto && (
-                                                    <p className="mt-1 text-sm text-red-600">{errors.nota_credito_monto[0]}</p>
+                                                    <p className="mt-1 text-sm text-destructive">{errors.nota_credito_monto[0]}</p>
                                                 )}
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label htmlFor="nota_credito_file" className="block text-sm font-medium text-gray-700 mb-2">
+                                            <label htmlFor="nota_credito_file" className="block text-sm font-medium text-foreground mb-2">
                                                 Archivo PDF (Opcional)
                                             </label>
                                             <div className="flex items-center gap-3">
-                                                <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors">
-                                                    <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                                                    <span className="text-sm text-gray-600">
+                                                <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-border rounded-md cursor-pointer hover:border-blue-400 transition-colors">
+                                                    <Upload className="w-5 h-5 text-muted-foreground mr-2" />
+                                                    <span className="text-sm text-muted-foreground">
                                                         {notaCreditoFile ? notaCreditoFile.name : 'Seleccionar archivo PDF'}
                                                     </span>
                                                     <input
@@ -556,12 +556,12 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
                                                     </Button>
                                                 )}
                                             </div>
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-muted-foreground">
                                                 Sube el PDF de la nota de crédito (máximo 10MB)
                                             </p>
                                         </div>
 
-                                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                        <div className="p-3 bg-primary/10 border border-blue-200 rounded-md">
                                             <p className="text-sm text-blue-800">
                                                 La nota de crédito se creará automáticamente asociada a la factura{" "}
                                                 <strong>{dispute.invoice_data?.numero_factura}</strong>
@@ -589,18 +589,18 @@ export function ResolveDisputeModal({ isOpen, onClose, dispute }) {
 
                     {/* Resumen */}
                     {formData.resultado === 'aprobada_parcial' && formData.monto_recuperado > 0 && dispute.invoice_data && (
-                        <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-2">Resumen del Ajuste</h4>
-                            <div className="space-y-1 text-sm text-gray-600">
+                        <div className="p-4 bg-muted border border-border rounded-md">
+                            <h4 className="text-sm font-semibold text-foreground mb-2">Resumen del Ajuste</h4>
+                            <div className="space-y-1 text-sm text-muted-foreground">
                                 <p>Monto original factura: <strong>${dispute.invoice_data.monto?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></p>
                                 <p>Monto a recuperar: <strong className="text-green-600">${parseFloat(formData.monto_recuperado).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></p>
-                                <p className="pt-2 border-t border-gray-300">Nuevo monto factura: <strong className="text-blue-600">${(dispute.invoice_data.monto - parseFloat(formData.monto_recuperado)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></p>
+                                <p className="pt-2 border-t border-border">Nuevo monto factura: <strong className="text-primary">${(dispute.invoice_data.monto - parseFloat(formData.monto_recuperado)).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</strong></p>
                             </div>
                         </div>
                     )}
                 </CardContent>
 
-                <div className="border-t px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+                <div className="border-t px-6 py-4 bg-muted flex items-center justify-end gap-3">
                     <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
                         Cancelar
                     </Button>

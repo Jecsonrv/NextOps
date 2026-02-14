@@ -38,29 +38,29 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
         <div className="overflow-x-auto">
             <table className="w-full text-sm border-separate border-spacing-0">
                 <thead>
-                    <tr className="bg-gray-50">
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                    <tr className="bg-muted">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Caso
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Tipo
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Estado
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Factura / OT
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Proveedor / Operativo
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Monto
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Fecha
                         </th>
-                        <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                        <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                             Acciones
                         </th>
                     </tr>
@@ -71,13 +71,13 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                         <tr
                             key={dispute.id}
                             onClick={(e) => handleRowClick(e, dispute.id)}
-                            className="hover:bg-blue-50 transition-colors cursor-pointer"
+                            className="hover:bg-primary/10 transition-colors cursor-pointer"
                         >
                             {/* CASO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <Link
                                     to={`/disputes/${dispute.id}`}
-                                    className="font-semibold text-sm text-blue-600 hover:text-blue-800"
+                                    className="font-semibold text-sm text-primary hover:text-blue-800"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {dispute.numero_caso}
@@ -85,7 +85,7 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* TIPO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <Badge
                                     variant={
                                         dispute.tipo_disputa === 'servicio_no_prestado' ? 'destructive' :
@@ -105,7 +105,7 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* ESTADO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <div className="flex flex-col gap-1">
                                     <Badge
                                         variant={estadoBadgeVariant[dispute.estado]}
@@ -125,23 +125,23 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* FACTURA/OT */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <div className="flex flex-col gap-1">
                                     {dispute.invoice_data ? (
                                         <Link
                                             to={`/invoices/${dispute.invoice_data.id}`}
-                                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                            className="text-primary hover:text-blue-800 font-medium text-sm"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             {dispute.invoice_data.numero_factura}
                                         </Link>
                                     ) : (
-                                        <span className="text-gray-400 text-sm">Sin factura</span>
+                                        <span className="text-muted-foreground text-sm">Sin factura</span>
                                     )}
                                     {dispute.ot_data && (
                                         <Link
                                             to={`/ots/${dispute.ot_data.id}`}
-                                            className="text-gray-600 hover:text-gray-800 text-xs"
+                                            className="text-muted-foreground hover:text-foreground text-xs"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             {dispute.ot_data.numero_ot}
@@ -151,13 +151,13 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* PROVEEDOR / OPERATIVO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <div className="text-sm">
-                                    <p className="font-medium text-gray-900">
+                                    <p className="font-medium text-foreground">
                                         {dispute.invoice_data?.proveedor_nombre || "-"}
                                     </p>
                                     {(dispute.operativo || dispute.ot_data?.operativo) && (
-                                        <p className="text-xs text-gray-500 mt-0.5">
+                                        <p className="text-xs text-muted-foreground mt-0.5">
                                             {dispute.operativo || dispute.ot_data?.operativo}
                                         </p>
                                     )}
@@ -165,16 +165,16 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* MONTO DISPUTA */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <div className="text-right">
-                                    <div className="text-sm font-semibold text-red-600">
+                                    <div className="text-sm font-semibold text-destructive">
                                         ${dispute.monto_disputa?.toLocaleString("es-MX", {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
                                         })}
                                     </div>
                                     {dispute.invoice_data?.monto && (
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-muted-foreground">
                                             de ${dispute.invoice_data.monto.toLocaleString("es-MX", {
                                                 minimumFractionDigits: 0,
                                                 maximumFractionDigits: 0
@@ -185,12 +185,12 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* FECHA */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50 text-sm text-gray-600">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10 text-sm text-muted-foreground">
                                 {new Date(dispute.created_at).toLocaleDateString("es-MX")}
                             </td>
 
                             {/* ACCIONES */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-gray-200 bg-white hover:bg-blue-50">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
                                 <div className="flex justify-end gap-1">
                                     <Button
                                         variant="ghost"
@@ -227,7 +227,7 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                                         className="h-8 w-8"
                                         disabled={deletingId === dispute.id}
                                     >
-                                        <Trash2 className={`w-4 h-4 ${deletingId === dispute.id ? 'text-gray-400' : 'text-red-600'}`} />
+                                        <Trash2 className={`w-4 h-4 ${deletingId === dispute.id ? 'text-muted-foreground' : 'text-destructive'}`} />
                                     </Button>
                                 </div>
                             </td>

@@ -20,7 +20,6 @@ import {
     Eye,
     User,
 } from "lucide-react";
-import { format } from "date-fns";
 
 export default function PaymentsHistory() {
     const queryClient = useQueryClient();
@@ -45,7 +44,7 @@ export default function PaymentsHistory() {
                 params.append("fecha_hasta", filters.fecha_hasta);
 
             const response = await apiClient.get(
-                `/supplier-payments/historial/?${params.toString()}`
+                `/supplier-payments/historial/?${params.toString()}`,
             );
             return response.data.results || response.data;
         },
@@ -108,11 +107,11 @@ export default function PaymentsHistory() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Búsqueda */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Buscar
                             </label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Referencia o notas..."
@@ -130,7 +129,7 @@ export default function PaymentsHistory() {
 
                         {/* Fecha desde */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Desde
                             </label>
                             <Input
@@ -147,7 +146,7 @@ export default function PaymentsHistory() {
 
                         {/* Fecha hasta */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Hasta
                             </label>
                             <Input
@@ -168,13 +167,13 @@ export default function PaymentsHistory() {
             {/* Lista de pagos */}
             {isLoading ? (
                 <Card>
-                    <CardContent className="py-12 text-center text-gray-500">
+                    <CardContent className="py-12 text-center text-muted-foreground">
                         Cargando historial...
                     </CardContent>
                 </Card>
             ) : !pagos || pagos.length === 0 ? (
                 <Card>
-                    <CardContent className="py-12 text-center text-gray-500">
+                    <CardContent className="py-12 text-center text-muted-foreground">
                         No se encontraron pagos registrados
                     </CardContent>
                 </Card>
@@ -190,7 +189,7 @@ export default function PaymentsHistory() {
                                     {/* Información principal */}
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <h4 className="font-semibold text-gray-900">
+                                            <h4 className="font-semibold text-foreground">
                                                 {pago.proveedor_nombre ||
                                                     "Proveedor no especificado"}
                                             </h4>
@@ -204,23 +203,27 @@ export default function PaymentsHistory() {
                                             </Badge>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-muted-foreground">
                                             {/* Fecha */}
                                             <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-gray-400" />
+                                                <Calendar className="h-4 w-4 text-muted-foreground" />
                                                 <span>
-                                                    {format(
-                                                        new Date(
-                                                            pago.fecha_pago
-                                                        ),
-                                                        "dd/MM/yyyy"
+                                                    {new Date(
+                                                        pago.fecha_pago,
+                                                    ).toLocaleDateString(
+                                                        "es-SV",
+                                                        {
+                                                            day: "2-digit",
+                                                            month: "2-digit",
+                                                            year: "numeric",
+                                                        },
                                                     )}
                                                 </span>
                                             </div>
 
                                             {/* Referencia */}
                                             <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4 text-gray-400" />
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
                                                 <span className="font-medium">
                                                     {pago.referencia ||
                                                         "Sin referencia"}
@@ -229,10 +232,10 @@ export default function PaymentsHistory() {
 
                                             {/* Monto */}
                                             <div className="flex items-center gap-2">
-                                                <DollarSign className="h-4 w-4 text-gray-400" />
-                                                <span className="font-bold text-gray-900">
+                                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                                <span className="font-bold text-foreground">
                                                     {parseFloat(
-                                                        pago.monto_total
+                                                        pago.monto_total,
                                                     ).toFixed(2)}
                                                 </span>
                                             </div>
@@ -240,7 +243,7 @@ export default function PaymentsHistory() {
 
                                         {/* Notas */}
                                         {pago.notas && (
-                                            <p className="mt-2 text-sm text-gray-600 italic">
+                                            <p className="mt-2 text-sm text-muted-foreground italic">
                                                 {pago.notas}
                                             </p>
                                         )}
@@ -248,7 +251,7 @@ export default function PaymentsHistory() {
                                         {/* Comprobante de pago */}
                                         {pago.archivo_comprobante && (
                                             <div className="mt-3 pt-3 border-t">
-                                                <p className="text-xs font-medium text-gray-700 mb-2">
+                                                <p className="text-xs font-medium text-foreground mb-2">
                                                     Comprobante:
                                                 </p>
                                                 <div className="flex gap-2">
@@ -258,10 +261,10 @@ export default function PaymentsHistory() {
                                                         onClick={() =>
                                                             window.open(
                                                                 pago.archivo_comprobante,
-                                                                "_blank"
+                                                                "_blank",
                                                             )
                                                         }
-                                                        className="text-blue-600 hover:bg-blue-50"
+                                                        className="text-primary hover:bg-primary/10"
                                                     >
                                                         <Eye className="h-3 w-3 mr-1.5" />
                                                         Ver
@@ -273,17 +276,17 @@ export default function PaymentsHistory() {
                                                             try {
                                                                 const response =
                                                                     await fetch(
-                                                                        pago.archivo_comprobante
+                                                                        pago.archivo_comprobante,
                                                                     );
                                                                 const blob =
                                                                     await response.blob();
                                                                 const url =
                                                                     window.URL.createObjectURL(
-                                                                        blob
+                                                                        blob,
                                                                     );
                                                                 const link =
                                                                     document.createElement(
-                                                                        "a"
+                                                                        "a",
                                                                     );
                                                                 link.href = url;
                                                                 link.download = `comprobante-${
@@ -291,21 +294,21 @@ export default function PaymentsHistory() {
                                                                     pago.id
                                                                 }.pdf`;
                                                                 document.body.appendChild(
-                                                                    link
+                                                                    link,
                                                                 );
                                                                 link.click();
                                                                 document.body.removeChild(
-                                                                    link
+                                                                    link,
                                                                 );
                                                                 window.URL.revokeObjectURL(
-                                                                    url
+                                                                    url,
                                                                 );
                                                                 toast.success(
-                                                                    "Descargando comprobante..."
+                                                                    "Descargando comprobante...",
                                                                 );
                                                             } catch {
                                                                 toast.error(
-                                                                    "Error al descargar el comprobante"
+                                                                    "Error al descargar el comprobante",
                                                                 );
                                                             }
                                                         }}
@@ -322,7 +325,7 @@ export default function PaymentsHistory() {
                                         {pago.invoice_links &&
                                             pago.invoice_links.length > 0 && (
                                                 <div className="mt-3 pt-3 border-t">
-                                                    <p className="text-xs font-medium text-gray-700 mb-2">
+                                                    <p className="text-xs font-medium text-foreground mb-2">
                                                         Facturas pagadas (
                                                         {
                                                             pago.invoice_links
@@ -332,26 +335,26 @@ export default function PaymentsHistory() {
                                                     </p>
                                                     <div className="overflow-x-auto">
                                                         <table className="w-full text-xs">
-                                                            <thead className="bg-gray-50 border-b">
+                                                            <thead className="bg-muted border-b">
                                                                 <tr>
-                                                                    <th className="text-left py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-left py-2 px-2 font-medium text-foreground">
                                                                         Factura
                                                                     </th>
-                                                                    <th className="text-left py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-left py-2 px-2 font-medium text-foreground">
                                                                         OT
                                                                     </th>
-                                                                    <th className="text-left py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-left py-2 px-2 font-medium text-foreground">
                                                                         Cliente
                                                                     </th>
-                                                                    <th className="text-left py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-left py-2 px-2 font-medium text-foreground">
                                                                         Tipo
                                                                         Costo
                                                                     </th>
-                                                                    <th className="text-right py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-right py-2 px-2 font-medium text-foreground">
                                                                         Monto
                                                                         Total
                                                                     </th>
-                                                                    <th className="text-right py-2 px-2 font-medium text-gray-700">
+                                                                    <th className="text-right py-2 px-2 font-medium text-foreground">
                                                                         Monto
                                                                         Pagado
                                                                     </th>
@@ -364,24 +367,24 @@ export default function PaymentsHistory() {
                                                                             key={
                                                                                 link.id
                                                                             }
-                                                                            className="hover:bg-gray-50"
+                                                                            className="hover:bg-muted"
                                                                         >
                                                                             <td className="py-2 px-2">
                                                                                 <Link
                                                                                     to={`/invoices/${link.cost_invoice}`}
-                                                                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                                                                    className="font-medium text-primary hover:text-blue-800 hover:underline"
                                                                                 >
                                                                                     {link.invoice_numero ||
                                                                                         `ID ${link.cost_invoice}`}
                                                                                 </Link>
                                                                             </td>
-                                                                            <td className="py-2 px-2 text-gray-600">
+                                                                            <td className="py-2 px-2 text-muted-foreground">
                                                                                 {link.invoice_ot ||
                                                                                     "-"}
                                                                             </td>
-                                                                            <td className="py-2 px-2 text-gray-600">
+                                                                            <td className="py-2 px-2 text-muted-foreground">
                                                                                 <div className="flex items-center gap-1">
-                                                                                    <User className="h-3 w-3 text-gray-400" />
+                                                                                    <User className="h-3 w-3 text-muted-foreground" />
                                                                                     {link.invoice_cliente ||
                                                                                         "-"}
                                                                                 </div>
@@ -396,27 +399,27 @@ export default function PaymentsHistory() {
                                                                                         "-"}
                                                                                 </Badge>
                                                                             </td>
-                                                                            <td className="py-2 px-2 text-right text-gray-600">
+                                                                            <td className="py-2 px-2 text-right text-muted-foreground">
                                                                                 $
                                                                                 {parseFloat(
                                                                                     link.invoice_monto ||
-                                                                                        0
+                                                                                        0,
                                                                                 ).toFixed(
-                                                                                    2
+                                                                                    2,
                                                                                 )}
                                                                             </td>
                                                                             <td className="py-2 px-2 text-right">
                                                                                 <span className="font-bold text-green-700">
                                                                                     $
                                                                                     {parseFloat(
-                                                                                        link.monto_pagado_factura
+                                                                                        link.monto_pagado_factura,
                                                                                     ).toFixed(
-                                                                                        2
+                                                                                        2,
                                                                                     )}
                                                                                 </span>
                                                                             </td>
                                                                         </tr>
-                                                                    )
+                                                                    ),
                                                                 )}
                                                             </tbody>
                                                         </table>
@@ -431,7 +434,7 @@ export default function PaymentsHistory() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleEdit(pago)}
-                                            className="text-blue-600 hover:bg-blue-50 border-blue-200"
+                                            className="text-primary hover:bg-primary/10 border-blue-200"
                                             title="Editar pago"
                                         >
                                             <Edit2 className="h-4 w-4" />
@@ -440,7 +443,7 @@ export default function PaymentsHistory() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleDelete(pago)}
-                                            className="text-red-600 hover:bg-red-50 border-red-200"
+                                            className="text-destructive hover:bg-destructive/10 border-destructive/20"
                                             title="Eliminar pago"
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -475,7 +478,7 @@ export default function PaymentsHistory() {
                             <p className="mb-2">
                                 ¿Estás seguro de que deseas eliminar este pago?
                             </p>
-                            <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm">
+                            <div className="bg-muted p-3 rounded border border-border text-sm">
                                 <p>
                                     <strong>Proveedor:</strong>{" "}
                                     {paymentToDelete.proveedor_nombre}
@@ -483,7 +486,7 @@ export default function PaymentsHistory() {
                                 <p>
                                     <strong>Monto:</strong> $
                                     {parseFloat(
-                                        paymentToDelete.monto_total
+                                        paymentToDelete.monto_total,
                                     ).toFixed(2)}
                                 </p>
                                 <p>
@@ -496,7 +499,7 @@ export default function PaymentsHistory() {
                                     {paymentToDelete.invoice_links?.length || 0}
                                 </p>
                             </div>
-                            <p className="mt-3 text-red-600 font-medium">
+                            <p className="mt-3 text-destructive font-medium">
                                 Esta acción revertirá el estado de pago de las
                                 facturas asociadas.
                             </p>

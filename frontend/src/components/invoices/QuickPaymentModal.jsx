@@ -181,7 +181,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-blue-600" />
+                        <CreditCard className="w-5 h-5 text-primary" />
                         Registrar Pago
                     </DialogTitle>
                     <DialogDescription>
@@ -208,35 +208,35 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                     )}
 
                     {/* Resumen de Factura */}
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200 mb-6">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-border mb-6">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                                <p className="text-gray-600 text-xs mb-1 uppercase tracking-wide">
+                                <p className="text-muted-foreground text-xs mb-1 uppercase tracking-wide">
                                     Proveedor
                                 </p>
                                 <p
-                                    className="font-semibold text-gray-900 text-sm truncate"
+                                    className="font-semibold text-foreground text-sm truncate"
                                     title={invoice.proveedor_nombre}
                                 >
                                     {invoice.proveedor_nombre}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-gray-600 text-xs mb-1 uppercase tracking-wide">
+                                <p className="text-muted-foreground text-xs mb-1 uppercase tracking-wide">
                                     Factura
                                 </p>
                                 <p
-                                    className="font-semibold text-gray-900 text-sm truncate"
+                                    className="font-semibold text-foreground text-sm truncate"
                                     title={invoice.numero_factura}
                                 >
                                     {invoice.numero_factura}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-gray-600 text-xs mb-1 uppercase tracking-wide">
+                                <p className="text-muted-foreground text-xs mb-1 uppercase tracking-wide">
                                     Total
                                 </p>
-                                <p className="font-bold text-gray-900 text-base">
+                                <p className="font-bold text-foreground text-base">
                                     $
                                     {parseFloat(
                                         invoice.monto_aplicable || 0
@@ -244,7 +244,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-gray-600 text-xs mb-1 uppercase tracking-wide">
+                                <p className="text-muted-foreground text-xs mb-1 uppercase tracking-wide">
                                     Pendiente
                                 </p>
                                 <p
@@ -269,10 +269,10 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Monto a Pagar */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                                 <DollarSign className="w-4 h-4" />
                                 Monto a Pagar{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                             </label>
                             <Input
                                 type="number"
@@ -293,7 +293,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                 autoFocus
                             />
                             {errors.monto_a_pagar && (
-                                <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                                <p className="text-destructive text-xs mt-1.5 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3 flex-shrink-0" />
                                     {errors.monto_a_pagar}
                                 </p>
@@ -331,7 +331,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                             ),
                                         }));
                                     }}
-                                    className="text-sm font-medium h-9 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700"
+                                    className="text-sm font-medium h-9 hover:bg-primary/10 hover:border-blue-500 hover:text-blue-700"
                                 >
                                     50%
                                 </Button>
@@ -364,10 +364,10 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
 
                         {/* Fecha de Pago */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4" />
                                 Fecha de Pago{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                             </label>
                             <Input
                                 type="date"
@@ -382,7 +382,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                 }`}
                             />
                             {errors.fecha_pago && (
-                                <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                                <p className="text-destructive text-xs mt-1.5 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3 flex-shrink-0" />
                                     {errors.fecha_pago}
                                 </p>
@@ -391,10 +391,10 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
 
                         {/* Referencia */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                                 <FileText className="w-4 h-4" />
                                 Referencia{" "}
-                                <span className="text-gray-400 text-xs font-normal">
+                                <span className="text-muted-foreground text-xs font-normal">
                                     (opcional)
                                 </span>
                             </label>
@@ -411,9 +411,9 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
 
                         {/* Notas */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Notas{" "}
-                                <span className="text-gray-400 text-xs font-normal">
+                                <span className="text-muted-foreground text-xs font-normal">
                                     (opcional)
                                 </span>
                             </label>
@@ -424,20 +424,20 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                 }
                                 placeholder="Observaciones adicionales..."
                                 rows={2}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                             />
                         </div>
 
                         {/* Comprobante */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                                 <Upload className="w-4 h-4" />
                                 Comprobante de Pago{" "}
-                                <span className="text-gray-400 text-xs font-normal">
+                                <span className="text-muted-foreground text-xs font-normal">
                                     (opcional)
                                 </span>
                             </label>
-                            <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
+                            <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-border rounded-md cursor-pointer hover:bg-muted hover:border-blue-400 transition-all">
                                 <input
                                     type="file"
                                     accept=".pdf,.jpg,.jpeg,.png"
@@ -454,7 +454,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                     {paymentData.archivo_comprobante ? (
                                         <>
                                             <Check className="mx-auto h-6 w-6 text-green-600" />
-                                            <span className="mt-1 block text-xs font-medium text-gray-900 truncate max-w-xs px-4">
+                                            <span className="mt-1 block text-xs font-medium text-foreground truncate max-w-xs px-4">
                                                 {
                                                     paymentData
                                                         .archivo_comprobante
@@ -464,8 +464,8 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                                         </>
                                     ) : (
                                         <>
-                                            <Upload className="mx-auto h-6 w-6 text-gray-400" />
-                                            <span className="mt-1 block text-xs text-gray-600">
+                                            <Upload className="mx-auto h-6 w-6 text-muted-foreground" />
+                                            <span className="mt-1 block text-xs text-muted-foreground">
                                                 Subir comprobante (PDF, JPG,
                                                 PNG)
                                             </span>
@@ -476,7 +476,7 @@ export function QuickPaymentModal({ invoice, isOpen, onClose }) {
                         </div>
 
                         {/* Botones */}
-                        <div className="flex gap-3 pt-4 border-t border-gray-200 mt-4">
+                        <div className="flex gap-3 pt-4 border-t border-border mt-4">
                             <Button
                                 type="button"
                                 variant="outline"

@@ -10,7 +10,7 @@ export function ProtectedRoute({ children = null, allowedRoles = [] }) {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <p className="mt-2 text-sm text-gray-600">Cargando...</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Cargando...</p>
                 </div>
             </div>
         );

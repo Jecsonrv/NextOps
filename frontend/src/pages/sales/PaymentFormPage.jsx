@@ -220,10 +220,10 @@ export default function PaymentFormPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         Registrar Pago
                     </h1>
-                    <p className="mt-2 text-sm text-gray-600">
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Registrar nuevo pago de factura de venta
                     </p>
                 </div>
@@ -277,40 +277,40 @@ export default function PaymentFormPage() {
             )}
 
             {selectedInvoice && (
-                <Card className="bg-blue-50 border-blue-200">
+                <Card className="bg-primary/10 border-blue-200">
                     <CardContent className="pt-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <p className="text-xs text-gray-600 font-medium">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Factura
                                 </p>
-                                <p className="text-sm font-bold text-gray-900">
+                                <p className="text-sm font-bold text-foreground">
                                     {selectedInvoice.numero_factura}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-600 font-medium">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Cliente
                                 </p>
-                                <p className="text-sm font-bold text-gray-900">
+                                <p className="text-sm font-bold text-foreground">
                                     {selectedInvoice.cliente_nombre}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-600 font-medium">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Monto Total
                                 </p>
-                                <p className="text-sm font-bold text-gray-900">
+                                <p className="text-sm font-bold text-foreground">
                                     {formatCurrency(
                                         selectedInvoice.monto_total
                                     )}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-600 font-medium">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Saldo Pendiente
                                 </p>
-                                <p className="text-sm font-bold text-red-600">
+                                <p className="text-sm font-bold text-destructive">
                                     {formatCurrency(
                                         selectedInvoice.monto_pendiente
                                     )}
@@ -329,7 +329,7 @@ export default function PaymentFormPage() {
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Factura de Venta *
                                 </label>
                                 <Select
@@ -354,7 +354,7 @@ export default function PaymentFormPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {invoices?.results?.length === 0 ? (
-                                            <div className="p-4 text-center text-sm text-gray-500">
+                                            <div className="p-4 text-center text-sm text-muted-foreground">
                                                 No hay facturas pendientes de
                                                 pago
                                             </div>
@@ -394,7 +394,7 @@ export default function PaymentFormPage() {
 
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-sm font-medium text-gray-700">
+                                    <label className="block text-sm font-medium text-foreground">
                                         Monto del Pago *
                                     </label>
                                     {selectedInvoice && (
@@ -406,14 +406,14 @@ export default function PaymentFormPage() {
                                                     selectedInvoice.monto_pendiente
                                                 )
                                             }
-                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                            className="text-xs text-primary hover:text-blue-700 font-medium"
                                         >
                                             Usar monto completo
                                         </button>
                                     )}
                                 </div>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                                         $
                                     </span>
                                     <Input
@@ -437,7 +437,7 @@ export default function PaymentFormPage() {
                                             parseFloat(
                                                 selectedInvoice.monto_pendiente
                                             ) && (
-                                            <p className="mt-1 text-xs text-red-600">
+                                            <p className="mt-1 text-xs text-destructive">
                                                 ⚠️ El monto excede el saldo
                                                 pendiente de{" "}
                                                 {formatCurrency(
@@ -476,7 +476,7 @@ export default function PaymentFormPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Fecha de Pago *
                                 </label>
                                 <Input
@@ -493,7 +493,7 @@ export default function PaymentFormPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Método de Pago *
                                 </label>
                                 <Select
@@ -520,7 +520,7 @@ export default function PaymentFormPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Número de Referencia *
                                 </label>
                                 <Input
@@ -540,7 +540,7 @@ export default function PaymentFormPage() {
                             {(formData.metodo_pago === "transferencia" ||
                                 formData.metodo_pago === "cheque") && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                         Banco
                                     </label>
                                     <Input
@@ -558,14 +558,14 @@ export default function PaymentFormPage() {
                             )}
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Comprobante de Pago
                                 </label>
-                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-md hover:border-blue-400 transition-colors">
                                     <div className="space-y-1 text-center">
-                                        <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                        <div className="flex text-sm text-gray-600">
-                                            <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                                        <div className="flex text-sm text-muted-foreground">
+                                            <label className="relative cursor-pointer bg-card rounded-md font-medium text-primary hover:text-primary">
                                                 <span>Cargar comprobante</span>
                                                 <input
                                                     type="file"
@@ -575,11 +575,11 @@ export default function PaymentFormPage() {
                                                 />
                                             </label>
                                         </div>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                             PDF o imagen hasta 10MB
                                         </p>
                                         {comprobante && (
-                                            <p className="text-sm text-gray-500 font-medium">
+                                            <p className="text-sm text-muted-foreground font-medium">
                                                 Seleccionado: {comprobante.name}
                                             </p>
                                         )}
@@ -588,12 +588,12 @@ export default function PaymentFormPage() {
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Notas
                                 </label>
                                 <textarea
                                     rows="3"
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value={formData.notas}
                                     onChange={(e) =>
                                         handleInputChange(

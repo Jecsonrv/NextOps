@@ -270,12 +270,12 @@ export function FilePreview({
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                        <FileText className="w-5 h-5 text-primary" />
                         <div>
                             <CardTitle className="text-lg">
                                 Vista Previa
                             </CardTitle>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                                 {fileLabel}
                             </p>
                         </div>
@@ -320,13 +320,13 @@ export function FilePreview({
             <CardContent>
                 {isLoading && (
                     <div className="flex items-center justify-center py-16">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                 )}
 
                 {error && !isLoading && (
-                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded">
-                        <AlertCircle className="w-6 h-6 text-red-600 mt-0.5" />
+                    <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded">
+                        <AlertCircle className="w-6 h-6 text-destructive mt-0.5" />
                         <div className="text-sm text-red-700">
                             <p className="font-semibold text-red-900">
                                 No pudimos cargar el archivo
@@ -364,20 +364,20 @@ export function FilePreview({
                             >
                                 <iframe
                                     src={previewUrl}
-                                    className="w-full h-full border border-gray-300 rounded"
+                                    className="w-full h-full border border-border rounded"
                                     title="Vista previa de PDF"
                                 />
                             </div>
                         )}
 
                         {isJSON && jsonData && (
-                            <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-auto text-sm max-h-[600px]">
+                            <pre className="bg-foreground text-primary-foreground p-4 rounded overflow-auto text-sm max-h-[600px]">
                                 <code>{JSON.stringify(jsonData, null, 2)}</code>
                             </pre>
                         )}
 
                         {isXML && xmlData && (
-                            <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-auto text-sm max-h-[600px]">
+                            <pre className="bg-foreground text-primary-foreground p-4 rounded overflow-auto text-sm max-h-[600px]">
                                 <code className="language-xml">{xmlData}</code>
                             </pre>
                         )}
@@ -392,7 +392,7 @@ export function FilePreview({
                             >
                                 <iframe
                                     src={previewUrl}
-                                    className="w-full h-full border border-gray-300 rounded"
+                                    className="w-full h-full border border-border rounded"
                                     title="Vista previa de archivo"
                                 />
                             </div>
@@ -400,8 +400,8 @@ export function FilePreview({
 
                         {!previewUrl && !jsonData && !xmlData && (
                             <div className="text-center py-12">
-                                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-600">
+                                <FileText className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                                <p className="text-muted-foreground">
                                     No hay vista previa disponible para este
                                     formato.
                                 </p>

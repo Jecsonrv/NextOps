@@ -12,14 +12,14 @@ function Card({
   return (
     <div className={`bg-white rounded-lg shadow ${className}`}>
       {(title || subtitle || actions) && (
-        <div className={`px-6 py-4 border-b border-gray-200 ${headerClassName}`}>
+        <div className={`px-6 py-4 border-b border-border ${headerClassName}`}>
           <div className="flex items-center justify-between">
             <div>
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
               )}
               {subtitle && (
-                <p className="mt-1 text-sm text-gray-600">{subtitle}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
               )}
             </div>
             {actions && (
@@ -34,13 +34,13 @@ function Card({
 }
 
 const CardHeader = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
+  <div className={`px-6 py-4 border-b border-border ${className}`}>
     {children}
   </div>
 );
 
 const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
+  <h3 className={`text-lg font-semibold text-foreground ${className}`}>
     {children}
   </h3>
 );
@@ -52,13 +52,13 @@ const CardContent = ({ children, className = '' }) => (
 );
 
 const CardDescription = ({ children, className = '' }) => (
-  <p className={`text-sm text-gray-600 ${className}`}>
+  <p className={`text-sm text-muted-foreground ${className}`}>
     {children}
   </p>
 );
 
 const CardFooter = ({ children, className = '' }) => (
-  <div className={`px-6 py-4 border-t border-gray-200 ${className}`}>
+  <div className={`px-6 py-4 border-t border-border ${className}`}>
     {children}
   </div>
 );

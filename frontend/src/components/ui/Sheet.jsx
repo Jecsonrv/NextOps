@@ -29,11 +29,11 @@ Sheet.propTypes = {
 
 export function SheetHeader({ children, onClose }) {
     return (
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/50">
             <div className="flex-1">{children}</div>
             <button
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
+                className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
             >
                 <X className="w-5 h-5" />
             </button>
@@ -61,7 +61,7 @@ SheetContent.propTypes = {
 
 export function SheetFooter({ children }) {
     return (
-        <div className="px-6 py-4 border-t bg-gray-50/50 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t bg-muted/50 flex justify-end gap-3">
             {children}
         </div>
     );

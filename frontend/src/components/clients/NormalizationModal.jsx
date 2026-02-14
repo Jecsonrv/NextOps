@@ -14,9 +14,9 @@ import {
     Target,
     PenLine,
 } from "lucide-react";
-import { Button } from "./ui/Button";
-import { Badge } from "./ui/Badge";
-import { useCountAliasOTs } from "../hooks/useCatalogs";
+import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { useCountAliasOTs } from "../../hooks/useCatalogs";
 
 function ModalPortal({ children }) {
     const [mounted, setMounted] = useState(false);
@@ -54,7 +54,7 @@ export function NormalizationModal({
 }) {
     const [notes, setNotes] = useState("");
     const [selectedTargetId, setSelectedTargetId] = useState(
-        targetAlias?.id ?? sourceAlias?.id ?? null
+        targetAlias?.id ?? sourceAlias?.id ?? null,
     );
 
     const { keepAlias, removeAlias } = useMemo(() => {
@@ -120,12 +120,12 @@ export function NormalizationModal({
     const modalContent = (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
             <div className="relative flex h-full w-full max-h-[92vh] max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-                <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
+                <div className="flex items-start justify-between border-b border-border px-6 py-5">
                     <div>
-                        <p className="text-xs uppercase tracking-widest text-gray-400">
+                        <p className="text-xs uppercase tracking-widest text-muted-foreground">
                             Normalización de cliente
                         </p>
-                        <h2 className="mt-1 text-xl font-semibold text-gray-900">
+                        <h2 className="mt-1 text-xl font-semibold text-foreground">
                             Elegí el nombre oficial que quedará en tus OTs
                         </h2>
                     </div>
@@ -134,14 +134,14 @@ export function NormalizationModal({
                         size="icon"
                         onClick={onCancel}
                         disabled={isLoading}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-muted-foreground hover:text-foreground"
                     >
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/80 px-4 py-3">
                         <Badge
                             variant="blue"
                             className="flex items-center gap-1 text-xs"
@@ -161,7 +161,7 @@ export function NormalizationModal({
                     </div>
 
                     <div className="space-y-3">
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-foreground">
                             Seleccioná cuál nombre conservar
                         </p>
                         <div className="grid gap-3 md:grid-cols-2">
@@ -179,12 +179,12 @@ export function NormalizationModal({
                                         disabled={isLoading}
                                         className={`group flex h-full flex-col rounded-2xl border p-4 text-left transition-all ${
                                             isSelected
-                                                ? "border-blue-500 bg-blue-50/60 shadow-sm"
-                                                : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/30"
+                                                ? "border-blue-500 bg-primary/10/60 shadow-sm"
+                                                : "border-border bg-white hover:border-blue-200 hover:bg-primary/10/30"
                                         }`}
                                     >
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                                 {isSuggested
                                                     ? "Sugerido"
                                                     : "Variante actual"}
@@ -192,17 +192,17 @@ export function NormalizationModal({
                                             <span
                                                 className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
                                                     isSelected
-                                                        ? "border-blue-500 bg-blue-500 text-white"
-                                                        : "border-gray-300 text-transparent"
+                                                        ? "border-blue-500 bg-primary/100 text-white"
+                                                        : "border-border text-transparent"
                                                 }`}
                                             >
                                                 ✓
                                             </span>
                                         </div>
-                                        <p className="mt-2 truncate text-sm font-semibold text-gray-900">
+                                        <p className="mt-2 truncate text-sm font-semibold text-foreground">
                                             {alias.original_name}
                                         </p>
-                                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                             <span className="rounded-full bg-white/70 px-2 py-0.5 font-medium">
                                                 {alias.usage_count || 0} usos
                                             </span>
@@ -211,15 +211,15 @@ export function NormalizationModal({
                                 );
                             })}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             El nombre que no elijas será actualizado para
                             coincidir con el seleccionado.
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                            <PenLine className="h-4 w-4 text-gray-400" />
+                        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <PenLine className="h-4 w-4 text-muted-foreground" />
                             Nombre final del cliente
                         </label>
                         <input
@@ -227,21 +227,21 @@ export function NormalizationModal({
                             value={finalName}
                             onChange={(e) => setFinalName(e.target.value)}
                             placeholder="Ej. INTRALOGIX, S.A."
-                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                             disabled={isLoading}
                         />
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             Podés personalizarlo para dejar el formato exacto
                             que usará toda la organización.
                         </p>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4">
-                        <div className="flex items-start gap-3 text-sm text-gray-600">
-                            <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-blue-500" />
+                    <div className="rounded-2xl border border-border bg-muted/80 p-4">
+                        <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                            <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
                             <div className="space-y-1">
                                 {loadingCount ? (
-                                    <div className="flex items-center gap-2 text-gray-500">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         Calculando impacto en OTs...
                                     </div>
@@ -251,14 +251,14 @@ export function NormalizationModal({
                                             Se actualizarán{" "}
                                             <strong>{otsCount}</strong> OTs que
                                             hoy usan
-                                            <span className="font-semibold text-gray-800">
+                                            <span className="font-semibold text-foreground">
                                                 {" "}
                                                 “{removeAlias.original_name}”.
                                             </span>
                                         </p>
                                         <p>
                                             Todas pasarán a utilizar{" "}
-                                            <span className="font-semibold text-blue-600">
+                                            <span className="font-semibold text-primary">
                                                 “
                                                 {finalName ||
                                                     keepAlias.original_name}
@@ -268,7 +268,7 @@ export function NormalizationModal({
                                         </p>
                                     </>
                                 )}
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-muted-foreground">
                                     El proceso es reversible desde historial si
                                     necesitás volver atrás.
                                 </p>
@@ -278,11 +278,11 @@ export function NormalizationModal({
 
                     <div className="space-y-2">
                         <label
-                            className="text-sm font-medium text-gray-700"
+                            className="text-sm font-medium text-foreground"
                             htmlFor="normalization-notes"
                         >
                             Motivo de la normalización{" "}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
                         </label>
                         <textarea
                             id="normalization-notes"
@@ -290,19 +290,19 @@ export function NormalizationModal({
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Ej. Confirmado con el equipo de operaciones que se trata de la misma empresa."
                             rows={4}
-                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="w-full rounded-xl border border-border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                             disabled={isLoading}
                         />
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             Las notas quedan guardadas para auditoría y futuras
                             revisiones.
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-t border-gray-200 bg-gray-50 px-6 py-4">
-                    <div className="text-xs text-gray-500">
-                        <span className="font-medium text-gray-700">Tip:</span>{" "}
+                <div className="flex items-center justify-between gap-4 border-t border-border bg-muted px-6 py-4">
+                    <div className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Tip:</span>{" "}
                         revisá el nombre final antes de confirmar, se aplicará
                         en todas las OTs mencionadas.
                     </div>

@@ -51,7 +51,7 @@ export function ProvisionModal({ isOpen, onClose, onConfirm, invoice }) {
                         <DialogTitle>Provisionar Factura</DialogTitle>
                         <DialogDescription>
                             Establece la fecha de provisión para la factura 
-                            <span className="font-medium text-gray-900 mx-1">
+                            <span className="font-medium text-foreground mx-1">
                                 {invoice.numero_factura || "Sin número"}
                             </span>
                         </DialogDescription>
@@ -59,7 +59,7 @@ export function ProvisionModal({ isOpen, onClose, onConfirm, invoice }) {
 
                     <div className="px-6 py-4 space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="provision-date" className="text-sm font-medium text-gray-700">
+                            <Label htmlFor="provision-date" className="text-sm font-medium text-foreground">
                                 Fecha de Provisión
                             </Label>
                             <Input
@@ -70,7 +70,7 @@ export function ProvisionModal({ isOpen, onClose, onConfirm, invoice }) {
                                 className="w-full"
                                 required
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                                 Esta acción cambiará el estado de la factura a "Provisionada".
                             </p>
                         </div>
@@ -87,7 +87,7 @@ export function ProvisionModal({ isOpen, onClose, onConfirm, invoice }) {
                         </Button>
                         <Button 
                             type="submit" 
-                            className="bg-gray-900 text-white hover:bg-gray-800"
+                            className="bg-foreground text-white hover:bg-foreground/80"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? 'Guardando...' : 'Confirmar'}

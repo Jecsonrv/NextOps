@@ -20,9 +20,10 @@ from .serializers import (
 from invoices.models import Invoice
 from catalogs.models import Provider
 from common.permissions import IsAdminOrFinanzas
+from common.mixins import CloudinaryFileMixin
 
 
-class SupplierPaymentViewSet(viewsets.ModelViewSet):
+class SupplierPaymentViewSet(CloudinaryFileMixin, viewsets.ModelViewSet):
     """
     API para gestionar pagos a proveedores (Cuentas por Pagar).
 
@@ -35,6 +36,10 @@ class SupplierPaymentViewSet(viewsets.ModelViewSet):
     queryset = SupplierPayment.objects.filter(is_deleted=False)
     serializer_class = SupplierPaymentSerializer
     permission_classes = [IsAdminOrFinanzas]
+    cloudinary_file_field = 'archivo_comprobante'
+
+    def get_download_filename(self, obj):
+        return f"comprobante_pago_proveedor_{obj.referencia}.pdf"
 
     def get_queryset(self):
         """Filtros opcionales"""
@@ -206,141 +211,3 @@ class SupplierPaymentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='file')
-    def retrieve_file(self, request, pk=None):
-        """
-        Permite descargar o previsualizar el comprobante de pago a proveedor.
-        Actúa como proxy para servir archivos desde Cloudinary.
-        """
-        from django.shortcuts import redirect
-        from django.conf import settings
-        from django.http import FileResponse, HttpResponse
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        supplier_payment = self.get_object()
-
-        if not supplier_payment.archivo_comprobante:
-            return Response(
-                {'detail': 'El pago no tiene comprobante asociado.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        # Si usamos Cloudinary, servir archivo como proxy
-        if getattr(settings, 'USE_CLOUDINARY', False):
-            try:
-                import cloudinary.utils
-                import requests
-
-                # Obtener el nombre del archivo almacenado en Cloudinary
-                storage_path = supplier_payment.archivo_comprobante.name
-                logger.info(f"Fetching supplier payment receipt from Cloudinary: {storage_path}")
-
-                # Eliminar la extensión del public_id si existe (Cloudinary raw files)
-                import os
-                base_name, ext = os.path.splitext(storage_path)
-                ext_clean = ext.lstrip('.')
-
-                # Intentar con y sin extensión
-                public_id_candidates = []
-                if ext:
-                    public_id_candidates.append(base_name)
-                public_id_candidates.append(storage_path)
-
-                # Eliminar duplicados manteniendo orden
-                unique_candidates = []
-                for candidate in public_id_candidates:
-                    if candidate and candidate not in unique_candidates:
-                        unique_candidates.append(candidate)
-
-                cloudinary_response = None
-
-                for public_id in unique_candidates:
-                    logger.info(f"Trying public_id: {public_id}")
-                    for cloudinary_type in ('authenticated', 'upload'):
-                        try:
-                            format_arg = None
-                            if ext_clean and not public_id.lower().endswith(f".{ext_clean.lower()}"):
-                                format_arg = ext_clean
-
-                            cloudinary_options = {
-                                'resource_type': 'raw',
-                                'type': cloudinary_type,
-                                'secure': True,
-                                'sign_url': True,
-                            }
-                            if format_arg:
-                                cloudinary_options['format'] = format_arg
-
-                            download_url, _ = cloudinary.utils.cloudinary_url(
-                                public_id,
-                                **cloudinary_options,
-                            )
-                            logger.info(f"Generated signed CDN URL ({cloudinary_type}): {download_url[:100]}...")
-                        except Exception as url_error:
-                            logger.error(f"Error generating signed URL ({cloudinary_type}): {url_error}")
-                            continue
-
-                        logger.info(f"Downloading from Cloudinary CDN...")
-                        response = requests.get(download_url, timeout=30)
-                        logger.info(f"Cloudinary response status: {response.status_code}")
-
-                        if response.status_code == 200:
-                            cloudinary_response = response
-                            logger.info(f"✅ SUCCESS: Downloaded {len(response.content)} bytes")
-                            break
-                        elif response.status_code == 404:
-                            logger.warning(f"404: File not found with public_id={public_id}, type={cloudinary_type}")
-                        else:
-                            logger.warning(f"Unexpected status {response.status_code} for {public_id}")
-
-                    if cloudinary_response:
-                        break
-
-                if cloudinary_response is None:
-                    logger.error(f"All download attempts failed for supplier payment {supplier_payment.id}")
-                    return Response(
-                        {'detail': 'No se pudo descargar el archivo desde Cloudinary después de múltiples intentos.'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-
-                # Servir el archivo descargado
-                filename = f"comprobante_pago_proveedor_{supplier_payment.referencia}.pdf"
-                content_type = 'application/pdf'
-
-                response_file = HttpResponse(cloudinary_response.content, content_type=content_type)
-                download_flag = str(request.query_params.get('download', '')).lower()
-                disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-                response_file['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-                response_file['Content-Length'] = len(cloudinary_response.content)
-                response_file['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-                return response_file
-
-            except Exception as e:
-                logger.error(f"Error al obtener archivo de Cloudinary: {e}", exc_info=True)
-                return Response(
-                    {'detail': f'Error al obtener el archivo: {str(e)}'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        # Para almacenamiento local, servir normalmente
-        try:
-            file_handle = supplier_payment.archivo_comprobante.open('rb')
-            filename = f"comprobante_pago_proveedor_{supplier_payment.referencia}.pdf"
-            content_type = 'application/pdf'
-
-            response = FileResponse(file_handle, content_type=content_type)
-            download_flag = str(request.query_params.get('download', '')).lower()
-            disposition = 'attachment' if download_flag in ('1', 'true', 'yes') else 'inline'
-            response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-
-            return response
-        except Exception as e:
-            logger.error(f"Error al abrir archivo local: {e}", exc_info=True)
-            return Response(
-                {'detail': f'No se pudo abrir el archivo: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )

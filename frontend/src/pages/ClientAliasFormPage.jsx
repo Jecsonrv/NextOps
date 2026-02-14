@@ -195,8 +195,8 @@ export function ClientAliasFormPage() {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-                    <p className="mt-2 text-gray-600">Cargando alias...</p>
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-muted-foreground">Cargando alias...</p>
                 </div>
             </div>
         );
@@ -214,10 +214,10 @@ export function ClientAliasFormPage() {
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         {isEditing ? "Editar Alias" : "Nuevo Alias"}
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-muted-foreground mt-1">
                         {isEditing
                             ? "Modifica el alias de cliente"
                             : "Registra un nuevo alias para normalizar nombres de clientes"}
@@ -236,7 +236,7 @@ export function ClientAliasFormPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Nombre del Cliente *
                             </label>
                             <Input
@@ -251,19 +251,19 @@ export function ClientAliasFormPage() {
                                 }
                             />
                             {errors.original_name && (
-                                <p className="text-red-500 text-sm mt-1">
+                                <p className="text-destructive text-sm mt-1">
                                     {errors.original_name}
                                 </p>
                             )}
                             {checkingSimilar && (
-                                <p className="text-gray-500 text-sm mt-1">
+                                <p className="text-muted-foreground text-sm mt-1">
                                     Buscando clientes similares...
                                 </p>
                             )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Nombre Corto (Alias)
                             </label>
                             <Input
@@ -278,11 +278,11 @@ export function ClientAliasFormPage() {
                                 }
                             />
                             {errors.short_name && (
-                                <p className="text-red-500 text-sm mt-1">
+                                <p className="text-destructive text-sm mt-1">
                                     {errors.short_name}
                                 </p>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 Versión corta para mostrar en reportes. Se generará automáticamente si no lo especificas.
                             </p>
                         </div>
@@ -295,13 +295,13 @@ export function ClientAliasFormPage() {
                                     onChange={(e) =>
                                         handleChange("is_verified", e.target.checked)
                                     }
-                                    className="w-4 h-4 text-blue-600 rounded"
+                                    className="w-4 h-4 text-primary rounded"
                                 />
-                                <span className="text-sm font-medium text-gray-700">
+                                <span className="text-sm font-medium text-foreground">
                                     Cliente Verificado Manualmente
                                 </span>
                             </label>
-                            <p className="text-xs text-gray-500 mt-1 ml-6">
+                            <p className="text-xs text-muted-foreground mt-1 ml-6">
                                 Marca como verificado si has confirmado que la información es correcta
                             </p>
                         </div>
@@ -319,7 +319,7 @@ export function ClientAliasFormPage() {
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Tipo de Contribuyente *
                                 </label>
                                 <select
@@ -327,7 +327,7 @@ export function ClientAliasFormPage() {
                                     onChange={(e) =>
                                         handleChange("tipo_contribuyente", e.target.value)
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="gran_contribuyente">Gran Contribuyente</option>
                                     <option value="contribuyente_normal">Contribuyente Normal</option>
@@ -335,7 +335,7 @@ export function ClientAliasFormPage() {
                                     <option value="regimen_simple">Régimen Simplificado</option>
                                     <option value="no_contribuyente">No Contribuyente / Extranjero</option>
                                 </select>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Determina si aplican retenciones de IVA y Renta
                                 </p>
                             </div>
@@ -348,9 +348,9 @@ export function ClientAliasFormPage() {
                                         onChange={(e) =>
                                             handleChange("acepta_credito_fiscal", e.target.checked)
                                         }
-                                        className="w-4 h-4 text-blue-600 rounded"
+                                        className="w-4 h-4 text-primary rounded"
                                     />
-                                    <span className="text-sm font-medium text-gray-700">
+                                    <span className="text-sm font-medium text-foreground">
                                         Acepta Crédito Fiscal (CCF)
                                     </span>
                                 </label>
@@ -359,7 +359,7 @@ export function ClientAliasFormPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     NIT (Número de Identificación Tributaria)
                                 </label>
                                 <Input
@@ -372,12 +372,12 @@ export function ClientAliasFormPage() {
                                     className={errors.nit ? "border-red-500" : ""}
                                 />
                                 {errors.nit && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.nit}</p>
+                                    <p className="text-destructive text-sm mt-1">{errors.nit}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     NRC (Número de Registro de Contribuyente)
                                 </label>
                                 <Input
@@ -390,13 +390,13 @@ export function ClientAliasFormPage() {
                                     className={errors.nrc ? "border-red-500" : ""}
                                 />
                                 {errors.nrc && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.nrc}</p>
+                                    <p className="text-destructive text-sm mt-1">{errors.nrc}</p>
                                 )}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Actividad Económica
                             </label>
                             <Input
@@ -420,7 +420,7 @@ export function ClientAliasFormPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="bg-primary/10 border border-blue-200 rounded-lg p-4 mb-4">
                             <p className="text-sm text-blue-900 font-medium mb-2">
                                 ¿Qué es la retención de Renta (ISR) 1%?
                             </p>
@@ -444,10 +444,10 @@ export function ClientAliasFormPage() {
                                     className="w-5 h-5 text-orange-600 rounded mt-0.5"
                                 />
                                 <div className="flex-1">
-                                    <span className="text-base font-semibold text-gray-900 block mb-1">
+                                    <span className="text-base font-semibold text-foreground block mb-1">
                                         ✅ Este cliente ES agente de retención (retiene Renta/ISR 1%)
                                     </span>
-                                    <p className="text-sm text-gray-700">
+                                    <p className="text-sm text-foreground">
                                         Marca esta casilla si el cliente ha sido designado por el Ministerio de Hacienda
                                         como agente de retención. Al emitir facturas a este cliente, automáticamente
                                         se calculará la retención del 1% sobre el subtotal gravado (sin IVA).
@@ -456,8 +456,8 @@ export function ClientAliasFormPage() {
                             </label>
                         </div>
 
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                            <p className="text-xs text-gray-600">
+                        <div className="bg-muted border border-border rounded-lg p-3">
+                            <p className="text-xs text-muted-foreground">
                                 <strong>Ejemplo de cálculo:</strong><br/>
                                 Subtotal gravado (sin IVA): $10,000.00<br/>
                                 Retención Renta/ISR 1%: $10,000 × 1% = <strong className="text-orange-600">$100.00</strong><br/>
@@ -477,7 +477,7 @@ export function ClientAliasFormPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Dirección Fiscal
                             </label>
                             <textarea
@@ -487,13 +487,13 @@ export function ClientAliasFormPage() {
                                 }
                                 rows="2"
                                 placeholder="Dirección completa del cliente"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Teléfono
                                 </label>
                                 <Input
@@ -507,7 +507,7 @@ export function ClientAliasFormPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground mb-1">
                                     Email para Facturación
                                 </label>
                                 <Input
@@ -520,7 +520,7 @@ export function ClientAliasFormPage() {
                                     className={errors.email_facturacion ? "border-red-500" : ""}
                                 />
                                 {errors.email_facturacion && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.email_facturacion}
                                     </p>
                                 )}
@@ -540,7 +540,7 @@ export function ClientAliasFormPage() {
                             onChange={(e) => handleChange("notes", e.target.value)}
                             rows="3"
                             placeholder="Notas adicionales sobre el cliente..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </CardContent>
                 </Card>
@@ -555,7 +555,7 @@ export function ClientAliasFormPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-gray-700 mb-3">
+                            <p className="text-sm text-foreground mb-3">
                                 Se encontraron {similarAliases.length} alias que
                                 podrían ser duplicados. Revisa antes de crear:
                             </p>
@@ -568,10 +568,10 @@ export function ClientAliasFormPage() {
                                             className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg"
                                         >
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">
+                                                <p className="text-sm font-medium text-foreground">
                                                     {similar.similar_alias}
                                                 </p>
-                                                <p className="text-xs text-gray-600">
+                                                <p className="text-xs text-muted-foreground">
                                                     Cliente:{" "}
                                                     {similar.official_name ||
                                                         "N/A"}

@@ -57,7 +57,7 @@ DialogHeader.propTypes = {
 
 export function DialogTitle({ children = null, className = "" }) {
     return (
-        <h2 className={`text-xl font-semibold text-gray-900 ${className}`}>
+        <h2 className={`text-xl font-semibold text-foreground ${className}`}>
             {children}
         </h2>
     );
@@ -70,7 +70,7 @@ DialogTitle.propTypes = {
 
 export function DialogDescription({ children = null, className = "" }) {
     return (
-        <p className={`mt-2 text-sm text-gray-600 ${className}`}>{children}</p>
+        <p className={`mt-2 text-sm text-muted-foreground ${className}`}>{children}</p>
     );
 }
 

@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'invoices',
     'sales',  # Gestión de Ventas y Facturación CRM
     'supplier_payments',  # Gestión de Pagos a Proveedores (CxP)
-    'automation',
 ]
 
 MIDDLEWARE = [
@@ -283,19 +282,8 @@ CELERY_TIMEZONE = TIME_ZONE
 # Celery Beat Schedule (DISABLED)
 CELERY_BEAT_SCHEDULE = {}  # Empty - no periodic tasks
 
-# Microsoft Graph API Configuration
-GRAPH_TENANT_ID = config('GRAPH_TENANT_ID', default='')
-GRAPH_CLIENT_ID = config('GRAPH_CLIENT_ID', default='')
-GRAPH_CLIENT_SECRET = config('GRAPH_CLIENT_SECRET', default='')
-GRAPH_SHARED_MAILBOX = config('GRAPH_SHARED_MAILBOX', default='dteproveedores@plg.com.sv')
-GRAPH_MAILBOX_FOLDER = '/Inbox/DTE PROVEEDORES'
-
 # File Storage Configuration
 FILE_STORAGE_DIR = config('FILE_STORAGE_DIR', default=str(BASE_DIR / 'media' / 'invoices'))
-
-# Email Processing Configuration
-EMAIL_PROCESSING_INTERVAL_MINUTES = config('EMAIL_PROCESSING_INTERVAL_MINUTES', default=15, cast=int)
-MAX_ATTACHMENT_SIZE_MB = config('MAX_ATTACHMENT_SIZE_MB', default=15, cast=int)
 
 # Logging Configuration
 LOG_LEVEL = config('LOG_LEVEL', default='INFO')

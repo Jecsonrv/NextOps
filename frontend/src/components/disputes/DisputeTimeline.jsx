@@ -27,12 +27,12 @@ const EVENT_ICONS = {
 };
 
 const EVENT_COLORS = {
-    creacion: "bg-blue-100 text-blue-600",
-    comentario: "bg-gray-100 text-gray-600",
+    creacion: "bg-primary/10 text-primary",
+    comentario: "bg-muted text-muted-foreground",
     actualizacion: "bg-yellow-100 text-yellow-600",
     resolucion: "bg-green-100 text-green-600",
-    cierre: "bg-red-100 text-red-600",
-    default: "bg-gray-100 text-gray-600",
+    cierre: "bg-red-100 text-destructive",
+    default: "bg-muted text-muted-foreground",
 };
 
 export function DisputeTimeline({ disputeId }) {
@@ -82,8 +82,8 @@ export function DisputeTimeline({ disputeId }) {
             <Card>
                 <CardContent className="p-6">
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                        <span className="ml-2 text-gray-600">Cargando eventos...</span>
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <span className="ml-2 text-muted-foreground">Cargando eventos...</span>
                     </div>
                 </CardContent>
             </Card>
@@ -93,13 +93,13 @@ export function DisputeTimeline({ disputeId }) {
     return (
         <Card>
             <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                     Historial de Eventos
                 </h3>
 
                 {/* Formulario para agregar comentario */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-6 p-4 bg-muted rounded-lg border border-border">
+                    <label htmlFor="new-comment" className="block text-sm font-medium text-foreground mb-2">
                         Agregar Comentario
                     </label>
                     <textarea
@@ -108,7 +108,7 @@ export function DisputeTimeline({ disputeId }) {
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Escribe un comentario o actualización sobre la disputa..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
                         disabled={commentMutation.isPending}
                     />
                     <div className="flex justify-end">
@@ -137,7 +137,7 @@ export function DisputeTimeline({ disputeId }) {
                     {eventos && eventos.length > 0 ? (
                         <div className="relative">
                             {/* Línea vertical del timeline */}
-                            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+                            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-muted" />
 
                             {eventos.map((evento) => {
                                 const Icon = EVENT_ICONS[evento.tipo] || EVENT_ICONS.default;
@@ -154,10 +154,10 @@ export function DisputeTimeline({ disputeId }) {
 
                                         {/* Contenido del evento */}
                                         <div className="flex-1 pt-1">
-                                            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="bg-white border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
                                                 <div className="flex items-start justify-between mb-2">
                                                     <div>
-                                                        <h4 className="font-semibold text-gray-900 capitalize">
+                                                        <h4 className="font-semibold text-foreground capitalize">
                                                             {evento.tipo === "creacion" && "Disputa Creada"}
                                                             {evento.tipo === "comentario" && "Comentario"}
                                                             {evento.tipo === "actualizacion" && "Actualización"}
@@ -165,13 +165,13 @@ export function DisputeTimeline({ disputeId }) {
                                                             {evento.tipo === "cierre" && "Cierre"}
                                                             {!["creacion", "comentario", "actualizacion", "resolucion", "cierre"].includes(evento.tipo) && evento.tipo}
                                                         </h4>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
                                                             {evento.usuario} • {formatDate(evento.created_at)}
                                                         </p>
                                                     </div>
                                                     {evento.monto_recuperado && (
                                                         <div className="text-right">
-                                                            <div className="text-xs text-gray-500">Monto Recuperado</div>
+                                                            <div className="text-xs text-muted-foreground">Monto Recuperado</div>
                                                             <div className="text-lg font-bold text-green-600">
                                                                 ${evento.monto_recuperado.toLocaleString("es-MX", {
                                                                     minimumFractionDigits: 2,
@@ -180,7 +180,7 @@ export function DisputeTimeline({ disputeId }) {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                                                <p className="text-foreground text-sm whitespace-pre-wrap">
                                                     {evento.descripcion}
                                                 </p>
                                             </div>
@@ -190,8 +190,8 @@ export function DisputeTimeline({ disputeId }) {
                             })}
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-500">
-                            <MessageSquare className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                        <div className="text-center py-8 text-muted-foreground">
+                            <MessageSquare className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                             <p>No hay eventos registrados</p>
                         </div>
                     )}

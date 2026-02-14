@@ -135,10 +135,10 @@ export function InvoiceUploadPage() {
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900">
+                        <h1 className="text-4xl font-bold text-foreground">
                             Subir Facturas
                         </h1>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-muted-foreground mt-1">
                             Carga archivos PDF, JSON o XML de facturas
                         </p>
                     </div>
@@ -151,7 +151,7 @@ export function InvoiceUploadPage() {
                     className={
                         uploadResults.errors > 0
                             ? "border-yellow-200 bg-yellow-50"
-                            : "border-green-200 bg-green-50"
+                            : "border-green-200 bg-emerald-50"
                     }
                 >
                     <CardContent className="pt-6">
@@ -161,31 +161,31 @@ export function InvoiceUploadPage() {
                                 {uploadResults.errors > 0 ? (
                                     <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0" />
                                 ) : (
-                                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                                    <CheckCircle className="w-6 h-6 text-emerald-600 flex-shrink-0" />
                                 )}
                                 <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-900 mb-2">
+                                    <h3 className="font-semibold text-foreground mb-2">
                                         Resultados del procesamiento
                                     </h3>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 Total
                                             </p>
-                                            <p className="text-2xl font-bold text-gray-900">
+                                            <p className="text-2xl font-bold text-foreground">
                                                 {uploadResults.total}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 Procesados
                                             </p>
-                                            <p className="text-2xl font-bold text-green-600">
+                                            <p className="text-2xl font-bold text-emerald-600">
                                                 {uploadResults.processed}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 Duplicados
                                             </p>
                                             <p className="text-2xl font-bold text-yellow-600">
@@ -193,10 +193,10 @@ export function InvoiceUploadPage() {
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-muted-foreground">
                                                 Errores
                                             </p>
-                                            <p className="text-2xl font-bold text-red-600">
+                                            <p className="text-2xl font-bold text-destructive">
                                                 {uploadResults.errors}
                                             </p>
                                         </div>
@@ -207,7 +207,7 @@ export function InvoiceUploadPage() {
                             {/* Success Results */}
                             {uploadResults.results?.success?.length > 0 && (
                                 <div>
-                                    <h4 className="font-semibold text-gray-900 mb-2">
+                                    <h4 className="font-semibold text-foreground mb-2">
                                         ✓ Archivos procesados exitosamente (
                                         {uploadResults.results.success.length})
                                     </h4>
@@ -216,11 +216,11 @@ export function InvoiceUploadPage() {
                                             (item, index) => (
                                                 <div
                                                     key={index}
-                                                    className="p-4 bg-white rounded border border-gray-200 text-sm"
+                                                    className="p-4 bg-card rounded border border-border text-sm"
                                                 >
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div className="flex-1 space-y-2">
-                                                            <p className="font-medium text-gray-900">
+                                                            <p className="font-medium text-foreground">
                                                                 📄{" "}
                                                                 {item.filename}
                                                             </p>
@@ -231,10 +231,10 @@ export function InvoiceUploadPage() {
                                                                     "TEMP-"
                                                                 ) && (
                                                                     <div className="flex items-center gap-2 text-xs">
-                                                                        <span className="text-gray-500">
+                                                                        <span className="text-muted-foreground">
                                                                             Factura:
                                                                         </span>
-                                                                        <span className="font-mono font-semibold text-blue-600">
+                                                                        <span className="font-mono font-semibold text-primary">
                                                                             {
                                                                                 item.numero_factura
                                                                             }
@@ -246,10 +246,10 @@ export function InvoiceUploadPage() {
                                                                 item.monto >
                                                                     0 && (
                                                                     <div className="flex items-center gap-2 text-xs">
-                                                                        <span className="text-gray-500">
+                                                                        <span className="text-muted-foreground">
                                                                             Monto:
                                                                         </span>
-                                                                        <span className="font-semibold text-green-600">
+                                                                        <span className="font-semibold text-emerald-600">
                                                                             $
                                                                             {item.monto.toFixed(
                                                                                 2
@@ -260,7 +260,7 @@ export function InvoiceUploadPage() {
 
                                                             {item.numero_contenedor && (
                                                                 <div className="flex items-center gap-2 text-xs">
-                                                                    <span className="text-gray-500">
+                                                                    <span className="text-muted-foreground">
                                                                         Contenedor:
                                                                     </span>
                                                                     <span className="font-mono text-purple-600">
@@ -273,7 +273,7 @@ export function InvoiceUploadPage() {
 
                                                             {item.mbl && (
                                                                 <div className="flex items-center gap-2 text-xs">
-                                                                    <span className="text-gray-500">
+                                                                    <span className="text-muted-foreground">
                                                                         MBL:
                                                                     </span>
                                                                     <span className="font-mono text-indigo-600">
@@ -286,7 +286,7 @@ export function InvoiceUploadPage() {
 
                                                             {item.ot_matched && (
                                                                 <div className="flex items-center gap-2 text-xs">
-                                                                    <span className="text-gray-500">
+                                                                    <span className="text-muted-foreground">
                                                                         OT
                                                                         Asignada:
                                                                     </span>
@@ -296,7 +296,7 @@ export function InvoiceUploadPage() {
                                                                             item.ot_matched
                                                                         }
                                                                         {item.match_method && (
-                                                                            <span className="text-gray-500 font-normal ml-1">
+                                                                            <span className="text-muted-foreground font-normal ml-1">
                                                                                 (por{" "}
                                                                                 {
                                                                                     item.match_method
@@ -309,7 +309,7 @@ export function InvoiceUploadPage() {
                                                             )}
 
                                                             {item.message && (
-                                                                <p className="text-xs text-gray-600 pt-1 border-t">
+                                                                <p className="text-xs text-muted-foreground pt-1 border-t">
                                                                     {
                                                                         item.message
                                                                     }
@@ -361,7 +361,7 @@ export function InvoiceUploadPage() {
                             {/* Duplicates */}
                             {uploadResults.results?.duplicates?.length > 0 && (
                                 <div>
-                                    <h4 className="font-semibold text-gray-900 mb-2">
+                                    <h4 className="font-semibold text-foreground mb-2">
                                         ⚠ Archivos duplicados (
                                         {
                                             uploadResults.results.duplicates
@@ -374,12 +374,12 @@ export function InvoiceUploadPage() {
                                             (item, index) => (
                                                 <div
                                                     key={index}
-                                                    className="p-3 bg-white rounded border border-gray-200 text-sm"
+                                                    className="p-3 bg-card rounded border border-border text-sm"
                                                 >
-                                                    <p className="font-medium text-gray-900">
+                                                    <p className="font-medium text-foreground">
                                                         {item.filename}
                                                     </p>
-                                                    <p className="text-gray-600 mt-1">
+                                                    <p className="text-muted-foreground mt-1">
                                                         {item.reason}
                                                     </p>
                                                 </div>
@@ -392,7 +392,7 @@ export function InvoiceUploadPage() {
                             {/* Errors */}
                             {uploadResults.results?.errors?.length > 0 && (
                                 <div>
-                                    <h4 className="font-semibold text-gray-900 mb-2">
+                                    <h4 className="font-semibold text-foreground mb-2">
                                         ✗ Errores (
                                         {uploadResults.results.errors.length})
                                     </h4>
@@ -401,12 +401,12 @@ export function InvoiceUploadPage() {
                                             (item, index) => (
                                                 <div
                                                     key={index}
-                                                    className="p-3 bg-white rounded border border-red-200 text-sm"
+                                                    className="p-3 bg-card rounded border border-destructive/20 text-sm"
                                                 >
-                                                    <p className="font-medium text-gray-900">
+                                                    <p className="font-medium text-foreground">
                                                         {item.filename}
                                                     </p>
-                                                    <p className="text-red-600 mt-1">
+                                                    <p className="text-destructive mt-1">
                                                         {item.error}
                                                     </p>
                                                 </div>
@@ -417,7 +417,7 @@ export function InvoiceUploadPage() {
                             )}
 
                             {/* Actions */}
-                            <div className="flex gap-2 pt-4 border-t border-gray-200">
+                            <div className="flex gap-2 pt-4 border-t border-border">
                                 <Button
                                     onClick={resetForm}
                                     variant="outline"
@@ -450,16 +450,16 @@ export function InvoiceUploadPage() {
                         <CardContent className="space-y-6">
                             {/* Selector de Proveedor - OBLIGATORIO */}
                             <div>
-                                <label className="block font-semibold text-gray-900 mb-2">
+                                <label className="block font-semibold text-foreground mb-2">
                                     Proveedor{" "}
-                                    <span className="text-red-500">*</span>
+                                    <span className="text-destructive">*</span>
                                 </label>
                                 <select
                                     value={selectedProveedor}
                                     onChange={(e) =>
                                         setSelectedProveedor(e.target.value)
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 >
                                     <option value="">
@@ -485,7 +485,7 @@ export function InvoiceUploadPage() {
                                         )
                                     )}
                                 </select>
-                                <p className="text-sm text-gray-600 mt-2">
+                                <p className="text-sm text-muted-foreground mt-2">
                                     <strong>Importante:</strong> Selecciona el
                                     proveedor al que pertenecen estas facturas.
                                     Esto permitirá aplicar los patrones de
@@ -496,9 +496,9 @@ export function InvoiceUploadPage() {
 
                             {/* Patrones Disponibles */}
                             {selectedProveedor && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
                                     <div className="flex items-start gap-3">
-                                        <Target className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                        <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-blue-900 mb-2">
                                                 Patrones de Detección
@@ -562,7 +562,7 @@ export function InvoiceUploadPage() {
                                                                         fieldCode
                                                                     }
                                                                     variant="outline"
-                                                                    className="text-xs bg-white"
+                                                                    className="text-xs bg-card"
                                                                 >
                                                                     {patterns[0]
                                                                         ?.target_field_name ||
@@ -574,7 +574,7 @@ export function InvoiceUploadPage() {
 
                                                     {availablePatterns.total ===
                                                         0 && (
-                                                        <p className="text-sm text-blue-600">
+                                                        <p className="text-sm text-primary">
                                                             ℹ️ No hay patrones
                                                             específicos para
                                                             este proveedor. Se
@@ -594,7 +594,7 @@ export function InvoiceUploadPage() {
                                 </div>
                             )}
 
-                            <div className="border-t border-gray-200 pt-4">
+                            <div className="border-t border-border pt-4">
                                 <div className="flex items-center gap-2">
                                     <input
                                         id="auto-parse"
@@ -603,16 +603,16 @@ export function InvoiceUploadPage() {
                                         onChange={(e) =>
                                             setAutoParse(e.target.checked)
                                         }
-                                        className="w-4 h-4 text-blue-600 rounded"
+                                        className="w-4 h-4 text-primary rounded"
                                     />
                                     <label
                                         htmlFor="auto-parse"
-                                        className="font-medium text-gray-900"
+                                        className="font-medium text-foreground"
                                     >
                                         Extraer datos automáticamente
                                     </label>
                                 </div>
-                                <p className="text-sm text-gray-600 ml-6 mt-1">
+                                <p className="text-sm text-muted-foreground ml-6 mt-1">
                                     Si está activado, el sistema intentará
                                     extraer automáticamente los datos de las
                                     facturas (número, monto, fecha, proveedor) y
@@ -621,7 +621,7 @@ export function InvoiceUploadPage() {
                             </div>
 
                             <div>
-                                <label className="block font-medium text-gray-900 mb-2">
+                                <label className="block font-medium text-foreground mb-2">
                                     Tipo de Costo
                                 </label>
                                 <select
@@ -629,7 +629,7 @@ export function InvoiceUploadPage() {
                                     onChange={(e) =>
                                         setTipoCosto(e.target.value)
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     {costTypeOptions.length === 0 && (
                                         <option value="" disabled>
@@ -645,7 +645,7 @@ export function InvoiceUploadPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <p className="text-sm text-muted-foreground mt-1">
                                     Se aplicará a todas las facturas subidas en
                                     este lote
                                 </p>

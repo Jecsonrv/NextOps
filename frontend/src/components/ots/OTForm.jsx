@@ -3,12 +3,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "../lib/api";
-import { otSchema } from "../lib/validations/otSchema";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/Card";
-import { Badge } from "./ui/Badge";
+import apiClient from "../../lib/api";
+import { otSchema } from "../../lib/validations/otSchema";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
+import { Badge } from "../ui/Badge";
 import { Plus, Trash2, Save, X } from "lucide-react";
 
 /**
@@ -67,7 +67,7 @@ export function OTForm({
         queryKey: ["clientes"],
         queryFn: async () => {
             const response = await apiClient.get(
-                "/clients/client-aliases/?page_size=1000"
+                "/clients/client-aliases/?page_size=1000",
             );
             return response.data.results || [];
         },
@@ -84,7 +84,7 @@ export function OTForm({
         queryKey: ["proveedores"],
         queryFn: async () => {
             const response = await apiClient.get(
-                "/catalogs/providers/?page_size=1000"
+                "/catalogs/providers/?page_size=1000",
             );
             return response.data.results || [];
         },
@@ -108,7 +108,7 @@ export function OTForm({
 
         const clienteIdAsNumber = Number(selectedClienteId);
         const exists = clientes.some(
-            (cliente) => Number(cliente?.id) === clienteIdAsNumber
+            (cliente) => Number(cliente?.id) === clienteIdAsNumber,
         );
 
         if (exists) {
@@ -143,7 +143,7 @@ export function OTForm({
 
         const proveedorIdAsNumber = Number(selectedProveedorId);
         const exists = proveedores.some(
-            (proveedor) => Number(proveedor?.id) === proveedorIdAsNumber
+            (proveedor) => Number(proveedor?.id) === proveedorIdAsNumber,
         );
 
         if (exists) {
@@ -172,7 +172,7 @@ export function OTForm({
         }
         const clienteIdAsNumber = Number(selectedClienteId);
         return !clientes.some(
-            (cliente) => Number(cliente?.id) === clienteIdAsNumber
+            (cliente) => Number(cliente?.id) === clienteIdAsNumber,
         );
     }, [clientes, selectedClienteId]);
 
@@ -182,7 +182,7 @@ export function OTForm({
         }
         const proveedorIdAsNumber = Number(selectedProveedorId);
         return !proveedores.some(
-            (proveedor) => Number(proveedor?.id) === proveedorIdAsNumber
+            (proveedor) => Number(proveedor?.id) === proveedorIdAsNumber,
         );
     }, [proveedores, selectedProveedorId]);
 
@@ -318,7 +318,7 @@ export function OTForm({
 
         const hasNewFecha =
             Boolean(
-                fechaRecepcionFactura && fechaRecepcionFactura.trim() !== ""
+                fechaRecepcionFactura && fechaRecepcionFactura.trim() !== "",
             ) && fechaRecepcionFactura !== lastFechaFactura.current;
         const shouldAutoupdate = hasNewFecha && estadoFacturado === "pendiente";
 
@@ -417,7 +417,7 @@ export function OTForm({
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">
-                            Número de OT <span className="text-red-500">*</span>
+                            Número de OT <span className="text-destructive">*</span>
                         </label>
                         <Input
                             {...register("numero_ot")}
@@ -426,7 +426,7 @@ export function OTForm({
                             disabled={mode === "edit"}
                         />
                         {errors.numero_ot && (
-                            <p className="text-red-500 text-xs mt-1">
+                            <p className="text-destructive text-xs mt-1">
                                 {errors.numero_ot.message}
                             </p>
                         )}
@@ -434,14 +434,14 @@ export function OTForm({
 
                     <div>
                         <label className="block text-sm font-medium mb-1">
-                            Cliente <span className="text-red-500">*</span>
+                            Cliente <span className="text-destructive">*</span>
                         </label>
                         <select
                             {...register("cliente_id", { valueAsNumber: true })}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                 errors.cliente_id
                                     ? "border-red-500"
-                                    : "border-gray-300"
+                                    : "border-border"
                             }`}
                             disabled={isLoadingClientes && !selectedClienteId}
                         >
@@ -471,18 +471,18 @@ export function OTForm({
                                     {isLoadingClientes
                                         ? "Cargando clientes..."
                                         : errorClientes
-                                        ? "Error al cargar clientes"
-                                        : "No hay clientes disponibles"}
+                                          ? "Error al cargar clientes"
+                                          : "No hay clientes disponibles"}
                                 </option>
                             )}
                         </select>
                         {errors.cliente_id && (
-                            <p className="text-red-500 text-xs mt-1">
+                            <p className="text-destructive text-xs mt-1">
                                 {errors.cliente_id.message}
                             </p>
                         )}
                         {errorClientes && (
-                            <p className="text-red-500 text-xs mt-1">
+                            <p className="text-destructive text-xs mt-1">
                                 Error al cargar clientes:{" "}
                                 {errorClientes.message || "Error desconocido"}
                             </p>
@@ -497,7 +497,7 @@ export function OTForm({
                             {...register("proveedor_id", {
                                 valueAsNumber: true,
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={
                                 isLoadingProveedores && !selectedProveedorId
                             }
@@ -528,13 +528,13 @@ export function OTForm({
                                     {isLoadingProveedores
                                         ? "Cargando proveedores..."
                                         : errorProveedores
-                                        ? "Error al cargar proveedores"
-                                        : "No hay proveedores disponibles"}
+                                          ? "Error al cargar proveedores"
+                                          : "No hay proveedores disponibles"}
                                 </option>
                             )}
                         </select>
                         {errorProveedores && (
-                            <p className="text-red-500 text-xs mt-1">
+                            <p className="text-destructive text-xs mt-1">
                                 Error al cargar proveedores:{" "}
                                 {errorProveedores.message ||
                                     "Error desconocido"}
@@ -545,7 +545,7 @@ export function OTForm({
                     <div>
                         <label className="block text-sm font-medium mb-1">
                             Tipo de Operación{" "}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
                         </label>
                         <div className="flex gap-1">
                             <button
@@ -555,8 +555,8 @@ export function OTForm({
                                 }
                                 className={`flex-1 py-1.5 px-3 text-sm rounded-md transition-colors ${
                                     watch("tipo_operacion") === "importacion"
-                                        ? "bg-blue-500 text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        ? "bg-primary/100 text-white"
+                                        : "bg-muted text-foreground hover:bg-muted"
                                 }`}
                             >
                                 Importación
@@ -569,7 +569,7 @@ export function OTForm({
                                 className={`flex-1 py-1.5 px-3 text-sm rounded-md transition-colors ${
                                     watch("tipo_operacion") === "exportacion"
                                         ? "bg-yellow-500 text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        : "bg-muted text-foreground hover:bg-muted"
                                 }`}
                             >
                                 Exportación
@@ -583,7 +583,7 @@ export function OTForm({
                         </label>
                         <select
                             {...register("estado")}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="transito">Tránsito</option>
                             <option value="puerto">Puerto</option>
@@ -609,14 +609,14 @@ export function OTForm({
                         <select
                             {...register("estado_provision")}
                             disabled
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-muted cursor-not-allowed"
                         >
                             <option value="pendiente">Pendiente</option>
                             <option value="provisionada">Provisionada</option>
                             <option value="revision">En Revisión</option>
                             <option value="disputada">Disputada</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Se actualiza automáticamente en la sección de
                             Provisión
                         </p>
@@ -629,12 +629,12 @@ export function OTForm({
                         <select
                             {...register("estado_facturado")}
                             disabled
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-muted cursor-not-allowed"
                         >
                             <option value="pendiente">Pendiente</option>
                             <option value="facturado">Facturado</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Se actualiza automáticamente en la sección de
                             Facturación
                         </p>
@@ -713,7 +713,7 @@ export function OTForm({
                                 </div>
                             ))}
                             {houseBLFields.length === 0 && (
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-muted-foreground">
                                     No hay House BLs agregados
                                 </p>
                             )}
@@ -747,7 +747,7 @@ export function OTForm({
                         {contenedorFields.map((field, index) => (
                             <div
                                 key={field.id}
-                                className="p-4 border border-gray-200 rounded-lg space-y-3"
+                                className="p-4 border border-border rounded-lg space-y-3"
                             >
                                 <div className="flex items-center justify-between">
                                     <Badge>Contenedor {index + 1}</Badge>
@@ -764,11 +764,11 @@ export function OTForm({
                                 <div>
                                     <label className="block text-sm font-medium mb-1">
                                         Número{" "}
-                                        <span className="text-red-500">*</span>
+                                        <span className="text-destructive">*</span>
                                     </label>
                                     <Input
                                         {...register(
-                                            `contenedores.${index}.numero`
+                                            `contenedores.${index}.numero`,
                                         )}
                                         placeholder="MSCU1234567"
                                     />
@@ -777,7 +777,7 @@ export function OTForm({
                         ))}
 
                         {contenedorFields.length === 0 && (
-                            <p className="text-sm text-gray-500 text-center py-4">
+                            <p className="text-sm text-muted-foreground text-center py-4">
                                 No hay contenedores agregados
                             </p>
                         )}
@@ -867,7 +867,7 @@ export function OTForm({
                             </label>
                             <select
                                 {...register("estado_provision")}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="pendiente">Pendiente</option>
                                 <option value="provisionada">
@@ -876,7 +876,7 @@ export function OTForm({
                                 <option value="revision">En Revisión</option>
                                 <option value="disputada">Disputada</option>
                             </select>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 Se actualiza automáticamente al ingresar la
                                 fecha, pero puedes cambiarlo manualmente
                             </p>
@@ -888,7 +888,7 @@ export function OTForm({
                             </label>
                             <select
                                 {...register("provision_source")}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="manual">Manual</option>
                                 <option value="csv">CSV</option>
@@ -931,12 +931,12 @@ export function OTForm({
                         </label>
                         <select
                             {...register("estado_facturado")}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="pendiente">Pendiente</option>
                             <option value="facturado">Facturado</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Se actualiza automáticamente al ingresar la fecha de
                             recepción, pero puedes cambiarlo manualmente
                         </p>
@@ -988,14 +988,14 @@ export function OTForm({
                     <textarea
                         {...register("comentarios")}
                         rows={4}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Comentarios adicionales sobre esta OT..."
                     />
                 </CardContent>
             </Card>
 
             {/* Botones de acción */}
-            <div className="flex items-center justify-end gap-3 sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-6 -mb-6">
+            <div className="flex items-center justify-end gap-3 sticky bottom-0 bg-white border-t border-border p-4 -mx-6 -mb-6">
                 <Button
                     type="button"
                     variant="outline"
@@ -1010,8 +1010,8 @@ export function OTForm({
                     {isSubmitting || isLoading
                         ? "Guardando..."
                         : mode === "create"
-                        ? "Crear OT"
-                        : "Actualizar OT"}
+                          ? "Crear OT"
+                          : "Actualizar OT"}
                 </Button>
             </div>
         </form>

@@ -184,10 +184,10 @@ export function CostCategoryFormPage() {
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-bold text-foreground">
                         {isEditMode ? "Editar Categoría" : "Nueva Categoría"}
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-muted-foreground mt-1">
                         {isEditMode
                             ? "Modifica los datos de la categoría"
                             : "Crea una nueva categoría de tipo de costo"}
@@ -207,7 +207,7 @@ export function CostCategoryFormPage() {
                             <div>
                                 <label
                                     htmlFor="code"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
+                                    className="block text-sm font-medium text-foreground mb-1"
                                 >
                                     Código *
                                 </label>
@@ -223,11 +223,11 @@ export function CostCategoryFormPage() {
                                     }
                                 />
                                 {errors.code && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.code}
                                     </p>
                                 )}
-                                <p className="text-gray-500 text-xs mt-1">
+                                <p className="text-muted-foreground text-xs mt-1">
                                     Solo letras mayúsculas, números y guiones
                                     bajos
                                 </p>
@@ -237,7 +237,7 @@ export function CostCategoryFormPage() {
                             <div>
                                 <label
                                     htmlFor="name"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
+                                    className="block text-sm font-medium text-foreground mb-1"
                                 >
                                     Nombre *
                                 </label>
@@ -252,7 +252,7 @@ export function CostCategoryFormPage() {
                                     }
                                 />
                                 {errors.name && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.name}
                                     </p>
                                 )}
@@ -262,7 +262,7 @@ export function CostCategoryFormPage() {
                             <div>
                                 <label
                                     htmlFor="color"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
+                                    className="block text-sm font-medium text-foreground mb-1"
                                 >
                                     Color *
                                 </label>
@@ -273,7 +273,7 @@ export function CostCategoryFormPage() {
                                         name="color"
                                         value={formData.color}
                                         onChange={handleChange}
-                                        className="h-10 w-20 border border-gray-300 rounded cursor-pointer"
+                                        className="h-10 w-20 border border-border rounded cursor-pointer"
                                     />
                                     <Input
                                         value={formData.color}
@@ -290,11 +290,11 @@ export function CostCategoryFormPage() {
                                     />
                                 </div>
                                 {errors.color && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.color}
                                     </p>
                                 )}
-                                <p className="text-gray-500 text-xs mt-1">
+                                <p className="text-muted-foreground text-xs mt-1">
                                     Formato hexadecimal (#RRGGBB)
                                 </p>
                             </div>
@@ -303,7 +303,7 @@ export function CostCategoryFormPage() {
                             <div>
                                 <label
                                     htmlFor="display_order"
-                                    className="block text-sm font-medium text-gray-700 mb-1"
+                                    className="block text-sm font-medium text-foreground mb-1"
                                 >
                                     Orden de Visualización
                                 </label>
@@ -322,11 +322,11 @@ export function CostCategoryFormPage() {
                                     }
                                 />
                                 {errors.display_order && (
-                                    <p className="text-red-500 text-sm mt-1">
+                                    <p className="text-destructive text-sm mt-1">
                                         {errors.display_order}
                                     </p>
                                 )}
-                                <p className="text-gray-500 text-xs mt-1">
+                                <p className="text-muted-foreground text-xs mt-1">
                                     Menor número = mayor prioridad
                                 </p>
                             </div>
@@ -336,7 +336,7 @@ export function CostCategoryFormPage() {
                         <div>
                             <label
                                 htmlFor="description"
-                                className="block text-sm font-medium text-gray-700 mb-1"
+                                className="block text-sm font-medium text-foreground mb-1"
                             >
                                 Descripción
                             </label>
@@ -350,11 +350,11 @@ export function CostCategoryFormPage() {
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                     errors.description
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                             />
                             {errors.description && (
-                                <p className="text-red-500 text-sm mt-1">
+                                <p className="text-destructive text-sm mt-1">
                                     {errors.description}
                                 </p>
                             )}
@@ -368,11 +368,11 @@ export function CostCategoryFormPage() {
                                 name="is_active"
                                 checked={formData.is_active}
                                 onChange={handleChange}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                className="w-4 h-4 text-primary rounded focus:ring-blue-500"
                             />
                             <label
                                 htmlFor="is_active"
-                                className="text-sm font-medium text-gray-700"
+                                className="text-sm font-medium text-foreground"
                             >
                                 Categoría activa
                             </label>
@@ -418,11 +418,11 @@ export function CostCategoryFormPage() {
                 <CardContent>
                     <div className="flex items-center gap-4">
                         <div
-                            className="w-24 h-24 rounded-lg border-2 border-gray-300 shadow-md"
+                            className="w-24 h-24 rounded-lg border-2 border-border shadow-md"
                             style={{ backgroundColor: formData.color }}
                         />
                         <div>
-                            <p className="text-sm text-gray-600 mb-1">
+                            <p className="text-sm text-muted-foreground mb-1">
                                 Esta categoría se mostrará con este color
                             </p>
                             <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export function CostCategoryFormPage() {
                                 >
                                     {formData.name || "Nombre de Categoría"}
                                 </div>
-                                <span className="font-mono text-xs text-gray-500">
+                                <span className="font-mono text-xs text-muted-foreground">
                                     {formData.color}
                                 </span>
                             </div>

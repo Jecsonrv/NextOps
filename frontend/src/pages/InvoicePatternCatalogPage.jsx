@@ -19,8 +19,10 @@ import {
     FileText,
     AlertCircle,
     PlayCircle,
+    Regex,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { StatCard } from "../components/common/StatCard";
 import {
     Card,
     CardHeader,
@@ -66,7 +68,10 @@ export default function InvoicePatternCatalogPage() {
         try {
             setLoading(true);
             // Solicitar todos los patrones (sin límite de 25)
-            const response = await apiClient.get(`${CATALOG_URL}?page_size=1000`, getAuthHeaders());
+            const response = await apiClient.get(
+                `${CATALOG_URL}?page_size=1000`,
+                getAuthHeaders(),
+            );
             const allPatterns = response.data.results || response.data || [];
 
             // Filtrar en el frontend
@@ -78,13 +83,13 @@ export default function InvoicePatternCatalogPage() {
 
             if (filterTipoPatron) {
                 filtered = filtered.filter(
-                    (p) => p.tipo_patron === filterTipoPatron
+                    (p) => p.tipo_patron === filterTipoPatron,
                 );
             }
 
             if (filterTipoFactura) {
                 filtered = filtered.filter(
-                    (p) => p.tipo_factura === filterTipoFactura
+                    (p) => p.tipo_factura === filterTipoFactura,
                 );
             }
 
@@ -95,7 +100,7 @@ export default function InvoicePatternCatalogPage() {
                         p.nombre?.toLowerCase().includes(term) ||
                         p.campo_objetivo?.toLowerCase().includes(term) ||
                         p.proveedor_nombre?.toLowerCase().includes(term) ||
-                        p.tipo_documento?.toLowerCase().includes(term)
+                        p.tipo_documento?.toLowerCase().includes(term),
                 );
             }
 
@@ -135,7 +140,7 @@ export default function InvoicePatternCatalogPage() {
             showNotification(
                 `Patrón ${
                     editingPattern ? "actualizado" : "creado"
-                } exitosamente`
+                } exitosamente`,
             );
             loadPatterns();
         }
@@ -147,7 +152,7 @@ export default function InvoicePatternCatalogPage() {
         try {
             await apiClient.delete(
                 `${CATALOG_URL}${selectedPattern.id}/`,
-                getAuthHeaders()
+                getAuthHeaders(),
             );
             showNotification("Patrón eliminado exitosamente");
             setDeleteDialogOpen(false);
@@ -164,12 +169,12 @@ export default function InvoicePatternCatalogPage() {
             await apiClient.patch(
                 `${CATALOG_URL}${pattern.id}/`,
                 { activo: !pattern.activo },
-                getAuthHeaders()
+                getAuthHeaders(),
             );
             showNotification(
                 `Patrón ${
                     !pattern.activo ? "activado" : "desactivado"
-                } exitosamente`
+                } exitosamente`,
             );
             loadPatterns();
         } catch (error) {
@@ -212,7 +217,7 @@ export default function InvoicePatternCatalogPage() {
     }, {});
 
     const groups = Object.values(groupedPatterns).sort((a, b) =>
-        a.name.localeCompare(b.name)
+        a.name.localeCompare(b.name),
     );
 
     const stats = {
@@ -223,87 +228,25 @@ export default function InvoicePatternCatalogPage() {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Catálogo de Patrones de Facturas
-                </h1>
-                <p className="text-gray-600">
-                    Gestiona patrones regex para extracción automática de datos
-                    de PDFs
-                </p>
-            </div>
-
+        <div className="space-y-6">
             {/* Stats */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Patrones
-                        </CardTitle>
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {stats.total}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            En el sistema
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Activos
-                        </CardTitle>
-                        <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {stats.active}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Patrones habilitados
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Costo
-                        </CardTitle>
-                        <Package className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-purple-600">
-                            {stats.costo}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Patrones de costo
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Venta
-                        </CardTitle>
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                            {stats.venta}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Patrones de venta
-                        </p>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Patrones"
+                    value={stats.total}
+                    icon={FileText}
+                />
+                <StatCard
+                    label="Activos"
+                    value={stats.active}
+                    icon={PlayCircle}
+                />
+                <StatCard
+                    label="Costo"
+                    value={stats.costo}
+                    icon={Package}
+                />
+                <StatCard label="Venta" value={stats.venta} icon={FileText} />
             </div>
 
             {/* Notification */}
@@ -311,8 +254,8 @@ export default function InvoicePatternCatalogPage() {
                 <div
                     className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
                         notification.type === "success"
-                            ? "bg-green-50 text-green-800 border border-green-200"
-                            : "bg-red-50 text-red-800 border border-red-200"
+                            ? "bg-emerald-50 text-green-800 border border-green-200"
+                            : "bg-destructive/10 text-red-800 border border-destructive/20"
                     }`}
                 >
                     <AlertCircle className="w-5 h-5" />
@@ -327,7 +270,7 @@ export default function InvoicePatternCatalogPage() {
                         {/* Search */}
                         <div className="flex-1 min-w-[200px]">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <input
                                     type="text"
                                     placeholder="Buscar patrones..."
@@ -335,7 +278,7 @@ export default function InvoicePatternCatalogPage() {
                                     onChange={(e) =>
                                         setSearchTerm(e.target.value)
                                     }
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -346,7 +289,7 @@ export default function InvoicePatternCatalogPage() {
                             onChange={(e) =>
                                 setFilterTipoPatron(e.target.value)
                             }
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Todos los tipos</option>
                             <option value="costo">Costo (Proveedores)</option>
@@ -359,7 +302,7 @@ export default function InvoicePatternCatalogPage() {
                             onChange={(e) =>
                                 setFilterTipoFactura(e.target.value)
                             }
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Nacional/Internacional</option>
                             <option value="nacional">Nacional</option>
@@ -367,16 +310,16 @@ export default function InvoicePatternCatalogPage() {
                         </select>
 
                         {/* Show Inactive Toggle */}
-                        <label className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer hover:bg-gray-100">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg border border-border cursor-pointer hover:bg-muted">
                             <input
                                 type="checkbox"
                                 checked={showInactive}
                                 onChange={(e) =>
                                     setShowInactive(e.target.checked)
                                 }
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 text-primary rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-foreground">
                                 Mostrar inactivos
                             </span>
                         </label>
@@ -408,15 +351,17 @@ export default function InvoicePatternCatalogPage() {
             {loading ? (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <RefreshCw className="w-8 h-8 mx-auto mb-4 text-gray-400 animate-spin" />
-                        <p className="text-gray-500">Cargando patrones...</p>
+                        <RefreshCw className="w-8 h-8 mx-auto mb-4 text-muted-foreground animate-spin" />
+                        <p className="text-muted-foreground">
+                            Cargando patrones...
+                        </p>
                     </CardContent>
                 </Card>
             ) : groups.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                        <p className="text-gray-500 mb-4">
+                        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                        <p className="text-muted-foreground mb-4">
                             No se encontraron patrones
                         </p>
                         <Button onClick={handleCreatePattern}>
@@ -429,19 +374,19 @@ export default function InvoicePatternCatalogPage() {
                 <div className="space-y-6">
                     {groups.map((group) => (
                         <Card key={group.key}>
-                            <CardHeader className="border-b bg-gray-50">
+                            <CardHeader className="border-b bg-muted">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         {group.tipo_patron === "costo" ? (
                                             <Package className="w-6 h-6 text-purple-600" />
                                         ) : (
-                                            <FileText className="w-6 h-6 text-blue-600" />
+                                            <FileText className="w-6 h-6 text-primary" />
                                         )}
                                         <div>
                                             <CardTitle className="text-xl">
                                                 {group.name}
                                             </CardTitle>
-                                            <p className="text-sm text-gray-500 mt-1">
+                                            <p className="text-sm text-muted-foreground mt-1">
                                                 {group.patterns.length}{" "}
                                                 patrón(es) •{" "}
                                                 {group.tipo_factura ===
@@ -455,7 +400,7 @@ export default function InvoicePatternCatalogPage() {
                                         className={
                                             group.tipo_patron === "costo"
                                                 ? "bg-purple-100 text-purple-800"
-                                                : "bg-blue-100 text-blue-800"
+                                                : "bg-primary/10 text-blue-800"
                                         }
                                     >
                                         {group.tipo_patron === "costo"
@@ -469,11 +414,11 @@ export default function InvoicePatternCatalogPage() {
                                     {group.patterns.map((pattern) => (
                                         <div
                                             key={pattern.id}
-                                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:shadow-sm transition-all"
+                                            className="flex items-center justify-between p-4 bg-card border border-border rounded-lg hover:border-border hover:shadow-sm transition-all"
                                         >
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
-                                                    <h4 className="font-semibold text-gray-900">
+                                                    <h4 className="font-semibold text-foreground">
                                                         {pattern.nombre}
                                                     </h4>
                                                     {pattern.campo_objetivo && (
@@ -487,21 +432,21 @@ export default function InvoicePatternCatalogPage() {
                                                         </Badge>
                                                     )}
                                                     {!pattern.activo && (
-                                                        <Badge className="bg-gray-100 text-gray-600 text-xs">
+                                                        <Badge className="bg-muted text-muted-foreground text-xs">
                                                             Inactivo
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 {pattern.patron_regex && (
                                                     <div className="flex items-start gap-2 text-sm">
-                                                        <code className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded font-mono text-xs text-gray-700 overflow-x-auto">
+                                                        <code className="flex-1 px-3 py-2 bg-muted border border-border rounded font-mono text-xs text-foreground overflow-x-auto">
                                                             {
                                                                 pattern.patron_regex
                                                             }
                                                         </code>
                                                     </div>
                                                 )}
-                                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                                                     <span>
                                                         Prioridad:{" "}
                                                         {pattern.prioridad}
@@ -530,7 +475,7 @@ export default function InvoicePatternCatalogPage() {
                                                     size="sm"
                                                     onClick={() =>
                                                         handleTestPattern(
-                                                            pattern
+                                                            pattern,
                                                         )
                                                     }
                                                     title="Probar patrón"
@@ -542,7 +487,7 @@ export default function InvoicePatternCatalogPage() {
                                                     size="sm"
                                                     onClick={() =>
                                                         handleToggleActive(
-                                                            pattern
+                                                            pattern,
                                                         )
                                                     }
                                                     title={
@@ -552,9 +497,9 @@ export default function InvoicePatternCatalogPage() {
                                                     }
                                                 >
                                                     {pattern.activo ? (
-                                                        <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                                                        <span className="w-3 h-3 bg-emerald-500 rounded-full"></span>
                                                     ) : (
-                                                        <span className="w-3 h-3 bg-gray-300 rounded-full"></span>
+                                                        <span className="w-3 h-3 bg-muted rounded-full"></span>
                                                     )}
                                                 </Button>
                                                 <Button
@@ -562,7 +507,7 @@ export default function InvoicePatternCatalogPage() {
                                                     size="sm"
                                                     onClick={() =>
                                                         handleEditPattern(
-                                                            pattern
+                                                            pattern,
                                                         )
                                                     }
                                                 >
@@ -573,13 +518,13 @@ export default function InvoicePatternCatalogPage() {
                                                     size="sm"
                                                     onClick={() => {
                                                         setSelectedPattern(
-                                                            pattern
+                                                            pattern,
                                                         );
                                                         setDeleteDialogOpen(
-                                                            true
+                                                            true,
                                                         );
                                                     }}
-                                                    className="text-red-600 hover:text-red-700"
+                                                    className="text-destructive hover:text-red-700"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
@@ -619,7 +564,7 @@ export default function InvoicePatternCatalogPage() {
                             <CardTitle>Confirmar Eliminación</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600 mb-6">
+                            <p className="text-muted-foreground mb-6">
                                 ¿Estás seguro de eliminar el patrón &quot;
                                 {selectedPattern?.nombre}&quot;? Esta acción no
                                 se puede deshacer.

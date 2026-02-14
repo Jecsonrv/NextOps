@@ -156,7 +156,7 @@ export function CostTypeFormPage() {
     if (loadingCostType) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -174,13 +174,13 @@ export function CostTypeFormPage() {
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                            <DollarSign className="w-8 h-8 text-green-600" />
+                        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                            <DollarSign className="w-8 h-8 text-emerald-600" />
                             {isEditing
                                 ? "Editar Tipo de Costo"
                                 : "Nuevo Tipo de Costo"}
                         </h1>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-muted-foreground mt-1">
                             {isEditing
                                 ? "Actualiza la información del tipo de costo"
                                 : "Completa el formulario para crear un nuevo tipo de costo"}
@@ -198,7 +198,7 @@ export function CostTypeFormPage() {
                     <CardContent className="space-y-4">
                         {/* Código */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Código *
                             </label>
                             <Input
@@ -214,7 +214,7 @@ export function CostTypeFormPage() {
                                 error={errors.code}
                                 className="uppercase"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 Código único en mayúsculas, solo letras, números
                                 y guiones bajos
                                 {isEditing &&
@@ -224,7 +224,7 @@ export function CostTypeFormPage() {
 
                         {/* Nombre */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Nombre *
                             </label>
                             <Input
@@ -239,14 +239,14 @@ export function CostTypeFormPage() {
 
                         {/* Descripción */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Descripción
                             </label>
                             <textarea
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                     errors.description
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                                 rows={3}
                                 value={formData.description}
@@ -256,7 +256,7 @@ export function CostTypeFormPage() {
                                 placeholder="Descripción detallada del tipo de costo"
                             />
                             {errors.description && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.description}
                                 </p>
                             )}
@@ -264,14 +264,14 @@ export function CostTypeFormPage() {
 
                         {/* Categoría */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Categoría *
                             </label>
                             <select
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                     errors.category
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                                 value={formData.category}
                                 onChange={(e) =>
@@ -289,14 +289,14 @@ export function CostTypeFormPage() {
                                 ))}
                             </select>
                             {errors.category && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.category}
                                 </p>
                             )}
                             {formData.category && categories && (
                                 <div className="mt-2 flex items-center gap-2">
                                     <div
-                                        className="w-4 h-4 rounded border border-gray-300"
+                                        className="w-4 h-4 rounded border border-border"
                                         style={{
                                             backgroundColor: categories.find(
                                                 (c) =>
@@ -304,7 +304,7 @@ export function CostTypeFormPage() {
                                             )?.color,
                                         }}
                                     />
-                                    <span className="text-xs text-gray-600">
+                                    <span className="text-xs text-muted-foreground">
                                         {
                                             categories.find(
                                                 (c) =>
@@ -318,7 +318,7 @@ export function CostTypeFormPage() {
 
                         {/* Orden de visualización */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Orden de Visualización
                             </label>
                             <Input
@@ -333,14 +333,14 @@ export function CostTypeFormPage() {
                                 }
                                 error={errors.display_order}
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 Número que determina el orden de aparición
                                 (menor número aparece primero)
                             </p>
                         </div>
 
                         {/* Enlace con OT */}
-                        <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2 p-4 bg-primary/10 border border-blue-200 rounded-lg">
                             <input
                                 type="checkbox"
                                 id="is_linked_to_ot"
@@ -348,16 +348,16 @@ export function CostTypeFormPage() {
                                 onChange={(e) =>
                                     handleChange("is_linked_to_ot", e.target.checked)
                                 }
-                                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                className="h-4 w-4 text-primary rounded border-border focus:ring-blue-500"
                             />
                             <div className="flex-1">
                                 <label
                                     htmlFor="is_linked_to_ot"
-                                    className="text-sm font-medium text-gray-900 cursor-pointer"
+                                    className="text-sm font-medium text-foreground cursor-pointer"
                                 >
                                     Enlazar con Orden de Trabajo (OT)
                                 </label>
-                                <p className="text-xs text-gray-600 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Si se marca, las facturas de este tipo de costo se sincronizarán automáticamente con la OT (ej: Flete, Cargos de Naviera).
                                     Las fechas de provisión y facturación se heredarán de la OT.
                                 </p>
@@ -373,11 +373,11 @@ export function CostTypeFormPage() {
                                 onChange={(e) =>
                                     handleChange("is_active", e.target.checked)
                                 }
-                                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                className="h-4 w-4 text-primary rounded border-border focus:ring-blue-500"
                             />
                             <label
                                 htmlFor="is_active"
-                                className="text-sm font-medium text-gray-700"
+                                className="text-sm font-medium text-foreground"
                             >
                                 Tipo de costo activo
                             </label>

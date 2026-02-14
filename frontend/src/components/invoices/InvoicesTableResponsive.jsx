@@ -35,9 +35,9 @@ export function InvoicesTableResponsive({
             <div className="inline-block min-w-full align-middle">
                 <table className="min-w-full text-sm border-separate border-spacing-0">
                     <thead>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-muted">
                             {/* Checkbox - siempre fija */}
-                            <th className="sticky left-0 z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            <th className="sticky left-0 z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                 <input
                                     type="checkbox"
                                     checked={
@@ -45,67 +45,67 @@ export function InvoicesTableResponsive({
                                         invoices.length > 0
                                     }
                                     onChange={onSelectAll}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="rounded border-border text-primary focus:ring-blue-500"
                                 />
                             </th>
 
                             {/* OPERATIVO - fija */}
-                            <th className="sticky left-[40px] sm:left-[52px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[40px] sm:left-[52px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 Operativo
                             </th>
 
                             {/* OT - fija */}
-                            <th className="sticky left-[120px] sm:left-[160px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[120px] sm:left-[160px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 OT
                             </th>
 
                             {/* CLIENTE - fija */}
-                            <th className="sticky left-[220px] sm:left-[280px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[220px] sm:left-[280px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 Cliente
                             </th>
 
                             {/* MBL - fija */}
-                            <th className="sticky left-[340px] sm:left-[420px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                            <th className="sticky left-[340px] sm:left-[420px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                 MBL
                             </th>
 
                             {/* ESTADO - última columna fija con borde más grueso */}
-                            <th className="sticky left-[440px] sm:left-[540px] z-20 bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-r-2 border-gray-400 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                            <th className="sticky left-[440px] sm:left-[540px] z-20 bg-muted px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                 Estado
                             </th>
 
                             {/* Resto de columnas - scrollables */}
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Naviera
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Proveedor
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Barco
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Tipo Prov.
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Tipo Costo
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 # Factura
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 F. Emisión
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 F. Provisión
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 F. Facturación
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Monto
                             </th>
-                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                            <th className="px-3 py-2 sm:py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
                                 Acciones
                             </th>
                         </tr>
@@ -115,52 +115,52 @@ export function InvoicesTableResponsive({
                         {invoices.map((invoice) => (
                             <tr
                                 key={invoice.id}
-                                className="hover:bg-blue-50 transition-colors"
+                                className="hover:bg-primary/10 transition-colors"
                             >
                                 {/* Checkbox - fija */}
-                                <td className="sticky left-0 z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                <td className="sticky left-0 z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                     <input
                                         type="checkbox"
                                         checked={selectedInvoices.includes(invoice.id)}
                                         onChange={() => onSelectOne(invoice.id)}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-border text-primary focus:ring-blue-500"
                                     />
                                 </td>
 
                                 {/* OPERATIVO - fija */}
-                                <td className="sticky left-[40px] sm:left-[52px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[40px] sm:left-[52px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.operativo || "-"}
                                 </td>
 
                                 {/* OT - fija */}
-                                <td className="sticky left-[120px] sm:left-[160px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[120px] sm:left-[160px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data ? (
                                         <Link
                                             to={`/ots/${invoice.ot_data.id}`}
-                                            className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm flex items-center gap-1"
+                                            className="text-primary hover:text-blue-800 font-medium text-xs sm:text-sm flex items-center gap-1"
                                         >
                                             <Link2 className="w-3.5 h-3.5" />
                                             {invoice.ot_data.numero_ot}
                                         </Link>
                                     ) : (
-                                        <span className="text-gray-400 text-xs sm:text-sm italic">
+                                        <span className="text-muted-foreground text-xs sm:text-sm italic">
                                             Sin asignar
                                         </span>
                                     )}
                                 </td>
 
                                 {/* CLIENTE - fija */}
-                                <td className="sticky left-[220px] sm:left-[280px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[220px] sm:left-[280px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.cliente || "-"}
                                 </td>
 
                                 {/* MBL - fija */}
-                                <td className="sticky left-[340px] sm:left-[420px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[340px] sm:left-[420px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.mbl || "-"}
                                 </td>
 
                                 {/* ESTADO - última fija */}
-                                <td className="sticky left-[440px] sm:left-[540px] z-10 bg-white hover:bg-blue-50 px-2 sm:px-3 py-2 sm:py-3 border-b border-r-2 border-gray-400 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                                <td className="sticky left-[440px] sm:left-[540px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                     <div className="flex flex-col gap-1">
                                         <InvoiceStatusBadge invoice={invoice} />
                                         <div className="flex gap-1">
@@ -171,43 +171,43 @@ export function InvoicesTableResponsive({
                                 </td>
 
                                 {/* Resto de columnas - scrollables */}
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-border whitespace-nowrap">
                                     {invoice.ot_data?.naviera || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-border whitespace-nowrap">
                                     {invoice.proveedor_data?.nombre || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-border whitespace-nowrap">
                                     {invoice.ot_data?.barco || "-"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 border-b border-border whitespace-nowrap">
                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                                         <Ship className="w-3.5 h-3.5" />
                                         {invoice.proveedor_data?.tipo_display || "-"}
                                     </div>
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 border-b border-border whitespace-nowrap">
                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         <DollarSign className="w-3.5 h-3.5" />
                                         {invoice.tipo_costo_display || "-"}
                                     </div>
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 border-b border-border whitespace-nowrap">
                                     <div className="flex items-center gap-1">
                                         <Link
                                             to={`/invoices/${invoice.id}`}
-                                            className="font-medium text-xs sm:text-sm text-blue-600 hover:text-blue-800"
+                                            className="font-medium text-xs sm:text-sm text-primary hover:text-blue-800"
                                         >
                                             {invoice.numero_factura || "SIN-NUM"}
                                         </Link>
                                         {invoice.requiere_revision && (
                                             <AlertCircle
-                                                className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 flex-shrink-0"
+                                                className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-destructive flex-shrink-0"
                                                 title="Requiere Revisión"
                                             />
                                         )}
@@ -229,19 +229,19 @@ export function InvoicesTableResponsive({
                                     </div>
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {formatDate(invoice.fecha_emision)}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {formatDate(invoice.fecha_provision)}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-gray-600 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-border whitespace-nowrap">
                                     {formatDate(invoice.fecha_facturacion)}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-900 border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-foreground border-b border-border whitespace-nowrap">
                                     ${(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
                                         "es-MX",
                                         {
@@ -251,7 +251,7 @@ export function InvoicesTableResponsive({
                                     ) || "0.00"}
                                 </td>
 
-                                <td className="px-3 py-2 sm:py-3 text-right border-b border-gray-200 whitespace-nowrap">
+                                <td className="px-3 py-2 sm:py-3 text-right border-b border-border whitespace-nowrap">
                                     <div className="flex justify-end gap-1">
                                         <Button
                                             variant="ghost"

@@ -153,7 +153,7 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                        <FileText className="w-5 h-5 text-primary" />
                         Editar Pago
                     </DialogTitle>
                     <DialogDescription>
@@ -163,9 +163,9 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
 
                 <div className="px-8 pb-8">
                     {/* Información del pago */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div className="bg-primary/10 border border-blue-200 rounded-lg p-4 mb-6">
                         <div className="flex items-start gap-2">
-                            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                             <div className="text-sm text-blue-800">
                                 <p className="font-medium">Importante:</p>
                                 <p className="mt-1">
@@ -178,15 +178,15 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
 
                     {/* Facturas asociadas */}
                     {displayPayment.invoice_links && displayPayment.invoice_links.length > 0 && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Facturas asociadas:</p>
+                        <div className="bg-muted rounded-lg p-4 mb-6 border border-border">
+                            <p className="text-sm font-medium text-foreground mb-2">Facturas asociadas:</p>
                             <div className="space-y-2">
                                 {displayPayment.invoice_links.map((link) => (
                                     <div key={link.id} className="flex justify-between text-sm">
-                                        <span className="text-gray-600">
+                                        <span className="text-muted-foreground">
                                             {link.invoice_data?.numero_factura || link.invoice_numero || `Factura #${link.cost_invoice}`}
                                         </span>
-                                        <span className="font-semibold text-gray-900">
+                                        <span className="font-semibold text-foreground">
                                             ${parseFloat(link.monto_pagado_factura).toFixed(2)}
                                         </span>
                                     </div>
@@ -199,9 +199,9 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Monto Total (Solo lectura) */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-1.5">
                                 <DollarSign className="w-4 h-4" />
-                                Monto Total <span className="text-gray-400 text-xs font-normal">(no editable)</span>
+                                Monto Total <span className="text-muted-foreground text-xs font-normal">(no editable)</span>
                             </label>
                             <Input
                                 type="number"
@@ -209,10 +209,10 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
                                 value={formData.monto_total}
                                 readOnly
                                 disabled
-                                className="h-11 bg-gray-100 cursor-not-allowed"
+                                className="h-11 bg-muted cursor-not-allowed"
                                 placeholder="0.00"
                             />
-                            <p className="text-gray-500 text-xs mt-1.5 flex items-center gap-1">
+                            <p className="text-muted-foreground text-xs mt-1.5 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                                 El monto está vinculado a las facturas y no se puede modificar
                             </p>
@@ -220,9 +220,9 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
 
                         {/* Fecha de Pago */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4" />
-                                Fecha de Pago <span className="text-red-500">*</span>
+                                Fecha de Pago <span className="text-destructive">*</span>
                             </label>
                             <Input
                                 type="date"
@@ -231,7 +231,7 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
                                 className={`h-11 ${errors.fecha_pago ? 'border-red-500 focus:ring-red-500' : ''}`}
                             />
                             {errors.fecha_pago && (
-                                <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1">
+                                <p className="text-destructive text-xs mt-1.5 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3 flex-shrink-0" />
                                     {errors.fecha_pago}
                                 </p>
@@ -240,9 +240,9 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
 
                         {/* Referencia */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+                            <label className="block text-sm font-medium text-foreground mb-3 flex items-center gap-1.5">
                                 <FileText className="w-4 h-4" />
-                                Referencia <span className="text-gray-400 text-xs font-normal">(opcional)</span>
+                                Referencia <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
                             </label>
                             <Input
                                 type="text"
@@ -255,20 +255,20 @@ export function EditPaymentModal({ payment, isOpen, onClose }) {
 
                         {/* Notas */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Notas <span className="text-gray-400 text-xs font-normal">(opcional)</span>
+                            <label className="block text-sm font-medium text-foreground mb-3">
+                                Notas <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
                             </label>
                             <textarea
                                 value={formData.notas}
                                 onChange={(e) => handleChange('notas', e.target.value)}
                                 placeholder="Observaciones adicionales..."
                                 rows={3}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                className="w-full px-4 py-3 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                             />
                         </div>
 
                         {/* Botones */}
-                        <div className="flex gap-4 pt-6 border-t border-gray-200 mt-6">
+                        <div className="flex gap-4 pt-6 border-t border-border mt-6">
                             <Button
                                 type="button"
                                 variant="outline"

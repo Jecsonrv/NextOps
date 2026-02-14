@@ -1,116 +1,76 @@
-import PropTypes from 'prop-types';
-import { Chip, Tooltip } from '@mui/material';
+import PropTypes from "prop-types";
 
 /**
  * Badge visual para mostrar el estado de provisión de una factura.
  * Incluye colores, iconos y tooltips descriptivos.
  */
 const InvoiceStatusBadge = ({ invoice }) => {
-  const getStatusConfig = (estado) => {
-    const configs = {
-      pendiente: {
-        label: 'PENDIENTE',
-        icon: '⏳',
-        tooltip: 'Factura pendiente de revisión'
-      },
-      revision: {
-        label: 'REVISIÓN',
-        icon: '👁️',
-        tooltip: 'Factura en proceso de validación operativa'
-      },
-      disputada: {
-        label: 'DISPUTADA',
-        icon: '⚠️',
-        tooltip: 'Factura con disputa activa. No se provisionará hasta resolver.'
-      },
-      provisionada: {
-        label: 'PROVISIONADA',
-        icon: '✓',
-        tooltip: 'Factura aprobada y lista para contabilidad'
-      },
-      anulada: {
-        label: 'ANULADA',
-        icon: '✕',
-        tooltip: 'Factura anulada completamente. No se pagará.'
-      },
-      anulada_parcialmente: {
-        label: 'ANULADA PARCIAL',
-        icon: '◐',
-        tooltip: 'Factura con ajuste parcial. Monto modificado.'
-      },
-      rechazada: {
-        label: 'RECHAZADA',
-        icon: '✕',
-        tooltip: 'Factura rechazada. No procede.'
-      }
+    const getStatusConfig = (estado) => {
+        const configs = {
+            pendiente: {
+                label: "PENDIENTE",
+                icon: "⏳",
+                tooltip: "Factura pendiente de revisión",
+                classes: "bg-amber-50 text-amber-800 border-amber-300",
+            },
+            revision: {
+                label: "REVISIÓN",
+                icon: "👁️",
+                tooltip: "Factura en proceso de validación operativa",
+                classes: "bg-primary/10 text-blue-800 border-blue-300",
+            },
+            disputada: {
+                label: "DISPUTADA",
+                icon: "⚠️",
+                tooltip:
+                    "Factura con disputa activa. No se provisionará hasta resolver.",
+                classes: "bg-amber-50 text-amber-800 border-amber-300",
+            },
+            provisionada: {
+                label: "PROVISIONADA",
+                icon: "✓",
+                tooltip: "Factura aprobada y lista para contabilidad",
+                classes: "bg-emerald-50 text-emerald-800 border-emerald-300",
+            },
+            anulada: {
+                label: "ANULADA",
+                icon: "✕",
+                tooltip: "Factura anulada completamente. No se pagará.",
+                classes: "bg-destructive/10 text-red-800 border-red-300",
+            },
+            anulada_parcialmente: {
+                label: "ANULADA PARCIAL",
+                icon: "◐",
+                tooltip: "Factura con ajuste parcial. Monto modificado.",
+                classes: "bg-orange-50 text-orange-800 border-orange-300",
+            },
+            rechazada: {
+                label: "RECHAZADA",
+                icon: "✕",
+                tooltip: "Factura rechazada. No procede.",
+                classes: "bg-destructive/10 text-red-800 border-red-300",
+            },
+        };
+
+        return configs[estado] || configs.pendiente;
     };
 
-    return configs[estado] || configs.pendiente;
-  };
+    const config = getStatusConfig(invoice.estado_provision);
 
-  const config = getStatusConfig(invoice.estado_provision);
-
-  // Colores consistentes con tipo de costo y naviera
-  const customStyles = {
-    pendiente: {
-      backgroundColor: '#FEF3C7',
-      color: '#92400E',
-      border: '1px solid #FCD34D'
-    },
-    revision: {
-      backgroundColor: '#DBEAFE',
-      color: '#1E40AF',
-      border: '1px solid #93C5FD'
-    },
-    disputada: {
-      backgroundColor: '#FEF3C7',
-      color: '#92400E',
-      border: '1px solid #FCD34D'
-    },
-    provisionada: {
-      backgroundColor: '#D1FAE5',
-      color: '#065F46',
-      border: '1px solid #6EE7B7'
-    },
-    anulada: {
-      backgroundColor: '#FEE2E2',
-      color: '#991B1B',
-      border: '1px solid #FCA5A5'
-    },
-    anulada_parcialmente: {
-      backgroundColor: '#FED7AA',
-      color: '#9A3412',
-      border: '1px solid #FDBA74'
-    },
-    rechazada: {
-      backgroundColor: '#FEE2E2',
-      color: '#991B1B',
-      border: '1px solid #FCA5A5'
-    }
-  };
-
-  const customStyle = customStyles[invoice.estado_provision] || customStyles.pendiente;
-
-  return (
-    <Tooltip title={config.tooltip} arrow>
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '4px 10px',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          minWidth: 'fit-content',
-          ...customStyle
-        }}
-      >
-        <span style={{ fontSize: '0.85rem' }}>{config.icon}</span>
-        <span>{config.label}</span>
-      </div>
-    </Tooltip>
-  );
+    return (
+        <div className="relative group inline-flex">
+            <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${config.classes}`}
+            >
+                <span className="text-sm leading-none">{config.icon}</span>
+                <span>{config.label}</span>
+            </div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {config.tooltip}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+            </div>
+        </div>
+    );
 };
 
 InvoiceStatusBadge.propTypes = {
@@ -121,55 +81,49 @@ InvoiceStatusBadge.propTypes = {
  * Badge para mostrar el resultado de una disputa.
  */
 export const DisputeResultBadge = ({ resultado }) => {
-  const getResultConfig = (resultado) => {
     const configs = {
-      pendiente: {
-        label: 'PENDIENTE',
-        color: 'default',
-        tooltip: 'Sin resolver'
-      },
-      aprobada_total: {
-        label: 'APROBADA 100%',
-        color: 'success',
-        tooltip: 'Aprobada totalmente'
-      },
-      aprobada_parcial: {
-        label: 'APROBADA PARCIAL',
-        color: 'info',
-        tooltip: 'Aprobada parcialmente'
-      },
-      rechazada: {
-        label: 'RECHAZADA',
-        color: 'error',
-        tooltip: 'Rechazada por proveedor'
-      },
-      anulada: {
-        label: 'ANULADA',
-        color: 'warning',
-        tooltip: 'Anulada internamente'
-      }
+        pendiente: {
+            label: "PENDIENTE",
+            classes: "border-slate-300 text-slate-600",
+            tooltip: "Sin resolver",
+        },
+        aprobada_total: {
+            label: "APROBADA 100%",
+            classes: "border-emerald-400 text-emerald-700",
+            tooltip: "Aprobada totalmente",
+        },
+        aprobada_parcial: {
+            label: "APROBADA PARCIAL",
+            classes: "border-sky-400 text-sky-700",
+            tooltip: "Aprobada parcialmente",
+        },
+        rechazada: {
+            label: "RECHAZADA",
+            classes: "border-red-400 text-red-700",
+            tooltip: "Rechazada por proveedor",
+        },
+        anulada: {
+            label: "ANULADA",
+            classes: "border-amber-400 text-amber-700",
+            tooltip: "Anulada internamente",
+        },
     };
 
-    return configs[resultado] || configs.pendiente;
-  };
+    const config = configs[resultado] || configs.pendiente;
 
-  const config = getResultConfig(resultado);
-
-  return (
-    <Tooltip title={config.tooltip} arrow>
-      <Chip
-        label={config.label}
-        color={config.color}
-        size="small"
-        variant="outlined"
-        sx={{ 
-          height: '24px',
-          fontSize: '0.75rem',
-          fontWeight: 500
-        }}
-      />
-    </Tooltip>
-  );
+    return (
+        <div className="relative group inline-flex">
+            <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.classes}`}
+            >
+                {config.label}
+            </span>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {config.tooltip}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+            </div>
+        </div>
+    );
 };
 
 DisputeResultBadge.propTypes = {
@@ -180,37 +134,28 @@ DisputeResultBadge.propTypes = {
  * Indicador de tipo de costo (vinculado vs auxiliar).
  */
 export const CostTypeBadge = () => {
-  // Badge removido - ya no se muestra
-  return null;
+    return null;
 };
 
 /**
  * Indicador de exclusión de estadísticas.
  */
 export const ExcludedFromStatsBadge = ({ invoice }) => {
-  if (!invoice.debe_excluirse_estadisticas) {
-    return null;
-  }
+    if (!invoice.debe_excluirse_estadisticas) {
+        return null;
+    }
 
-  return (
-    <Tooltip title="Excluida de estadísticas" arrow>
-      <Chip
-        label="!"
-        size="small"
-        color="default"
-        sx={{ 
-          height: '20px',
-          minWidth: '20px',
-          fontSize: '0.7rem',
-          fontWeight: 700,
-          opacity: 0.6,
-          '& .MuiChip-label': {
-            padding: '0 4px'
-          }
-        }}
-      />
-    </Tooltip>
-  );
+    return (
+        <div className="relative group inline-flex">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold text-slate-500 bg-slate-100 opacity-60">
+                !
+            </span>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                Excluida de estadísticas
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+            </div>
+        </div>
+    );
 };
 
 ExcludedFromStatsBadge.propTypes = {

@@ -130,8 +130,8 @@ export function OTDetailPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-2" />
-                    <p className="text-gray-500">Cargando OT...</p>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                    <p className="text-muted-foreground">Cargando OT...</p>
                 </div>
             </div>
         );
@@ -141,7 +141,7 @@ export function OTDetailPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4">Error al cargar la OT</p>
+                    <p className="text-destructive mb-4">Error al cargar la OT</p>
                     <Button onClick={() => navigate("/ots")}>
                         Volver a la lista
                     </Button>
@@ -153,7 +153,7 @@ export function OTDetailPage() {
     const invoices = invoicesData?.results || [];
 
     return (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-start gap-2 sm:gap-4 min-w-0 flex-1">
@@ -167,7 +167,7 @@ export function OTDetailPage() {
                     </Button>
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                                 {ot.numero_ot}
                             </h1>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -184,7 +184,7 @@ export function OTDetailPage() {
                                 )}
                             </div>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
                             {ot.cliente?.original_name || "N/A"} • {ot.operativo || "N/A"}
                         </p>
                     </div>
@@ -223,7 +223,7 @@ export function OTDetailPage() {
             {/* Grid de información */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Columna principal */}
-                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                <div className="lg:col-span-2 space-y-6">
                     {/* Información Básica */}
                     <Card>
                         <CardHeader>
@@ -234,7 +234,7 @@ export function OTDetailPage() {
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <p className="text-xs sm:text-sm font-medium text-gray-500">
+                                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                                     Número OT
                                 </p>
                                 <p className="text-sm sm:text-base font-semibold break-all">
@@ -242,7 +242,7 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Estatus
                                 </p>
                                 <p className="text-base">
@@ -258,7 +258,7 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Cliente
                                 </p>
                                 <p className="text-base">
@@ -266,7 +266,7 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Proveedor
                                 </p>
                                 <p className="text-base">
@@ -274,19 +274,19 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Operativo
                                 </p>
                                 <p className="text-base">{ot.operativo}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Tipo Embarque
                                 </p>
                                 <p className="text-base">{ot.tipo_embarque}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Master BL
                                 </p>
                                 <p className="text-base">
@@ -294,7 +294,7 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Barco
                                 </p>
                                 <p className="text-base">{ot.barco}</p>
@@ -338,7 +338,7 @@ export function OTDetailPage() {
                                         (contenedor, index) => (
                                             <div
                                                 key={index}
-                                                className="p-3 border border-gray-200 rounded-lg flex items-start justify-between"
+                                                className="p-3 border border-border rounded-lg flex items-start justify-between"
                                             >
                                                 <div className="space-y-1">
                                                     <p className="font-semibold">
@@ -368,7 +368,7 @@ export function OTDetailPage() {
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                                         <MapPin className="h-4 w-4" />
                                         Puerto Origen
                                     </p>
@@ -377,7 +377,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                                         <MapPin className="h-4 w-4" />
                                         Puerto Destino
                                     </p>
@@ -386,7 +386,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                                         <Calendar className="h-4 w-4" />
                                         ETD
                                     </p>
@@ -395,7 +395,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                                         <Calendar className="h-4 w-4" />
                                         ETA
                                     </p>
@@ -404,7 +404,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                                         <Calendar className="h-4 w-4" />
                                         ETA Confirmada
                                     </p>
@@ -427,7 +427,7 @@ export function OTDetailPage() {
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Express Release
                                     </p>
                                     <p className="text-base">
@@ -435,7 +435,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Contra Entrega
                                     </p>
                                     <p className="text-base">
@@ -443,7 +443,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Fecha Provisión
                                     </p>
                                     <p className="text-base">
@@ -451,7 +451,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Estado Provisión
                                     </p>
                                     <Badge
@@ -466,7 +466,7 @@ export function OTDetailPage() {
                                     </Badge>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Solicitud Facturación
                                     </p>
                                     <p className="text-base">
@@ -476,7 +476,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Recepción Factura
                                     </p>
                                     <p className="text-base">
@@ -484,7 +484,7 @@ export function OTDetailPage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Estado Facturado
                                     </p>
                                     <Badge
@@ -499,7 +499,7 @@ export function OTDetailPage() {
                                     </Badge>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-2">
+                                    <p className="text-sm font-medium text-muted-foreground mb-2">
                                         Envío Cierre OT
                                     </p>
                                     <p className="text-base">
@@ -517,7 +517,7 @@ export function OTDetailPage() {
                                 <CardTitle>Comentarios</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-gray-700 whitespace-pre-wrap">
+                                <p className="text-foreground whitespace-pre-wrap">
                                     {ot.comentarios}
                                 </p>
                             </CardContent>
@@ -526,7 +526,7 @@ export function OTDetailPage() {
                 </div>
 
                 {/* Columna lateral */}
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-6">
                     {/* Provisiones */}
                     <Card>
                         <CardHeader>
@@ -537,7 +537,7 @@ export function OTDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Estatus
                                 </p>
                                 <Badge
@@ -554,7 +554,7 @@ export function OTDetailPage() {
 
                             {ot.fecha_provision && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Fecha Provisión
                                     </p>
                                     <p className="text-base">
@@ -565,7 +565,7 @@ export function OTDetailPage() {
 
                             {ot.provision_source && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Fuente
                                     </p>
                                     <Badge variant="outline">
@@ -576,10 +576,10 @@ export function OTDetailPage() {
 
                             {ot.provision_hierarchy?.total && (
                                 <div className="pt-3 border-t">
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Total Provisión
                                     </p>
-                                    <p className="text-2xl font-bold text-blue-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         $
                                         {ot.provision_hierarchy.total.toLocaleString()}
                                     </p>
@@ -595,7 +595,7 @@ export function OTDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Estatus
                                 </p>
                                 <Badge
@@ -612,7 +612,7 @@ export function OTDetailPage() {
 
                             {ot.fecha_solicitud_facturacion && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Solicitud
                                     </p>
                                     <p className="text-base">
@@ -625,7 +625,7 @@ export function OTDetailPage() {
 
                             {ot.fecha_recepcion_factura && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Recepción
                                     </p>
                                     <p className="text-base">
@@ -645,7 +645,7 @@ export function OTDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Facturas de Costo</h3>
+                            <h3 className="text-lg font-medium text-foreground mb-2">Facturas de Costo</h3>
                             {invoices.length > 0 ? (
                                 <div className="space-y-2">
                                     {invoices.map((invoice) => (
@@ -653,12 +653,12 @@ export function OTDetailPage() {
                                             <Link
                                                 to={`/invoices/${invoice.id}`}
                                                 state={{ from: `/ots/${id}` }}
-                                                className="block p-2.5 sm:p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                                className="block p-2.5 sm:p-3 border border-border rounded-lg hover:border-border hover:bg-muted transition-colors"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <p className="font-semibold text-sm text-gray-900 truncate">
+                                                            <p className="font-semibold text-sm text-foreground truncate">
                                                                 {invoice.numero_factura}
                                                             </p>
                                                             {invoice.estado_provision === 'anulada' && (
@@ -674,12 +674,12 @@ export function OTDetailPage() {
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                                             {invoice.proveedor_nombre || invoice.proveedor?.nombre}
                                                         </p>
                                                     </div>
                                                     <div className="text-right ml-3 shrink-0">
-                                                        <p className="text-sm font-semibold text-gray-900">
+                                                        <p className="text-sm font-semibold text-foreground">
                                                             ${(invoice.monto_aplicable ?? invoice.monto ?? invoice.monto_total)?.toLocaleString("es-MX", {
                                                                 minimumFractionDigits: 2,
                                                                 maximumFractionDigits: 2
@@ -697,12 +697,12 @@ export function OTDetailPage() {
                                                             key={nc.id}
                                                             to={`/invoices/credit-notes/${nc.id}`}
                                                             state={{ from: `/ots/${id}` }}
-                                                            className="block p-2.5 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                                            className="block p-2.5 bg-primary/10 border border-blue-200 rounded-lg hover:bg-primary/10 transition-colors"
                                                         >
                                                             <div className="flex items-center justify-between">
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-2">
-                                                                        <FileMinus className="h-4 w-4 text-blue-600 shrink-0" />
+                                                                        <FileMinus className="h-4 w-4 text-primary shrink-0" />
                                                                         <span className="text-xs font-semibold text-blue-900 truncate">
                                                                             NC {nc.numero_nota}
                                                                         </span>
@@ -713,7 +713,7 @@ export function OTDetailPage() {
                                                                 </div>
                                                                 <div className="text-right ml-3 shrink-0">
                                                                     {nc.monto && (
-                                                                        <span className="text-xs font-semibold text-blue-600">
+                                                                        <span className="text-xs font-semibold text-primary">
                                                                             -${parseFloat(nc.monto).toLocaleString("es-MX", {
                                                                                 minimumFractionDigits: 2,
                                                                                 maximumFractionDigits: 2
@@ -730,12 +730,12 @@ export function OTDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-500 text-center py-4">
+                                <p className="text-sm text-muted-foreground text-center py-4">
                                     No hay facturas de costo asociadas
                                 </p>
                             )}
 
-                            <h3 className="text-lg font-medium text-gray-900 mt-4 mb-2">Facturas de Venta</h3>
+                            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">Facturas de Venta</h3>
                             {salesInvoicesData?.results?.length > 0 ? (
                                 <div className="space-y-2">
                                     {salesInvoicesData.results.map((invoice) => (
@@ -743,19 +743,19 @@ export function OTDetailPage() {
                                             key={invoice.id}
                                             to={`/sales/invoices/${invoice.id}`}
                                             state={{ from: `/ots/${id}` }}
-                                            className="block p-2.5 sm:p-3 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                            className="block p-2.5 sm:p-3 border border-border rounded-lg hover:border-border hover:bg-muted transition-colors"
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-semibold text-sm text-gray-900 truncate">
+                                                    <p className="font-semibold text-sm text-foreground truncate">
                                                         {invoice.numero_factura}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                                         {invoice.cliente_nombre}
                                                     </p>
                                                 </div>
                                                 <div className="text-right ml-3 shrink-0">
-                                                    <p className="text-sm font-semibold text-gray-900">
+                                                    <p className="text-sm font-semibold text-foreground">
                                                         {formatCurrency(invoice.monto_total)}
                                                     </p>
                                                 </div>
@@ -764,7 +764,7 @@ export function OTDetailPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-gray-500 text-center py-4">
+                                <p className="text-sm text-muted-foreground text-center py-4">
                                     No hay facturas de venta asociadas
                                 </p>
                             )}
@@ -778,7 +778,7 @@ export function OTDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div>
-                                <p className="font-medium text-gray-500">
+                                <p className="font-medium text-muted-foreground">
                                     Creada
                                 </p>
                                 <p>
@@ -786,7 +786,7 @@ export function OTDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="font-medium text-gray-500">
+                                <p className="font-medium text-muted-foreground">
                                     Última actualización
                                 </p>
                                 <p>

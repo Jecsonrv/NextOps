@@ -14,7 +14,7 @@ export default function PatternGroupCard({ group, onAddPattern, onEditPattern })
                 <div className="flex justify-between items-center">
                     <CardTitle>{group.nombre}</CardTitle>
                     <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-4">{group.patrones_count} patrones</span>
+                        <span className="text-sm text-muted-foreground mr-4">{group.patrones_count} patrones</span>
                         {isOpen ? <ChevronDown /> : <ChevronRight />}
                     </div>
                 </div>

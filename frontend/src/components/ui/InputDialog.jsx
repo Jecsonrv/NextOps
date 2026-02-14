@@ -50,7 +50,7 @@ export function InputDialog({
         </DialogHeader>
         <div className="px-6 py-4 space-y-4">
           {message && (
-            <p className="text-sm text-gray-600 text-center sm:text-left whitespace-pre-line">
+            <p className="text-sm text-muted-foreground text-center sm:text-left whitespace-pre-line">
               {message}
             </p>
           )}
@@ -59,7 +59,7 @@ export function InputDialog({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder={placeholder}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[100px]"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[100px]"
               autoFocus
             />
           ) : (
@@ -69,12 +69,12 @@ export function InputDialog({
               onChange={(e) => setValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={placeholder}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               autoFocus
             />
           )}
           {required && !value.trim() && (
-            <p className="text-xs text-red-600">Este campo es requerido</p>
+            <p className="text-xs text-destructive">Este campo es requerido</p>
           )}
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">

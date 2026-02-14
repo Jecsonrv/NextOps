@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/api";
 import {
@@ -12,6 +12,7 @@ import { exportInvoicesToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
 import { InvoiceAssignOTModal } from "../components/invoices/InvoiceAssignOTModal";
 import { usePermissions } from "../components/common/PermissionGate";
+import { StatCard } from "../components/common/StatCard";
 import InvoiceStatusBadge, {
     CostTypeBadge,
     ExcludedFromStatsBadge,
@@ -58,8 +59,11 @@ import { ProvisionModal } from "../components/invoices/ProvisionModal";
 import { InvoiceCostTypeEditable } from "../components/invoices/InvoiceCostTypeEditable";
 import { InvoiceDetailDrawer } from "../components/invoices/InvoiceDetailDrawer";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { TableSkeleton } from "../components/ui/Skeleton";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 export function InvoicesPage() {
+    const navigate = useNavigate();
     const { canImport } = usePermissions();
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -70,8 +74,10 @@ export function InvoicesPage() {
     const [showDisputeModal, setShowDisputeModal] = useState(false);
     const [selectedInvoiceForDispute, setSelectedInvoiceForDispute] =
         useState(null);
-    const [selectedInvoiceForProvision, setSelectedInvoiceForProvision] = useState(null);
-    const [selectedInvoiceIdForDrawer, setSelectedInvoiceIdForDrawer] = useState(null);
+    const [selectedInvoiceForProvision, setSelectedInvoiceForProvision] =
+        useState(null);
+    const [selectedInvoiceIdForDrawer, setSelectedInvoiceIdForDrawer] =
+        useState(null);
     const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
     const [selectedInvoices, setSelectedInvoices] = useState([]); // Para selección múltiple
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
@@ -85,6 +91,7 @@ export function InvoicesPage() {
         fecha_desde: "",
         fecha_hasta: "",
     });
+    const debouncedSearch = useDebouncedValue(search, 300);
 
     // Función para obtener filtros según pestaña activa
     const getFiltersForTab = () => {
@@ -117,10 +124,10 @@ export function InvoicesPage() {
     // Obtener valores de filtros dinámicos (solo proveedores y tipos de costo con facturas)
     const { data: filterValues, isLoading: filterValuesLoading } =
         useInvoiceFilterValues();
-        
+
     // Obtener catálogo completo de tipos de costo para edición
     const { data: costTypesData } = useCostTypes({ page_size: 100 });
-    
+
     const queryClient = useQueryClient();
 
     const bulkDeleteMutation = useBulkDeleteInvoices();
@@ -135,7 +142,7 @@ export function InvoicesPage() {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
             return response.data;
         },
@@ -154,15 +161,15 @@ export function InvoicesPage() {
         mutationFn: async ({ invoiceId, date }) => {
             const response = await apiClient.patch(
                 `/invoices/${invoiceId}/`,
-                { 
-                    estado_provision: 'provisionada',
-                    fecha_provision: date 
+                {
+                    estado_provision: "provisionada",
+                    fecha_provision: date,
                 },
                 {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
             return response.data;
         },
@@ -187,7 +194,7 @@ export function InvoicesPage() {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
             return response.data;
         },
@@ -204,14 +211,21 @@ export function InvoicesPage() {
 
     // Fetch invoices data
     const { data, isLoading, error } = useQuery({
-        queryKey: ["invoices", page, pageSize, search, filters, activeTab],
+        queryKey: [
+            "invoices",
+            page,
+            pageSize,
+            debouncedSearch,
+            filters,
+            activeTab,
+        ],
         queryFn: async () => {
             const tabFilters = getFiltersForTab();
 
             const params = new URLSearchParams({
                 page: page.toString(),
                 page_size: pageSize.toString(),
-                ...(search && { search }),
+                ...(debouncedSearch && { search: debouncedSearch }),
                 ...(tabFilters.estado_provision && {
                     estado_provision: tabFilters.estado_provision,
                 }),
@@ -241,15 +255,16 @@ export function InvoicesPage() {
             const response = await apiClient.get(`/invoices/?${params}`);
             return response.data;
         },
+        keepPreviousData: true,
     });
 
     // Fetch stats con los mismos filtros que la lista
     const { data: stats } = useQuery({
-        queryKey: ["invoices-stats", search, filters],
+        queryKey: ["invoices-stats", debouncedSearch, filters],
         queryFn: async () => {
             // Construir parámetros con los mismos filtros que la lista
             const params = new URLSearchParams({
-                ...(search && { search }),
+                ...(debouncedSearch && { search: debouncedSearch }),
                 ...(filters.estado_provision && {
                     estado_provision: filters.estado_provision,
                 }),
@@ -314,11 +329,11 @@ export function InvoicesPage() {
 
                 toast.loading(
                     `Obteniendo datos... (${allInvoices.length} registros)`,
-                    { id: "export-toast" }
+                    { id: "export-toast" },
                 );
 
                 const response = await apiClient.get(
-                    `/invoices/?${exportParams}`
+                    `/invoices/?${exportParams}`,
                 );
                 const pageData = response.data.results || [];
 
@@ -350,7 +365,7 @@ export function InvoicesPage() {
                 `Se exportaron ${allInvoices.length} factura${
                     allInvoices.length !== 1 ? "s" : ""
                 } exitosamente`,
-                { id: "export-toast", duration: 4000 }
+                { id: "export-toast", duration: 4000 },
             );
         } catch (error) {
             console.error("Error al exportar:", error);
@@ -376,7 +391,7 @@ export function InvoicesPage() {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
 
             // Descargar ZIP
@@ -401,12 +416,12 @@ export function InvoicesPage() {
             window.URL.revokeObjectURL(url);
 
             toast.success(
-                `${selectedInvoices.length} facturas exportadas en PDF`
+                `${selectedInvoices.length} facturas exportadas en PDF`,
             );
         } catch (error) {
             console.error("Error al exportar PDFs:", error);
             toast.error(
-                "Error al exportar PDFs. Por favor intenta nuevamente."
+                "Error al exportar PDFs. Por favor intenta nuevamente.",
             );
         }
     };
@@ -429,7 +444,7 @@ export function InvoicesPage() {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                }
+                },
             );
 
             // Descargar ZIP
@@ -454,7 +469,7 @@ export function InvoicesPage() {
             window.URL.revokeObjectURL(url);
 
             toast.success(
-                `ZIP estructurado con ${selectedInvoices.length} facturas`
+                `ZIP estructurado con ${selectedInvoices.length} facturas`,
             );
         } catch (error) {
             console.error("Error al exportar ZIP:", error);
@@ -474,7 +489,7 @@ export function InvoicesPage() {
                 `/invoices/${invoice.id}/file/?download=true`,
                 {
                     responseType: "blob",
-                }
+                },
             );
 
             const blob = new Blob([response.data]);
@@ -515,7 +530,7 @@ export function InvoicesPage() {
             await bulkDeleteMutation.mutateAsync(selectedInvoices);
             toast.success(
                 `${selectedInvoices.length} facturas eliminadas exitosamente`,
-                { id: toastId }
+                { id: toastId },
             );
             setSelectedInvoices([]);
             setShowBulkDeleteConfirm(false);
@@ -549,7 +564,7 @@ export function InvoicesPage() {
     if (error) {
         return (
             <div className="p-4 text-center">
-                <p className="text-red-600">
+                <p className="text-destructive">
                     Error al cargar las facturas: {error.message}
                 </p>
             </div>
@@ -560,16 +575,16 @@ export function InvoicesPage() {
     const InvoiceTableContent = () => (
         <>
             {/* Indicador de scroll en móviles */}
-            <div className="block sm:hidden mb-2 text-xs text-gray-500 text-center">
+            <div className="block sm:hidden mb-2 text-xs text-muted-foreground text-center">
                 ← Desliza para ver más columnas →
             </div>
 
             <div className="overflow-x-auto -mx-4 sm:mx-0 border-x sm:border-x-0">
                 <div className="inline-block min-w-full align-middle">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-border text-sm">
+                        <thead className="bg-muted">
                             <tr>
-                                <th className="sticky left-0 z-10 bg-gray-50 px-3 py-3 text-center whitespace-nowrap">
+                                <th className="sticky left-0 z-10 bg-muted px-3 py-3 text-center whitespace-nowrap">
                                     <input
                                         type="checkbox"
                                         checked={
@@ -578,108 +593,108 @@ export function InvoicesPage() {
                                             data?.results?.length > 0
                                         }
                                         onChange={handleSelectAll}
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-border text-primary focus:ring-blue-500"
                                     />
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Operativo
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     OT
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Cliente
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     MBL
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Naviera
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Proveedor
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Barco
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Tipo Prov.
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Tipo Costo
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Estado
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Factura
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     F. Emisión
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     F. Provisión
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     F. Facturación
                                 </th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Monto
                                 </th>
-                                <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                                <th className="sticky right-0 z-10 bg-muted px-4 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider whitespace-nowrap">
                                     Acciones
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
+                        <tbody className="divide-y divide-border bg-card">
                             {data?.results?.map((invoice) => (
                                 <tr
                                     key={invoice.id}
-                                    className="hover:bg-gray-50 transition-colors"
+                                    className="hover:bg-muted transition-colors"
                                 >
-                                    <td className="sticky left-0 z-10 bg-white px-3 py-3 text-center">
+                                    <td className="sticky left-0 z-10 bg-card px-3 py-3 text-center">
                                         <input
                                             type="checkbox"
                                             checked={selectedInvoices.includes(
-                                                invoice.id
+                                                invoice.id,
                                             )}
                                             onChange={() =>
                                                 handleSelectOne(invoice.id)
                                             }
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            className="rounded border-border text-primary focus:ring-blue-500"
                                         />
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                         {invoice.ot_data?.operativo || "-"}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         {invoice.ot_data ? (
                                             <Link
                                                 to={`/ots/${invoice.ot_data.id}`}
-                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
+                                                className="text-primary hover:text-blue-800 font-medium text-sm flex items-center gap-1"
                                             >
                                                 <Link2 className="w-3.5 h-3.5" />
                                                 {invoice.ot_data.numero_ot}
                                             </Link>
                                         ) : (
-                                            <span className="text-gray-400 text-sm italic">
+                                            <span className="text-muted-foreground text-sm italic">
                                                 Sin asignar
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                         {invoice.ot_data?.cliente || "-"}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                         {invoice.ot_data?.mbl || "-"}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                         {invoice.ot_data?.naviera || "-"}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                         {invoice.proveedor_data?.nombre || "-"}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                                         {invoice.ot_data?.barco || "-"}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -690,10 +705,19 @@ export function InvoicesPage() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
-                                        <InvoiceCostTypeEditable 
+                                        <InvoiceCostTypeEditable
                                             invoice={invoice}
-                                            options={costTypesData?.results || []}
-                                            onSave={(id, val) => updateCostTypeMutation.mutateAsync({ invoiceId: id, costType: val })}
+                                            options={
+                                                costTypesData?.results || []
+                                            }
+                                            onSave={(id, val) =>
+                                                updateCostTypeMutation.mutateAsync(
+                                                    {
+                                                        invoiceId: id,
+                                                        costType: val,
+                                                    },
+                                                )
+                                            }
                                         />
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -714,15 +738,19 @@ export function InvoicesPage() {
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <div className="flex items-center gap-1.5">
                                             <button
-                                                onClick={() => setSelectedInvoiceIdForDrawer(invoice.id)}
-                                                className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                                onClick={() =>
+                                                    setSelectedInvoiceIdForDrawer(
+                                                        invoice.id,
+                                                    )
+                                                }
+                                                className="font-medium text-sm text-primary hover:text-blue-800 hover:underline transition-colors"
                                             >
                                                 {invoice.numero_factura ||
                                                     "SIN-NUM"}
                                             </button>
                                             {invoice.requiere_revision && (
                                                 <AlertCircle
-                                                    className="w-3.5 h-3.5 text-red-500 flex-shrink-0"
+                                                    className="w-3.5 h-3.5 text-destructive flex-shrink-0"
                                                     title="Requiere Revisión"
                                                 />
                                             )}
@@ -746,16 +774,16 @@ export function InvoicesPage() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                         {formatDate(invoice.fecha_emision)}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                         {formatDate(invoice.fecha_provision)}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                         {formatDate(invoice.fecha_facturacion)}
                                     </td>
-                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">
+                                    <td className="px-4 py-3 text-right text-sm font-semibold text-foreground whitespace-nowrap">
                                         $
                                         {(
                                             invoice.monto_aplicable ??
@@ -765,13 +793,15 @@ export function InvoicesPage() {
                                             maximumFractionDigits: 0,
                                         }) || "0"}
                                     </td>
-                                    <td className="sticky right-0 z-10 bg-white px-4 py-3 text-right whitespace-nowrap">
+                                    <td className="sticky right-0 z-10 bg-card px-4 py-3 text-right whitespace-nowrap">
                                         <div className="flex justify-end gap-1">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() =>
-                                                    setSelectedInvoiceIdForDrawer(invoice.id)
+                                                    setSelectedInvoiceIdForDrawer(
+                                                        invoice.id,
+                                                    )
                                                 }
                                                 title="Ver detalles"
                                                 className="h-8 w-8"
@@ -783,7 +813,7 @@ export function InvoicesPage() {
                                                 size="icon"
                                                 onClick={() =>
                                                     setSelectedInvoiceForOT(
-                                                        invoice
+                                                        invoice,
                                                     )
                                                 }
                                                 title={
@@ -798,7 +828,11 @@ export function InvoicesPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => setSelectedInvoiceForProvision(invoice)}
+                                                onClick={() =>
+                                                    setSelectedInvoiceForProvision(
+                                                        invoice,
+                                                    )
+                                                }
                                                 title="Provisionar / Cambiar Fecha"
                                                 className="h-8 w-8 hidden md:inline-flex"
                                             >
@@ -809,7 +843,7 @@ export function InvoicesPage() {
                                                 size="icon"
                                                 onClick={() => {
                                                     setSelectedInvoiceForDispute(
-                                                        invoice
+                                                        invoice,
                                                     );
                                                     setShowDisputeModal(true);
                                                 }}
@@ -824,7 +858,7 @@ export function InvoicesPage() {
                                                     size="icon"
                                                     onClick={() =>
                                                         handleInvoiceDownload(
-                                                            invoice
+                                                            invoice,
                                                         )
                                                     }
                                                     title="Descargar archivo"
@@ -854,14 +888,14 @@ export function InvoicesPage() {
             {/* Pagination */}
             {data?.count > pageSize && (
                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                         Mostrando {(page - 1) * pageSize + 1} -{" "}
                         {Math.min(page * pageSize, data.count)} de {data.count}{" "}
                         facturas
                     </p>
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-600 hidden sm:inline">
+                            <label className="text-sm text-muted-foreground hidden sm:inline">
                                 Mostrar:
                             </label>
                             <select
@@ -870,17 +904,17 @@ export function InvoicesPage() {
                                     setPageSize(parseInt(e.target.value, 10));
                                     setPage(1);
                                 }}
-                                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                className="px-3 py-1.5 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-card"
                             >
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                                 <option value="100">100</option>
                             </select>
-                            <span className="text-sm text-gray-600 hidden sm:inline">
+                            <span className="text-sm text-muted-foreground hidden sm:inline">
                                 por página
                             </span>
                         </div>
-                        <div className="h-5 w-px bg-gray-300 mx-1"></div>
+                        <div className="h-5 w-px bg-muted mx-1"></div>
                         <Button
                             variant="outline"
                             size="sm"
@@ -904,77 +938,30 @@ export function InvoicesPage() {
     );
 
     return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Stats Cards */}
+        <div className="space-y-6">
+            {/* Stats */}
             {stats && (
-                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Total Facturas
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {stats.total}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                En el sistema
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Pendientes
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
-                                {stats.pendientes_provision || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Por provisionar
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Provisionadas
-                            </CardTitle>
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {stats.provisionadas || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Listas para facturar
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Anuladas
-                            </CardTitle>
-                            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-600">
-                                {stats.anuladas || 0}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Canceladas
-                            </p>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                    <StatCard
+                        label="Total Facturas"
+                        value={stats.total}
+                        icon={FileText}
+                    />
+                    <StatCard
+                        label="Pendientes"
+                        value={stats.pendientes_provision || 0}
+                        icon={FileText}
+                    />
+                    <StatCard
+                        label="Provisionadas"
+                        value={stats.provisionadas || 0}
+                        icon={FileText}
+                    />
+                    <StatCard
+                        label="Anuladas"
+                        value={stats.anuladas || 0}
+                        icon={X}
+                    />
                 </div>
             )}
 
@@ -985,7 +972,7 @@ export function InvoicesPage() {
                         {/* Search */}
                         <div className="w-full">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Buscar factura, proveedor, OT..."
                                     value={search}
@@ -1031,7 +1018,9 @@ export function InvoicesPage() {
                                     className="flex-1 sm:flex-none"
                                 >
                                     <Upload className="w-4 h-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">Subir</span>
+                                    <span className="hidden sm:inline">
+                                        Subir
+                                    </span>
                                 </Button>
                             )}
                             <Button
@@ -1048,7 +1037,7 @@ export function InvoicesPage() {
 
                     {/* Barra de Acciones Masivas */}
                     {selectedInvoices.length > 0 && (
-                        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-primary/10 border border-blue-200 rounded-lg">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <span className="text-sm sm:text-base font-medium text-blue-900 truncate">
@@ -1110,12 +1099,12 @@ export function InvoicesPage() {
 
                     {/* Panel de Filtros Avanzados */}
                     {showFilters && (
-                        <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="mt-6 pt-6 border-t border-border">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
                                     <label
                                         htmlFor="estado_provision"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
+                                        className="block text-sm font-medium text-foreground mb-1"
                                     >
                                         Estado de Provisión
                                     </label>
@@ -1129,7 +1118,7 @@ export function InvoicesPage() {
                                                     e.target.value,
                                             })
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value="">Todos</option>
                                         <option value="pendiente">
@@ -1148,7 +1137,7 @@ export function InvoicesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Estado de Facturación
                                     </label>
                                     <select
@@ -1160,7 +1149,7 @@ export function InvoicesPage() {
                                                     e.target.value,
                                             })
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value="">Todos</option>
                                         <option value="pendiente">
@@ -1173,7 +1162,7 @@ export function InvoicesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Tipo de Costo
                                     </label>
                                     <select
@@ -1184,7 +1173,7 @@ export function InvoicesPage() {
                                                 tipo_costo: e.target.value,
                                             })
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         disabled={filterValuesLoading}
                                     >
                                         <option value="">Todos</option>
@@ -1196,14 +1185,14 @@ export function InvoicesPage() {
                                                 >
                                                     {tipo.name}
                                                 </option>
-                                            )
+                                            ),
                                         )}
                                     </select>
                                     {!filterValuesLoading &&
                                         (!filterValues?.tipos_costo ||
                                             filterValues.tipos_costo.length ===
                                                 0) && (
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-xs text-muted-foreground mt-1">
                                                 No hay tipos de costo con
                                                 facturas
                                             </p>
@@ -1211,7 +1200,7 @@ export function InvoicesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Proveedor
                                     </label>
                                     <select
@@ -1222,7 +1211,7 @@ export function InvoicesPage() {
                                                 proveedor: e.target.value,
                                             })
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         disabled={filterValuesLoading}
                                     >
                                         <option value="">Todos</option>
@@ -1234,21 +1223,21 @@ export function InvoicesPage() {
                                                 >
                                                     {proveedor.nombre}
                                                 </option>
-                                            )
+                                            ),
                                         )}
                                     </select>
                                     {!filterValuesLoading &&
                                         (!filterValues?.proveedores ||
                                             filterValues.proveedores.length ===
                                                 0) && (
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-xs text-muted-foreground mt-1">
                                                 No hay proveedores con facturas
                                             </p>
                                         )}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Fecha Desde
                                     </label>
                                     <Input
@@ -1264,7 +1253,7 @@ export function InvoicesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Fecha Hasta
                                     </label>
                                     <Input
@@ -1381,7 +1370,7 @@ export function InvoicesPage() {
                                 <span className="text-sm font-medium flex items-center gap-1">
                                     Disputadas
                                     {stats?.disputadas > 0 && (
-                                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                                        <AlertTriangle className="h-3 w-3 text-destructive" />
                                     )}
                                 </span>
                                 <Badge
@@ -1410,24 +1399,18 @@ export function InvoicesPage() {
 
                         <TabsContent value="all">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600">
+                                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground">
                                         No se encontraron facturas
                                     </p>
                                     <Button
                                         className="mt-4"
                                         size="sm"
                                         onClick={() =>
-                                            (window.location.href =
-                                                "/invoices/new")
+                                            navigate("/invoices/new")
                                         }
                                     >
                                         <Upload className="w-4 h-4 mr-2" />
@@ -1441,16 +1424,11 @@ export function InvoicesPage() {
 
                         <TabsContent value="pendientes">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas pendientes...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600">
+                                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground">
                                         No se encontraron facturas pendientes
                                     </p>
                                 </div>
@@ -1461,16 +1439,11 @@ export function InvoicesPage() {
 
                         <TabsContent value="provisionadas">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas provisionadas...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600">
+                                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground">
                                         No se encontraron facturas provisionadas
                                     </p>
                                 </div>
@@ -1481,16 +1454,11 @@ export function InvoicesPage() {
 
                         <TabsContent value="pagadas">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas pagadas...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600">
+                                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                                    <p className="text-muted-foreground">
                                         No se encontraron facturas pagadas
                                     </p>
                                 </div>
@@ -1501,16 +1469,11 @@ export function InvoicesPage() {
 
                         <TabsContent value="disputadas">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas disputadas...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ||
                               stats?.disputadas === 0 ? (
                                 <div className="text-center py-12">
-                                    <p className="text-green-600 font-medium">
+                                    <p className="text-emerald-600 font-medium">
                                         No hay facturas disputadas
                                     </p>
                                 </div>
@@ -1521,16 +1484,11 @@ export function InvoicesPage() {
 
                         <TabsContent value="anuladas">
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-sm text-gray-600">
-                                        Cargando facturas anuladas...
-                                    </p>
-                                </div>
+                                <TableSkeleton rows={8} cols={13} />
                             ) : data?.results?.length === 0 ||
                               stats?.anuladas === 0 ? (
                                 <div className="text-center py-12">
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         No hay facturas anuladas
                                     </p>
                                 </div>
@@ -1587,7 +1545,7 @@ export function InvoicesPage() {
                     onConfirm={async (invoiceId, date) => {
                         await provisionInvoiceMutation.mutateAsync({
                             invoiceId,
-                            date
+                            date,
                         });
                     }}
                 />

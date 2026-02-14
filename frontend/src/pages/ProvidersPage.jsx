@@ -34,6 +34,7 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { usePermissions } from "../components/common/PermissionGate";
+import { StatCard } from "../components/common/StatCard";
 
 export function ProvidersPage() {
     const navigate = useNavigate();
@@ -73,7 +74,7 @@ export function ProvidersPage() {
     const handleDelete = async (id, nombre) => {
         if (
             !window.confirm(
-                `¿Estás seguro de eliminar el proveedor "${nombre}"?`
+                `¿Estás seguro de eliminar el proveedor "${nombre}"?`,
             )
         ) {
             return;
@@ -120,119 +121,65 @@ export function ProvidersPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Gestión de Proveedores
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Administra el catálogo de proveedores del sistema
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    {/* Solo Admin puede importar/crear proveedores */}
-                    {canEditCatalogs && (
-                        <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleImport}
-                                className="flex items-center gap-2"
-                            >
-                                <Upload className="w-4 h-4" />
-                                Importar
-                            </Button>
-                            <Button
-                                onClick={() => navigate("/catalogs/providers/create")}
-                                className="flex items-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Nuevo Proveedor
-                            </Button>
-                        </>
-                    )}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExport}
-                        className="flex items-center gap-2"
-                    >
-                        <Download className="w-4 h-4" />
-                        Exportar
-                    </Button>
-                </div>
+            {/* Actions + Stats */}
+            <div className="flex items-center justify-end gap-2">
+                {canEditCatalogs && (
+                    <>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleImport}
+                            className="flex items-center gap-2"
+                        >
+                            <Upload className="w-4 h-4" />
+                            Importar
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                navigate("/catalogs/providers/create")
+                            }
+                            className="flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Nuevo Proveedor
+                        </Button>
+                    </>
+                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    className="flex items-center gap-2"
+                >
+                    <Download className="w-4 h-4" />
+                    Exportar
+                </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Total Proveedores
-                        </CardTitle>
-                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                            {providersData?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            En el sistema
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Activos
-                        </CardTitle>
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {providers.filter((p) => p.is_active).length}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Proveedores habilitados
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Navieras
-                        </CardTitle>
-                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                            {providers.filter((p) => p.tipo === "naviera").length}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Líneas navieras
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                            Transportistas
-                        </CardTitle>
-                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <div className="text-2xl sm:text-3xl font-bold text-purple-600">
-                            {providers.filter((p) => p.tipo === "transportista").length}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Empresas de transporte
-                        </p>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Proveedores"
+                    value={providersData?.count || 0}
+                    icon={Building2}
+                />
+                <StatCard
+                    label="Activos"
+                    value={providers.filter((p) => p.is_active).length}
+                    icon={CheckCircle}
+                />
+                <StatCard
+                    label="Navieras"
+                    value={providers.filter((p) => p.tipo === "naviera").length}
+                    icon={Building2}
+                />
+                <StatCard
+                    label="Transportistas"
+                    value={
+                        providers.filter((p) => p.tipo === "transportista")
+                            .length
+                    }
+                    icon={Building2}
+                />
             </div>
 
             {/* Búsqueda y Filtros */}
@@ -242,7 +189,7 @@ export function ProvidersPage() {
                         {/* Barra de búsqueda */}
                         <div className="flex gap-2">
                             <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Buscar por nombre, NIT, email o contacto..."
@@ -279,9 +226,9 @@ export function ProvidersPage() {
 
                         {/* Panel de filtros */}
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Tipo
                                     </label>
                                     <select
@@ -289,10 +236,10 @@ export function ProvidersPage() {
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 "tipo",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md"
                                     >
                                         <option value="">Todos</option>
                                         {types?.map((t) => (
@@ -307,7 +254,7 @@ export function ProvidersPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Categoría
                                     </label>
                                     <select
@@ -315,10 +262,10 @@ export function ProvidersPage() {
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 "categoria",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md"
                                     >
                                         <option value="">Todas</option>
                                         {categories?.map((c) => (
@@ -333,7 +280,7 @@ export function ProvidersPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Estado
                                     </label>
                                     <select
@@ -341,10 +288,10 @@ export function ProvidersPage() {
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 "is_active",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md"
                                     >
                                         <option value="">Todos</option>
                                         <option value="true">Activo</option>
@@ -378,17 +325,17 @@ export function ProvidersPage() {
                     {isLoading ? (
                         <div className="text-center py-8">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-gray-600">
+                            <p className="mt-2 text-muted-foreground">
                                 Cargando proveedores...
                             </p>
                         </div>
                     ) : providers.length === 0 ? (
                         <div className="text-center py-12">
-                            <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                                 No hay proveedores
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Comienza creando un nuevo proveedor
                             </p>
                             <div className="mt-6">
@@ -404,47 +351,47 @@ export function ProvidersPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Proveedor
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             NIT
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Tipo
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Categoría
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Contacto
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-card divide-y divide-border">
                                     {providers.map((provider) => (
                                         <tr
                                             key={provider.id}
-                                            className="hover:bg-gray-50 transition-colors"
+                                            className="hover:bg-muted transition-colors"
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <Building2 className="w-5 h-5 text-gray-400 mr-3" />
+                                                    <Building2 className="w-5 h-5 text-muted-foreground mr-3" />
                                                     <div>
-                                                        <div className="text-sm font-medium text-gray-900">
+                                                        <div className="text-sm font-medium text-foreground">
                                                             {provider.nombre}
                                                         </div>
                                                         {provider.contacto && (
-                                                            <div className="text-xs text-gray-500">
+                                                            <div className="text-xs text-muted-foreground">
                                                                 Contacto:{" "}
                                                                 {
                                                                     provider.contacto
@@ -455,14 +402,14 @@ export function ProvidersPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-mono text-gray-900">
+                                                <div className="text-sm font-mono text-foreground">
                                                     {provider.nit || "-"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <Badge
                                                     variant={getTipoBadgeColor(
-                                                        provider.tipo
+                                                        provider.tipo,
                                                     )}
                                                 >
                                                     {provider.tipo_display}
@@ -470,7 +417,7 @@ export function ProvidersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-sm text-gray-900">
+                                                    <span className="text-sm text-foreground">
                                                         {
                                                             provider.categoria_display
                                                         }
@@ -487,10 +434,10 @@ export function ProvidersPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-foreground">
                                                     {provider.email && (
                                                         <div className="flex items-center gap-1 mb-1">
-                                                            <Mail className="w-3 h-3 text-gray-400" />
+                                                            <Mail className="w-3 h-3 text-muted-foreground" />
                                                             <span className="text-xs">
                                                                 {provider.email}
                                                             </span>
@@ -498,7 +445,7 @@ export function ProvidersPage() {
                                                     )}
                                                     {provider.telefono && (
                                                         <div className="flex items-center gap-1">
-                                                            <Phone className="w-3 h-3 text-gray-400" />
+                                                            <Phone className="w-3 h-3 text-muted-foreground" />
                                                             <span className="text-xs">
                                                                 {
                                                                     provider.telefono
@@ -528,7 +475,7 @@ export function ProvidersPage() {
                                                             variant="outline"
                                                             onClick={() =>
                                                                 navigate(
-                                                                    `/catalogs/providers/${provider.id}/edit`
+                                                                    `/catalogs/providers/${provider.id}/edit`,
                                                                 )
                                                             }
                                                         >
@@ -540,7 +487,7 @@ export function ProvidersPage() {
                                                             onClick={() =>
                                                                 handleDelete(
                                                                     provider.id,
-                                                                    provider.nombre
+                                                                    provider.nombre,
                                                                 )
                                                             }
                                                         >
@@ -558,13 +505,20 @@ export function ProvidersPage() {
 
                     {/* Paginación */}
                     {totalPages > 1 && (
-                        <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                            <div className="flex items-center gap-4 text-sm text-gray-700">
-                                <span>Página {filters.page} de {totalPages}</span>
+                        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                            <div className="flex items-center gap-4 text-sm text-foreground">
+                                <span>
+                                    Página {filters.page} de {totalPages}
+                                </span>
                                 <select
                                     value={filters.page_size}
-                                    onChange={(e) => handleFilterChange('page_size', parseInt(e.target.value, 10))}
-                                    className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                                    onChange={(e) =>
+                                        handleFilterChange(
+                                            "page_size",
+                                            parseInt(e.target.value, 10),
+                                        )
+                                    }
+                                    className="px-2 py-1 border border-border rounded-md text-sm"
                                 >
                                     <option value="20">20 / página</option>
                                     <option value="50">50 / página</option>

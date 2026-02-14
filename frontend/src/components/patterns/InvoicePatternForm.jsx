@@ -400,18 +400,18 @@ function InvoicePatternForm({
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
                     <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                            <Code className="w-5 h-5 text-blue-600" />
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                            <Code className="w-5 h-5 text-primary" />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900">
+                        <h2 className="text-xl font-bold text-foreground">
                             {pattern ? "Editar Patrón" : "Nuevo Patrón"}
                         </h2>
                     </div>
                     <button
                         onClick={() => onClose(false)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-muted rounded-lg transition-colors"
                     >
-                        <X className="w-5 h-5 text-gray-500" />
+                        <X className="w-5 h-5 text-muted-foreground" />
                     </button>
                 </div>
 
@@ -419,9 +419,9 @@ function InvoicePatternForm({
                 <div className="p-6 space-y-6">
                     {/* Error Alert */}
                     {errors.submit && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                             <div className="flex items-start gap-2">
-                                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                                 <div>
                                     <p className="text-sm font-medium text-red-800">
                                         Error al guardar
@@ -437,7 +437,7 @@ function InvoicePatternForm({
                     {/* Tipo de Patrón */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Tipo de Patrón *
                             </label>
                             <select
@@ -448,7 +448,7 @@ function InvoicePatternForm({
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                     errors.tipo_patron
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                             >
                                 <option value="costo">
@@ -457,7 +457,7 @@ function InvoicePatternForm({
                                 <option value="venta">Venta (Clientes)</option>
                             </select>
                             {errors.tipo_patron && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.tipo_patron}
                                 </p>
                             )}
@@ -466,7 +466,7 @@ function InvoicePatternForm({
                         {/* Solo mostrar tipo_factura para VENTA */}
                         {formData.tipo_patron === "venta" && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                     Tipo de Factura *
                                 </label>
                                 <select
@@ -480,7 +480,7 @@ function InvoicePatternForm({
                                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                         errors.tipo_factura
                                             ? "border-red-500"
-                                            : "border-gray-300"
+                                            : "border-border"
                                     }`}
                                 >
                                     <option value="nacional">
@@ -491,11 +491,11 @@ function InvoicePatternForm({
                                     </option>
                                 </select>
                                 {errors.tipo_factura && (
-                                    <p className="text-sm text-red-600 mt-1">
+                                    <p className="text-sm text-destructive mt-1">
                                         {errors.tipo_factura}
                                     </p>
                                 )}
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Nacional incluye campos de IVA y retenciones
                                 </p>
                             </div>
@@ -505,7 +505,7 @@ function InvoicePatternForm({
                     {/* Proveedor (COSTO) o Tipo Documento (VENTA) */}
                     {formData.tipo_patron === "costo" ? (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Proveedor *
                             </label>
                             <select
@@ -516,7 +516,7 @@ function InvoicePatternForm({
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                     errors.proveedor
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                             >
                                 <option value="">
@@ -532,14 +532,14 @@ function InvoicePatternForm({
                                 ))}
                             </select>
                             {errors.proveedor && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.proveedor}
                                 </p>
                             )}
                         </div>
                     ) : (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Tipo de Documento *
                             </label>
                             <select
@@ -553,7 +553,7 @@ function InvoicePatternForm({
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                     errors.tipo_documento
                                         ? "border-red-500"
-                                        : "border-gray-300"
+                                        : "border-border"
                                 }`}
                             >
                                 <option value="">
@@ -566,7 +566,7 @@ function InvoicePatternForm({
                                 ))}
                             </select>
                             {errors.tipo_documento && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.tipo_documento}
                                 </p>
                             )}
@@ -575,7 +575,7 @@ function InvoicePatternForm({
 
                     {/* Campo Objetivo */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                             Campo Objetivo *
                         </label>
                         <select
@@ -586,7 +586,7 @@ function InvoicePatternForm({
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 errors.campo_objetivo
                                     ? "border-red-500"
-                                    : "border-gray-300"
+                                    : "border-border"
                             }`}
                         >
                             <option value="">
@@ -659,11 +659,11 @@ function InvoicePatternForm({
                             )}
                         </select>
                         {errors.campo_objetivo && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.campo_objetivo}
                             </p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Selecciona el campo específico que este patrón
                             extraerá del PDF
                         </p>
@@ -671,7 +671,7 @@ function InvoicePatternForm({
 
                     {/* Nombre */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                             Nombre del Patrón *
                         </label>
                         <input
@@ -684,11 +684,11 @@ function InvoicePatternForm({
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 errors.nombre
                                     ? "border-red-500"
-                                    : "border-gray-300"
+                                    : "border-border"
                             }`}
                         />
                         {errors.nombre && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.nombre}
                             </p>
                         )}
@@ -696,7 +696,7 @@ function InvoicePatternForm({
 
                     {/* Descripción */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                             Descripción (opcional)
                         </label>
                         <textarea
@@ -706,13 +706,13 @@ function InvoicePatternForm({
                             }
                             placeholder="Describe cómo funciona este patrón..."
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
                     {/* Patrón Regex */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                             Patrón (Regex) *
                         </label>
                         <textarea
@@ -725,15 +725,15 @@ function InvoicePatternForm({
                             className={`w-full px-3 py-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 errors.patron_regex
                                     ? "border-red-500"
-                                    : "border-gray-300"
+                                    : "border-border"
                             }`}
                         />
                         {errors.patron_regex && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.patron_regex}
                             </p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Usa grupos de captura () para extraer el valor
                             específico
                         </p>
@@ -742,7 +742,7 @@ function InvoicePatternForm({
                     {/* Options */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Prioridad
                             </label>
                             <input
@@ -756,9 +756,9 @@ function InvoicePatternForm({
                                 }
                                 min="1"
                                 max="10"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 1-10 (mayor = más prioridad)
                             </p>
                         </div>
@@ -770,9 +770,9 @@ function InvoicePatternForm({
                                 onChange={(e) =>
                                     handleChange("activo", e.target.checked)
                                 }
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 text-primary rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-foreground">
                                 Activo
                             </span>
                         </div>
@@ -787,9 +787,9 @@ function InvoicePatternForm({
                                         e.target.checked
                                     )
                                 }
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 text-primary rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-foreground">
                                 Sensible a mayúsculas
                             </span>
                         </div>
@@ -797,7 +797,7 @@ function InvoicePatternForm({
 
                     {/* Test Pattern Section */}
                     <div className="border-t pt-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        <h3 className="text-lg font-semibold text-foreground mb-4">
                             Probar Patrón
                         </h3>
                         <div className="space-y-3">
@@ -806,7 +806,7 @@ function InvoicePatternForm({
                                 onChange={(e) => setTestText(e.target.value)}
                                 placeholder="Pega aquí el texto para probar el patrón...&#10;&#10;Ejemplo:&#10;Invoice #123456&#10;Date: 2024-01-15&#10;Total: $1,234.56"
                                 rows={6}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                             />
                             <Button
                                 variant="outline"
@@ -852,7 +852,7 @@ function InvoicePatternForm({
                                                                     Coincidencia
                                                                     completa:
                                                                 </p>
-                                                                <code className="block bg-white px-3 py-2 rounded border border-green-200 font-mono text-xs text-gray-700">
+                                                                <code className="block bg-white px-3 py-2 rounded border border-green-200 font-mono text-xs text-foreground">
                                                                     {
                                                                         testResult.full_match
                                                                     }
@@ -882,9 +882,9 @@ function InvoicePatternForm({
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                                             <div className="flex items-start gap-2">
-                                                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                                                 <div>
                                                     <p className="text-sm font-medium text-red-900 mb-1">
                                                         Error
@@ -903,7 +903,7 @@ function InvoicePatternForm({
                 </div>
 
                 {/* Footer */}
-                <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex items-center justify-end gap-2">
+                <div className="sticky bottom-0 bg-muted border-t px-6 py-4 flex items-center justify-end gap-2">
                     <Button
                         variant="outline"
                         onClick={() => onClose(false)}

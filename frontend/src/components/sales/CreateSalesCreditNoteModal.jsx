@@ -195,13 +195,13 @@ export function CreateSalesCreditNoteModal({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                    <h2 className="text-xl font-semibold text-foreground">
                         Nueva Nota de Crédito
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-muted-foreground hover:text-muted-foreground"
                     >
                         <X className="h-6 w-6" />
                     </button>
@@ -239,12 +239,12 @@ export function CreateSalesCreditNoteModal({
                             </SelectContent>
                         </Select>
                         {errors.sales_invoice && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.sales_invoice}
                             </p>
                         )}
                         {selectedInvoice && (
-                            <div className="mt-2 p-3 bg-blue-50 rounded-md text-sm">
+                            <div className="mt-2 p-3 bg-primary/10 rounded-md text-sm">
                                 <p className="font-medium text-blue-900">
                                     Monto original: $
                                     {parseFloat(
@@ -272,7 +272,7 @@ export function CreateSalesCreditNoteModal({
                                 placeholder="NC-001"
                             />
                             {errors.numero_nota_credito && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.numero_nota_credito}
                                 </p>
                             )}
@@ -290,7 +290,7 @@ export function CreateSalesCreditNoteModal({
                                 onChange={handleInputChange}
                             />
                             {errors.fecha_emision && (
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className="text-sm text-destructive mt-1">
                                     {errors.fecha_emision}
                                 </p>
                             )}
@@ -311,7 +311,7 @@ export function CreateSalesCreditNoteModal({
                             placeholder="0.00"
                         />
                         {errors.monto && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.monto}
                             </p>
                         )}
@@ -326,11 +326,11 @@ export function CreateSalesCreditNoteModal({
                             value={formData.motivo}
                             onChange={handleInputChange}
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Describa el motivo de la nota de crédito..."
                         />
                         {errors.motivo && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.motivo}
                             </p>
                         )}
@@ -345,7 +345,7 @@ export function CreateSalesCreditNoteModal({
                             value={formData.notas}
                             onChange={handleInputChange}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Información adicional (opcional)..."
                         />
                     </div>
@@ -356,7 +356,7 @@ export function CreateSalesCreditNoteModal({
                         <div className="mt-1 flex items-center gap-2">
                             <label
                                 htmlFor="archivo_pdf"
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50"
+                                className="flex items-center gap-2 px-4 py-2 border border-border rounded-md cursor-pointer hover:bg-muted"
                             >
                                 <Upload className="h-4 w-4" />
                                 <span className="text-sm">
@@ -375,27 +375,27 @@ export function CreateSalesCreditNoteModal({
                             />
                         </div>
                         {errors.archivo_pdf && (
-                            <p className="text-sm text-red-600 mt-1">
+                            <p className="text-sm text-destructive mt-1">
                                 {errors.archivo_pdf}
                             </p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                             Opcional. Máximo 10MB, solo PDF.
                         </p>
                     </div>
 
                     {/* Validation error from backend */}
                     {errors.detail && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
-                            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-red-600">
+                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2">
+                            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-destructive">
                                 {errors.detail}
                             </p>
                         </div>
                     )}
 
                     {/* Footer */}
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border">
                         <Button
                             type="button"
                             variant="outline"

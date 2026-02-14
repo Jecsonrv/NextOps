@@ -40,7 +40,14 @@ import {
     CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/Select";
+import { StatCard } from "../components/common/StatCard";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../components/ui/Select";
 
 export function ClientAliasesPage() {
     const navigate = useNavigate();
@@ -65,7 +72,9 @@ export function ClientAliasesPage() {
         queryKey: ["client-aliases-stats", filters],
         queryFn: async () => {
             const params = new URLSearchParams(filters);
-            const response = await apiClient.get(`/client-aliases/stats/?${params}`);
+            const response = await apiClient.get(
+                `/client-aliases/stats/?${params}`,
+            );
             return response.data;
         },
     });
@@ -114,7 +123,7 @@ export function ClientAliasesPage() {
 
         if (!/^[A-Z0-9_ ]+$/.test(trimmed)) {
             setEditError(
-                "Solo letras mayúsculas, números, espacios y guión bajo (_)"
+                "Solo letras mayúsculas, números, espacios y guión bajo (_)",
             );
             return;
         }
@@ -130,7 +139,7 @@ export function ClientAliasesPage() {
         } catch (error) {
             console.error("Error actualizando alias:", error);
             setEditError(
-                error.response?.data?.short_name?.[0] || "Error al guardar"
+                error.response?.data?.short_name?.[0] || "Error al guardar",
             );
         }
     };
@@ -146,7 +155,7 @@ export function ClientAliasesPage() {
                     console.error("Error regenerando alias:", error);
                     showError("Error al regenerar el alias");
                 }
-            }
+            },
         );
     };
 
@@ -171,7 +180,7 @@ export function ClientAliasesPage() {
                     console.error("Error eliminando alias:", error);
                     showError("Error al eliminar el alias");
                 }
-            }
+            },
         );
     };
 
@@ -187,92 +196,39 @@ export function ClientAliasesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Alias de Clientes
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Normaliza y gestiona variaciones de nombres de clientes
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        onClick={() => navigate("/catalogs/aliases/create")}
-                        className="flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nuevo Alias
-                    </Button>
-                </div>
+            {/* Actions */}
+            <div className="flex items-center justify-end">
+                <Button
+                    onClick={() => navigate("/catalogs/aliases/create")}
+                    className="flex items-center gap-2"
+                >
+                    <Plus className="w-4 h-4" />
+                    Nuevo Alias
+                </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Total Alias
-                                </p>
-                                <p className="text-2xl font-bold">
-                                    {stats?.total_aliases || 0}
-                                </p>
-                            </div>
-                            <Users className="w-8 h-8 text-blue-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Verificados
-                                </p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    {stats?.verified_count || 0}
-                                </p>
-                            </div>
-                            <CheckCircle className="w-8 h-8 text-green-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Mergeados
-                                </p>
-                                <p className="text-2xl font-bold text-purple-600">
-                                    {stats?.merged_count || 0}
-                                </p>
-                            </div>
-                            <Link2 className="w-8 h-8 text-purple-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">
-                                    Sugerencias Pendientes
-                                </p>
-                                <p className="text-2xl font-bold text-yellow-600">
-                                    {stats?.pending_matches || 0}
-                                </p>
-                            </div>
-                            <AlertCircle className="w-8 h-8 text-yellow-500" />
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Alias"
+                    value={stats?.total_aliases || 0}
+                    icon={Users}
+                />
+                <StatCard
+                    label="Verificados"
+                    value={stats?.verified_count || 0}
+                    icon={CheckCircle}
+                />
+                <StatCard
+                    label="Mergeados"
+                    value={stats?.merged_count || 0}
+                    icon={Link2}
+                />
+                <StatCard
+                    label="Sugerencias Pendientes"
+                    value={stats?.pending_matches || 0}
+                    icon={AlertCircle}
+                />
             </div>
 
             {/* Búsqueda y Filtros */}
@@ -281,7 +237,7 @@ export function ClientAliasesPage() {
                     <div className="space-y-4">
                         <div className="flex gap-2">
                             <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Buscar por alias o cliente oficial..."
@@ -315,9 +271,9 @@ export function ClientAliasesPage() {
                         </div>
 
                         {showFilters && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Verificación
                                     </label>
                                     <select
@@ -325,10 +281,10 @@ export function ClientAliasesPage() {
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 "is_verified",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md"
                                     >
                                         <option value="">Todos</option>
                                         <option value="true">Verificado</option>
@@ -339,7 +295,7 @@ export function ClientAliasesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Estado de Merge
                                     </label>
                                     <select
@@ -347,10 +303,10 @@ export function ClientAliasesPage() {
                                         onChange={(e) =>
                                             handleFilterChange(
                                                 "has_merged",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md"
                                     >
                                         <option value="">Todos</option>
                                         <option value="true">Mergeado</option>
@@ -386,17 +342,17 @@ export function ClientAliasesPage() {
                     {isLoading ? (
                         <div className="text-center py-8">
                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p className="mt-2 text-gray-600">
+                            <p className="mt-2 text-muted-foreground">
                                 Cargando alias...
                             </p>
                         </div>
                     ) : aliases.length === 0 ? (
                         <div className="text-center py-12">
-                            <Users className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                                 No hay alias registrados
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Comienza creando un nuevo alias
                             </p>
                             <div className="mt-6">
@@ -412,44 +368,44 @@ export function ClientAliasesPage() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Nombre del Cliente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Alias
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             NIT / NRC 🇸🇻
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Tipo Contribuyente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Retención Renta/ISR 1%
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Usos
                                         </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-card divide-y divide-border">
                                     {aliases.map((alias) => (
                                         <tr
                                             key={alias.id}
-                                            className="hover:bg-gray-50 transition-colors"
+                                            className="hover:bg-muted transition-colors"
                                         >
                                             {/* Nombre del Cliente */}
                                             <td className="px-6 py-4">
-                                                <div className="text-sm font-medium text-gray-900">
+                                                <div className="text-sm font-medium text-foreground">
                                                     {alias.original_name}
                                                 </div>
                                             </td>
@@ -463,7 +419,7 @@ export function ClientAliasesPage() {
                                                             value={editValue}
                                                             onChange={(e) =>
                                                                 setEditValue(
-                                                                    e.target.value.toUpperCase()
+                                                                    e.target.value.toUpperCase(),
                                                                 )
                                                             }
                                                             className={`text-sm max-w-xs ${
@@ -475,17 +431,17 @@ export function ClientAliasesPage() {
                                                             autoFocus
                                                         />
                                                         {editError && (
-                                                            <p className="text-xs text-red-500">
+                                                            <p className="text-xs text-destructive">
                                                                 {editError}
                                                             </p>
                                                         )}
                                                     </div>
                                                 ) : alias.short_name ? (
-                                                    <code className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm font-mono">
+                                                    <code className="px-2 py-1 bg-primary/10 text-blue-700 rounded text-sm font-mono">
                                                         {alias.short_name}
                                                     </code>
                                                 ) : (
-                                                    <span className="text-sm text-gray-400 italic">
+                                                    <span className="text-sm text-muted-foreground italic">
                                                         Sin alias
                                                     </span>
                                                 )}
@@ -496,47 +452,70 @@ export function ClientAliasesPage() {
                                                 <div className="text-sm space-y-0.5">
                                                     {alias.nit && (
                                                         <div className="flex items-center gap-1">
-                                                            <span className="text-gray-500 text-xs">NIT:</span>
-                                                            <span className="text-gray-900 font-mono text-xs">{alias.nit}</span>
+                                                            <span className="text-muted-foreground text-xs">
+                                                                NIT:
+                                                            </span>
+                                                            <span className="text-foreground font-mono text-xs">
+                                                                {alias.nit}
+                                                            </span>
                                                         </div>
                                                     )}
                                                     {alias.nrc && (
                                                         <div className="flex items-center gap-1">
-                                                            <span className="text-gray-500 text-xs">NRC:</span>
-                                                            <span className="text-gray-900 font-mono text-xs">{alias.nrc}</span>
+                                                            <span className="text-muted-foreground text-xs">
+                                                                NRC:
+                                                            </span>
+                                                            <span className="text-foreground font-mono text-xs">
+                                                                {alias.nrc}
+                                                            </span>
                                                         </div>
                                                     )}
-                                                    {!alias.nit && !alias.nrc && (
-                                                        <span className="text-gray-400 italic text-xs">Sin datos</span>
-                                                    )}
+                                                    {!alias.nit &&
+                                                        !alias.nrc && (
+                                                            <span className="text-muted-foreground italic text-xs">
+                                                                Sin datos
+                                                            </span>
+                                                        )}
                                                 </div>
                                             </td>
 
                                             {/* Tipo Contribuyente */}
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                                    alias.tipo_contribuyente === 'gran_contribuyente'
-                                                        ? 'bg-purple-100 text-purple-800'
-                                                        : alias.tipo_contribuyente === 'contribuyente_normal'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : alias.tipo_contribuyente === 'pequeño_contribuyente'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : alias.tipo_contribuyente === 'regimen_simple'
-                                                        ? 'bg-yellow-100 text-yellow-800'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {alias.tipo_contribuyente_display || 'No especificado'}
+                                                <span
+                                                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                                        alias.tipo_contribuyente ===
+                                                        "gran_contribuyente"
+                                                            ? "bg-purple-100 text-purple-800"
+                                                            : alias.tipo_contribuyente ===
+                                                                "contribuyente_normal"
+                                                              ? "bg-primary/10 text-blue-800"
+                                                              : alias.tipo_contribuyente ===
+                                                                  "pequeño_contribuyente"
+                                                                ? "bg-emerald-50 text-green-800"
+                                                                : alias.tipo_contribuyente ===
+                                                                    "regimen_simple"
+                                                                  ? "bg-yellow-100 text-yellow-800"
+                                                                  : "bg-muted text-foreground"
+                                                    }`}
+                                                >
+                                                    {alias.tipo_contribuyente_display ||
+                                                        "No especificado"}
                                                 </span>
                                             </td>
 
                                             {/* Retención Renta/ISR */}
                                             <td className="px-6 py-4">
                                                 {alias.aplica_retencion_iva ? (
-                                                    <Badge variant="warning" className="text-xs font-semibold">
+                                                    <Badge
+                                                        variant="warning"
+                                                        className="text-xs font-semibold"
+                                                    >
                                                         ⚠️ Retiene Renta/ISR 1%
                                                     </Badge>
                                                 ) : (
-                                                    <span className="text-gray-400 italic text-xs">No retiene</span>
+                                                    <span className="text-muted-foreground italic text-xs">
+                                                        No retiene
+                                                    </span>
                                                 )}
                                             </td>
 
@@ -564,8 +543,8 @@ export function ClientAliasesPage() {
 
                                             {/* Usos */}
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-1 text-sm text-gray-900">
-                                                    <TrendingUp className="w-4 h-4 text-gray-400" />
+                                                <div className="flex items-center gap-1 text-sm text-foreground">
+                                                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
                                                     <span>
                                                         {alias.usage_count || 0}
                                                     </span>
@@ -581,7 +560,7 @@ export function ClientAliasesPage() {
                                                                 size="sm"
                                                                 onClick={() =>
                                                                     saveEdit(
-                                                                        alias.id
+                                                                        alias.id,
                                                                     )
                                                                 }
                                                                 disabled={
@@ -609,7 +588,7 @@ export function ClientAliasesPage() {
                                                                 variant="ghost"
                                                                 onClick={() =>
                                                                     startEdit(
-                                                                        alias
+                                                                        alias,
                                                                     )
                                                                 }
                                                                 title="Editar alias"
@@ -622,7 +601,7 @@ export function ClientAliasesPage() {
                                                                 onClick={() =>
                                                                     handleRegenerate(
                                                                         alias.id,
-                                                                        alias.original_name
+                                                                        alias.original_name,
                                                                     )
                                                                 }
                                                                 disabled={
@@ -639,7 +618,7 @@ export function ClientAliasesPage() {
                                                                     onClick={() =>
                                                                         handleVerify(
                                                                             alias.id,
-                                                                            alias.original_name
+                                                                            alias.original_name,
                                                                         )
                                                                     }
                                                                     title="Verificar"
@@ -653,7 +632,7 @@ export function ClientAliasesPage() {
                                                                 onClick={() =>
                                                                     handleDelete(
                                                                         alias.id,
-                                                                        alias.original_name
+                                                                        alias.original_name,
                                                                     )
                                                                 }
                                                                 title="Eliminar"
@@ -673,20 +652,33 @@ export function ClientAliasesPage() {
 
                     {/* Paginación */}
                     {totalPages > 1 && (
-                        <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-                            <div className="flex items-center gap-4 text-sm text-gray-700">
-                                <span>Página {filters.page} de {totalPages}</span>
+                        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                            <div className="flex items-center gap-4 text-sm text-foreground">
+                                <span>
+                                    Página {filters.page} de {totalPages}
+                                </span>
                                 <Select
                                     value={filters.page_size.toString()}
-                                    onValueChange={(value) => handleFilterChange('page_size', parseInt(value, 10))}
+                                    onValueChange={(value) =>
+                                        handleFilterChange(
+                                            "page_size",
+                                            parseInt(value, 10),
+                                        )
+                                    }
                                 >
                                     <SelectTrigger className="w-[120px]">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="20">20 / página</SelectItem>
-                                        <SelectItem value="50">50 / página</SelectItem>
-                                        <SelectItem value="100">100 / página</SelectItem>
+                                        <SelectItem value="20">
+                                            20 / página
+                                        </SelectItem>
+                                        <SelectItem value="50">
+                                            50 / página
+                                        </SelectItem>
+                                        <SelectItem value="100">
+                                            100 / página
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

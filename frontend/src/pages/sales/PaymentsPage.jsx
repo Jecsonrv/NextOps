@@ -42,6 +42,7 @@ import {
     FileText,
     Trash2,
 } from "lucide-react";
+import { StatCard } from "../../components/common/StatCard";
 
 const ESTADO_CHOICES = [
     { value: "pendiente_validacion", label: "Pendiente", variant: "warning" },
@@ -110,7 +111,7 @@ export default function PaymentsPage() {
     };
 
     const hasActiveFilters = Object.values(filters).some(
-        (value) => value !== ""
+        (value) => value !== "",
     );
 
     const handleValidate = async (id) => {
@@ -151,7 +152,7 @@ export default function PaymentsPage() {
     const handleDelete = async (id) => {
         if (
             !window.confirm(
-                "¿Está seguro de eliminar este pago? Esta acción no se puede deshacer."
+                "¿Está seguro de eliminar este pago? Esta acción no se puede deshacer.",
             )
         ) {
             return;
@@ -167,13 +168,7 @@ export default function PaymentsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Pagos</h1>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Gestión y validación de pagos de facturas de venta
-                    </p>
-                </div>
+            <div className="flex items-center justify-end">
                 <Link to="/sales/payments/new">
                     <Button>
                         <DollarSign className="mr-2 h-4 w-4" />
@@ -205,11 +200,11 @@ export default function PaymentsPage() {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Buscar
                             </label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="N° referencia, factura..."
@@ -217,7 +212,7 @@ export default function PaymentsPage() {
                                     onChange={(e) =>
                                         handleFilterChange(
                                             "search",
-                                            e.target.value
+                                            e.target.value,
                                         )
                                     }
                                     className="pl-10"
@@ -226,7 +221,7 @@ export default function PaymentsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Estado
                             </label>
                             <Select
@@ -255,7 +250,7 @@ export default function PaymentsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Método de Pago
                             </label>
                             <Select
@@ -284,7 +279,7 @@ export default function PaymentsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Desde
                             </label>
                             <Input
@@ -293,14 +288,14 @@ export default function PaymentsPage() {
                                 onChange={(e) =>
                                     handleFilterChange(
                                         "fecha_desde",
-                                        e.target.value
+                                        e.target.value,
                                     )
                                 }
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Hasta
                             </label>
                             <Input
@@ -309,7 +304,7 @@ export default function PaymentsPage() {
                                 onChange={(e) =>
                                     handleFilterChange(
                                         "fecha_hasta",
-                                        e.target.value
+                                        e.target.value,
                                     )
                                 }
                             />
@@ -320,108 +315,61 @@ export default function PaymentsPage() {
 
             {/* Resumen de Totales */}
             {payments?.results && payments.results.length > 0 && (
-                <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Total Pagos
-                            </CardTitle>
-                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                {
-                                    payments.results.filter(
-                                        (p) => p.estado !== "rechazado"
-                                    ).length
-                                }
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Registrados
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Monto Total
-                            </CardTitle>
-                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {formatCurrency(
-                                    payments.results
-                                        .filter((p) => p.estado !== "rechazado")
-                                        .reduce(
-                                            (acc, p) =>
-                                                acc + parseFloat(p.monto || 0),
-                                            0
-                                        )
-                                )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                En pagos
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Validados
-                            </CardTitle>
-                            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {
-                                    payments.results.filter(
-                                        (p) => p.estado === "validado"
-                                    ).length
-                                }
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Confirmados
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                            <CardTitle className="text-xs sm:text-sm font-semibold text-gray-700">
-                                Pendientes
-                            </CardTitle>
-                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 flex-shrink-0" />
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="text-2xl sm:text-3xl font-bold text-amber-600">
-                                {
-                                    payments.results.filter(
-                                        (p) =>
-                                            p.estado === "pendiente_validacion"
-                                    ).length
-                                }
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Por validar
-                            </p>
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                    <StatCard
+                        label="Total Pagos"
+                        value={
+                            payments.results.filter(
+                                (p) => p.estado !== "rechazado",
+                            ).length
+                        }
+                        icon={DollarSign}
+                    />
+                    <StatCard
+                        label="Monto Total"
+                        value={formatCurrency(
+                            payments.results
+                                .filter((p) => p.estado !== "rechazado")
+                                .reduce(
+                                    (acc, p) => acc + parseFloat(p.monto || 0),
+                                    0,
+                                ),
+                        )}
+                        icon={DollarSign}
+                    />
+                    <StatCard
+                        label="Validados"
+                        value={
+                            payments.results.filter(
+                                (p) => p.estado === "validado",
+                            ).length
+                        }
+                        icon={CheckCircle2}
+                    />
+                    <StatCard
+                        label="Pendientes"
+                        value={
+                            payments.results.filter(
+                                (p) => p.estado === "pendiente_validacion",
+                            ).length
+                        }
+                        icon={Clock}
+                    />
                 </div>
             )}
 
             {isLoading ? (
                 <Card>
                     <CardContent className="text-center py-8">
-                        <p className="text-gray-600">Cargando pagos...</p>
+                        <p className="text-muted-foreground">
+                            Cargando pagos...
+                        </p>
                     </CardContent>
                 </Card>
             ) : error ? (
                 <Card>
                     <CardContent className="text-center py-8">
-                        <p className="text-red-600">
+                        <p className="text-destructive">
                             Error al cargar pagos: {error.message}
                         </p>
                     </CardContent>
@@ -431,43 +379,43 @@ export default function PaymentsPage() {
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-muted border-b border-border">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Fecha Pago
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Factura Venta
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Cliente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Monto
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Método
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Referencia
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Comprobante
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-card divide-y divide-border">
                                     {payments?.results?.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan="8"
-                                                className="px-6 py-8 text-center text-gray-500"
+                                                className="px-6 py-8 text-center text-muted-foreground"
                                             >
                                                 No se encontraron pagos
                                             </td>
@@ -476,39 +424,39 @@ export default function PaymentsPage() {
                                         payments?.results?.map((payment) => (
                                             <tr
                                                 key={payment.id}
-                                                className="hover:bg-gray-50"
+                                                className="hover:bg-muted"
                                             >
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                                     {formatDate(
-                                                        payment.fecha_pago
+                                                        payment.fecha_pago,
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <Link
                                                         to={`/sales/invoices/${payment.sales_invoice}`}
-                                                        className="text-sm text-blue-600 hover:text-blue-800"
+                                                        className="text-sm text-primary hover:text-blue-800"
                                                     >
                                                         {payment.factura_venta_numero ||
                                                             payment.sales_invoice}
                                                     </Link>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                                     {payment.cliente_nombre ||
                                                         "-"}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">
+                                                    <div className="text-sm font-medium text-foreground">
                                                         {formatCurrency(
-                                                            payment.monto
+                                                            payment.monto,
                                                         )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-500 capitalize">
+                                                    <span className="text-sm text-muted-foreground capitalize">
                                                         {payment.metodo_pago}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                                                     {payment.referencia || "-"}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -519,20 +467,20 @@ export default function PaymentsPage() {
                                                             }
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                            className="text-primary hover:text-blue-800 flex items-center gap-1"
                                                         >
                                                             <FileText className="h-4 w-4" />
                                                             Ver
                                                         </a>
                                                     ) : (
-                                                        <span className="text-gray-400">
+                                                        <span className="text-muted-foreground">
                                                             Sin comprobante
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {getStatusBadge(
-                                                        payment.estado
+                                                        payment.estado,
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -545,7 +493,7 @@ export default function PaymentsPage() {
                                                                     size="sm"
                                                                     onClick={() =>
                                                                         handleValidate(
-                                                                            payment.id
+                                                                            payment.id,
                                                                         )
                                                                     }
                                                                     disabled={
@@ -560,7 +508,7 @@ export default function PaymentsPage() {
                                                                     size="sm"
                                                                     onClick={() =>
                                                                         handleReject(
-                                                                            payment.id
+                                                                            payment.id,
                                                                         )
                                                                     }
                                                                     disabled={
@@ -568,14 +516,14 @@ export default function PaymentsPage() {
                                                                     }
                                                                     title="Rechazar pago"
                                                                 >
-                                                                    <XCircle className="h-4 w-4 text-red-600" />
+                                                                    <XCircle className="h-4 w-4 text-destructive" />
                                                                 </Button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     onClick={() =>
                                                                         handleDelete(
-                                                                            payment.id
+                                                                            payment.id,
                                                                         )
                                                                     }
                                                                     disabled={
@@ -583,7 +531,7 @@ export default function PaymentsPage() {
                                                                     }
                                                                     title="Eliminar pago"
                                                                 >
-                                                                    <Trash2 className="h-4 w-4 text-gray-600" />
+                                                                    <Trash2 className="h-4 w-4 text-muted-foreground" />
                                                                 </Button>
                                                             </>
                                                         )}
@@ -624,10 +572,10 @@ export default function PaymentsPage() {
                         <div className="space-y-2">
                             <label
                                 htmlFor="motivo-rechazo"
-                                className="text-sm font-medium text-gray-700"
+                                className="text-sm font-medium text-foreground"
                             >
                                 Motivo del rechazo{" "}
-                                <span className="text-red-500">*</span>
+                                <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="motivo-rechazo"
@@ -639,11 +587,11 @@ export default function PaymentsPage() {
                                     }))
                                 }
                                 placeholder="Ej: Monto incorrecto, factura duplicada, error en la cuenta..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[100px] resize-y"
+                                className="w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[100px] resize-y"
                                 autoFocus
                             />
                             {rejectModal.motivo.trim() === "" && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground">
                                     El motivo es obligatorio
                                 </p>
                             )}

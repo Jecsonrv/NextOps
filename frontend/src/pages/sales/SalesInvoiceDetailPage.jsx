@@ -169,8 +169,8 @@ export default function SalesInvoiceDetailPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-2" />
-                    <p className="text-gray-500">Cargando factura...</p>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                    <p className="text-muted-foreground">Cargando factura...</p>
                 </div>
             </div>
         );
@@ -180,7 +180,7 @@ export default function SalesInvoiceDetailPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <p className="text-red-500 mb-4">
+                    <p className="text-destructive mb-4">
                         Error al cargar la factura
                     </p>
                     <Button onClick={() => navigate("/sales/invoices")}>
@@ -203,10 +203,10 @@ export default function SalesInvoiceDetailPage() {
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div className="min-w-0 flex-1">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
                             {invoice.numero_factura}
                         </h1>
-                        <p className="text-gray-600 mt-1 text-sm truncate">
+                        <p className="text-muted-foreground mt-1 text-sm truncate">
                             {invoice.cliente_nombre || "Sin cliente"}
                         </p>
                     </div>
@@ -259,7 +259,7 @@ export default function SalesInvoiceDetailPage() {
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Número de Factura
                                 </p>
                                 <p className="text-base font-semibold break-all">
@@ -267,7 +267,7 @@ export default function SalesInvoiceDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Cliente
                                 </p>
                                 <p className="text-base">
@@ -278,19 +278,19 @@ export default function SalesInvoiceDetailPage() {
                                 {invoice.cliente_nombre &&
                                     invoice.cliente_nombre !==
                                         invoice.cliente_nombre_completo && (
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Alias: {invoice.cliente_nombre}
                                         </p>
                                     )}
                             </div>
                             {invoice.ot && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         OT Asociada
                                     </p>
                                     <Link
                                         to={`/ots/${invoice.ot}`}
-                                        className="text-base text-blue-600 hover:text-blue-800 font-medium"
+                                        className="text-base text-primary hover:text-blue-800 font-medium"
                                     >
                                         {invoice.ot_numero || invoice.ot}
                                     </Link>
@@ -311,7 +311,7 @@ export default function SalesInvoiceDetailPage() {
                             {invoice.tipo_operacion === "nacional" && (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">
+                                        <p className="text-sm font-medium text-muted-foreground">
                                             Subtotal Gravado
                                         </p>
                                         <p className="text-base font-semibold">
@@ -321,7 +321,7 @@ export default function SalesInvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">
+                                        <p className="text-sm font-medium text-muted-foreground">
                                             Subtotal Exento
                                         </p>
                                         <p className="text-base font-semibold">
@@ -331,7 +331,7 @@ export default function SalesInvoiceDetailPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">
+                                        <p className="text-sm font-medium text-muted-foreground">
                                             IVA (13%)
                                         </p>
                                         <p className="text-base font-semibold">
@@ -348,10 +348,10 @@ export default function SalesInvoiceDetailPage() {
                                 }
                             >
                                 <div className="flex justify-between items-center">
-                                    <p className="text-sm font-medium text-gray-500">
+                                    <p className="text-sm font-medium text-muted-foreground">
                                         Monto Total
                                     </p>
-                                    <p className="text-lg font-bold text-gray-900">
+                                    <p className="text-lg font-bold text-foreground">
                                         {formatCurrency(invoice.monto_total)}
                                     </p>
                                 </div>
@@ -389,7 +389,7 @@ export default function SalesInvoiceDetailPage() {
                                             </p>
                                         </div>
                                     )}
-                                    <div className="border-t pt-2 mt-2 flex justify-between items-center bg-blue-50 p-3 rounded-lg">
+                                    <div className="border-t pt-2 mt-2 flex justify-between items-center bg-primary/10 p-3 rounded-lg">
                                         <p className="text-sm font-bold text-blue-700">
                                             Valor a Cobrar
                                         </p>
@@ -433,45 +433,45 @@ export default function SalesInvoiceDetailPage() {
                                 <div className="space-y-4">
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                            <thead className="bg-muted border-b border-border">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Número NC
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Fecha
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Monto
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Motivo
                                                     </th>
-                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                                         Archivo
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
+                                            <tbody className="bg-card divide-y divide-border">
                                                 {creditNotes.map((cn) => (
                                                     <tr key={cn.id}>
-                                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                        <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                             {
                                                                 cn.numero_nota_credito
                                                             }
                                                         </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-500">
+                                                        <td className="px-4 py-3 text-sm text-muted-foreground">
                                                             {formatDate(
                                                                 cn.fecha_emision
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 text-sm font-medium text-red-600">
+                                                        <td className="px-4 py-3 text-sm font-medium text-destructive">
                                                             -
                                                             {formatCurrency(
                                                                 cn.monto
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">
+                                                        <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                                                             {cn.motivo}
                                                         </td>
                                                         <td className="px-4 py-3">
@@ -483,7 +483,7 @@ export default function SalesInvoiceDetailPage() {
                                                                         }
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="text-blue-600 hover:text-blue-800"
+                                                                        className="text-primary hover:text-blue-800"
                                                                     >
                                                                         <Eye className="h-5 w-5" />
                                                                     </a>
@@ -541,8 +541,8 @@ export default function SalesInvoiceDetailPage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                                     <p className="text-sm">
                                         No hay notas de crédito asociadas
                                     </p>
@@ -577,41 +577,41 @@ export default function SalesInvoiceDetailPage() {
                                 <CardContent>
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                            <thead className="bg-muted border-b border-border">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Factura
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Proveedor
                                                     </th>
-                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                         Monto Asignado
                                                     </th>
-                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                                                         Acciones
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
+                                            <tbody className="bg-card divide-y divide-border">
                                                 {invoice.cost_mappings.map(
                                                     (mapping) => (
                                                         <tr key={mapping.id}>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                            <td className="px-4 py-3 text-sm text-foreground">
                                                                 <Link
                                                                     to={`/invoices/${mapping.cost_invoice}`}
-                                                                    className="text-blue-600 hover:text-blue-800"
+                                                                    className="text-primary hover:text-blue-800"
                                                                 >
                                                                     {mapping.cost_invoice_numero ||
                                                                         mapping.cost_invoice}
                                                                 </Link>
                                                             </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-500">
+                                                            <td className="px-4 py-3 text-sm text-muted-foreground">
                                                                 {
                                                                     mapping.proveedor_nombre
                                                                 }
                                                             </td>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                            <td className="px-4 py-3 text-sm text-foreground">
                                                                 {formatCurrency(
                                                                     mapping.monto_asignado
                                                                 )}
@@ -625,7 +625,7 @@ export default function SalesInvoiceDetailPage() {
                                                                             }
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className="text-blue-600 hover:text-blue-800"
+                                                                            className="text-primary hover:text-blue-800"
                                                                         >
                                                                             <Eye className="h-5 w-5" />
                                                                         </a>
@@ -659,7 +659,7 @@ export default function SalesInvoiceDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Estado Facturación
                                 </p>
                                 <dd className="mt-1">
@@ -670,7 +670,7 @@ export default function SalesInvoiceDetailPage() {
                                 </dd>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     Estado Pago
                                 </p>
                                 <dd className="mt-1">
@@ -699,36 +699,36 @@ export default function SalesInvoiceDetailPage() {
                             <CardContent>
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
+                                        <thead className="bg-muted border-b border-border">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                     Fecha
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                     Monto
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                     Método
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                                     Estado
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-card divide-y divide-border">
                                             {payments.results.map((payment) => (
                                                 <tr key={payment.id}>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">
+                                                    <td className="px-4 py-3 text-sm text-foreground">
                                                         {formatDate(
                                                             payment.fecha_pago
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                         {formatCurrency(
                                                             payment.monto
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {payment.metodo_pago}
                                                     </td>
                                                     <td className="px-4 py-3">
@@ -754,7 +754,7 @@ export default function SalesInvoiceDetailPage() {
                             </CardContent>
                         ) : (
                             <CardContent>
-                                <p className="text-sm text-gray-500 text-center py-4">
+                                <p className="text-sm text-muted-foreground text-center py-4">
                                     No hay pagos registrados.
                                 </p>
                             </CardContent>
@@ -778,14 +778,14 @@ export default function SalesInvoiceDetailPage() {
                                                         key={si.id}
                                                         to={`/sales/invoices/${si.id}`}
                                                     >
-                                                        <div className="flex items-center justify-between p-2 border rounded-md hover:bg-gray-50">
+                                                        <div className="flex items-center justify-between p-2 border rounded-md hover:bg-muted">
                                                             <div>
                                                                 <p className="font-medium">
                                                                     {
                                                                         si.numero_factura
                                                                     }
                                                                 </p>
-                                                                <p className="text-sm text-gray-500">
+                                                                <p className="text-sm text-muted-foreground">
                                                                     {formatDate(
                                                                         si.fecha_emision
                                                                     )}
@@ -825,7 +825,7 @@ export default function SalesInvoiceDetailPage() {
                                 <CardTitle>Notas</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                <p className="text-sm text-foreground whitespace-pre-wrap">
                                     {invoice.notas}
                                 </p>
                             </CardContent>
