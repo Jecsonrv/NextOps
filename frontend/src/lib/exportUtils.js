@@ -37,7 +37,7 @@ export function exportOTsToExcel(ots, filename = "OTs") {
         "ETA Confirmada": formatDate(ot.fecha_llegada),
         "House BLs": Array.isArray(ot.house_bls)
             ? ot.house_bls.join(", ")
-            : (ot.house_bls || ""),
+            : ot.house_bls || "",
         "Estado Provisión": ot.estado_provision?.toUpperCase() || "",
         "Estado Facturado": ot.estado_facturado?.toUpperCase() || "",
         "Express Release": formatDate(ot.express_release_fecha),
@@ -246,7 +246,7 @@ export function exportOTDetailToExcel(ot) {
     // Generar archivo
     XLSX.writeFile(
         wb,
-        `OT_${ot.numero_ot}_${new Date().toISOString().split("T")[0]}.xlsx`
+        `OT_${ot.numero_ot}_${new Date().toISOString().split("T")[0]}.xlsx`,
     );
 }
 
@@ -395,79 +395,208 @@ export function downloadImportTemplate() {
  * Exportar lista de Facturas a un archivo Excel
  * @param {Array} invoices - Array de objetos Invoice
  * @param {string} filename - Nombre del archivo (sin extensión)
+ * @param {Object} options - Metadatos opcionales de exportación
  */
-export function exportInvoicesToExcel(invoices, filename = "Facturas") {
+export function exportInvoicesToExcel(
+    invoices,
+    filename = "Facturas",
+    options = {},
+) {
     if (!invoices || invoices.length === 0) {
         toast.error("No hay datos para exportar");
         return;
     }
 
-    // Preparar datos para exportar - TODOS LOS CAMPOS
-    const exportData = invoices.map((invoice) => ({
-        "ID": invoice.id,
-        "Número Factura": invoice.numero_factura || "",
-        "OT": invoice.ot_data?.numero_ot || "",
-        "Cliente": invoice.ot_data?.cliente || "",
-        "Operativo": invoice.ot_data?.operativo || "",
-        "MBL": invoice.ot_data?.mbl || "",
-        "HBL": invoice.ot_data?.house_bls ?
-            (Array.isArray(invoice.ot_data.house_bls) ? invoice.ot_data.house_bls.join(", ") : invoice.ot_data.house_bls) : "",
-        "Naviera": invoice.ot_data?.naviera || "",
-        "Barco": invoice.ot_data?.barco || "",
-        "Contenedores": invoice.ot_data?.contenedores_list || "",
-        "Proveedor": invoice.proveedor_data?.nombre || invoice.proveedor_nombre || "",
-        "Tipo Proveedor": invoice.proveedor_data?.tipo_display || "",
-        "Tipo Costo": invoice.tipo_costo_display || "",
-        "Estado Provisión": invoice.estado_provision_display || "",
-        "Requiere Revisión": invoice.requiere_revision ? "SÍ" : "NO",
-        "Tiene Disputas": invoice.has_disputes ? "SÍ" : "NO",
-        "Tiene NC": invoice.has_credit_notes ? "SÍ" : "NO",
-        "Monto": invoice.monto || 0,
-        "Monto Aplicable": invoice.monto_aplicable || invoice.monto || 0,
-        "Moneda": invoice.moneda || "USD",
-        "Fecha Emisión": formatDate(invoice.fecha_emision),
-        "Fecha Vencimiento": formatDate(invoice.fecha_vencimiento),
-        "Fecha Provisión": formatDate(invoice.fecha_provision),
-        "Fecha Facturación": formatDate(invoice.fecha_facturacion),
-        "Observaciones": invoice.observaciones || "",
-        "Creado": formatDate(invoice.created_at),
-        "Actualizado": formatDate(invoice.updated_at),
-    }));
+    const tabLabelMap = {
+        all: "Todas",
+        pendientes: "Pendientes",
+        provisionadas: "Provisionadas",
+        pagadas: "Pagadas",
+        disputadas: "Disputadas",
+        anuladas: "Anuladas",
+    };
 
-    // Crear worksheet
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const activeTabLabel = tabLabelMap[options.tab] || "Todas";
+    const searchTerm = options.search?.trim() || "";
+    const filters = options.filters || {};
+
+    const appliedFiltersSummary = [
+        filters.estado_provision && `Estado Prov.: ${filters.estado_provision}`,
+        filters.estado_facturacion &&
+            `Estado Fact.: ${filters.estado_facturacion}`,
+        filters.estado_pago && `Estado Pago: ${filters.estado_pago}`,
+        filters.excluir_pagadas && "Excluir pagadas: Sí",
+        filters.tipo_costo && `Tipo costo: ${filters.tipo_costo}`,
+        filters.proveedor && `Proveedor ID: ${filters.proveedor}`,
+        filters.operativo && `Operativo: ${filters.operativo}`,
+        filters.fecha_desde && `Desde: ${filters.fecha_desde}`,
+        filters.fecha_hasta && `Hasta: ${filters.fecha_hasta}`,
+    ]
+        .filter(Boolean)
+        .join(" | ");
+
+    const headers = [
+        "Operativo",
+        "OT",
+        "Cliente",
+        "MBL",
+        "Contenedores",
+        "Proveedor",
+        "Número Factura",
+        "Tipo Costo",
+        "Monto",
+        "Fecha Provisión",
+        "Fecha Facturación",
+        "Moneda",
+        "Estado Provisión",
+        "Estado Facturación",
+        "Estado Pago",
+        "Fecha Emisión",
+        "Fecha Vencimiento",
+        "Naviera",
+        "Barco",
+        "HBL",
+        "Tipo Proveedor",
+        "Tiene Disputas",
+        "Tiene NC",
+        "Requiere Revisión",
+        "Observaciones",
+    ];
+
+    const rows = invoices.map((invoice) => [
+        invoice.ot_data?.operativo || "",
+        invoice.ot_data?.numero_ot || "",
+        invoice.ot_data?.cliente || "",
+        invoice.ot_data?.mbl || "",
+        invoice.ot_data?.contenedores_list || "",
+        invoice.proveedor_data?.nombre || invoice.proveedor_nombre || "",
+        invoice.numero_factura || "",
+        invoice.tipo_costo_display || "",
+        Number(invoice.monto || 0),
+        formatDate(invoice.fecha_provision),
+        formatDate(invoice.fecha_facturacion),
+        invoice.moneda || "USD",
+        invoice.estado_provision_display || "",
+        invoice.estado_facturacion_display || "",
+        invoice.estado_pago_display || "",
+        formatDate(invoice.fecha_emision),
+        formatDate(invoice.fecha_vencimiento),
+        invoice.ot_data?.naviera || "",
+        invoice.ot_data?.barco || "",
+        invoice.ot_data?.house_bls
+            ? Array.isArray(invoice.ot_data.house_bls)
+                ? invoice.ot_data.house_bls.join(", ")
+                : invoice.ot_data.house_bls
+            : "",
+        invoice.proveedor_data?.tipo_display || "",
+        invoice.has_disputes ? "SÍ" : "NO",
+        invoice.has_credit_notes ? "SÍ" : "NO",
+        invoice.requiere_revision ? "SÍ" : "NO",
+        invoice.observaciones || "",
+    ]);
+
+    const aoaData = [
+        ["REPORTE DE FACTURAS DE COSTO"],
+        [
+            `Pestaña: ${activeTabLabel} | Registros: ${invoices.length}${searchTerm ? ` | Búsqueda: ${searchTerm}` : ""}`,
+        ],
+        [appliedFiltersSummary || "Filtros aplicados: Ninguno"],
+        [],
+        headers,
+        ...rows,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoaData);
+
+    ws["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } },
+    ];
 
     // Ajustar ancho de columnas
     const columnWidths = [
-        { wch: 8 },   // ID
-        { wch: 20 },  // Número Factura
-        { wch: 15 },  // OT
-        { wch: 30 },  // Cliente
-        { wch: 20 },  // Operativo
-        { wch: 20 },  // MBL
-        { wch: 35 },  // HBL
-        { wch: 25 },  // Naviera
-        { wch: 25 },  // Barco
-        { wch: 40 },  // Contenedores
-        { wch: 30 },  // Proveedor
-        { wch: 18 },  // Tipo Proveedor
-        { wch: 18 },  // Tipo Costo
-        { wch: 18 },  // Estado Provisión
-        { wch: 15 },  // Requiere Revisión
-        { wch: 15 },  // Tiene Disputas
-        { wch: 12 },  // Tiene NC
-        { wch: 15 },  // Monto
-        { wch: 15 },  // Monto Aplicable
-        { wch: 10 },  // Moneda
-        { wch: 15 },  // Fecha Emisión
-        { wch: 18 },  // Fecha Vencimiento
-        { wch: 15 },  // Fecha Provisión
-        { wch: 18 },  // Fecha Facturación
-        { wch: 40 },  // Observaciones
-        { wch: 18 },  // Creado
-        { wch: 18 },  // Actualizado
+        { wch: 18 }, // Operativo
+        { wch: 14 }, // OT
+        { wch: 28 }, // Cliente
+        { wch: 18 }, // MBL
+        { wch: 40 }, // Contenedores
+        { wch: 28 }, // Proveedor
+        { wch: 18 }, // Número Factura
+        { wch: 18 }, // Tipo Costo
+        { wch: 14 }, // Monto
+        { wch: 16 }, // Fecha Provisión
+        { wch: 16 }, // Fecha Facturación
+        { wch: 10 }, // Moneda
+        { wch: 18 }, // Estado Provisión
+        { wch: 18 }, // Estado Facturación
+        { wch: 14 }, // Estado Pago
+        { wch: 16 }, // Fecha Emisión
+        { wch: 16 }, // Fecha Vencimiento
+        { wch: 24 }, // Naviera
+        { wch: 24 }, // Barco
+        { wch: 30 }, // HBL
+        { wch: 18 }, // Tipo Proveedor
+        { wch: 12 }, // Tiene Disputas
+        { wch: 10 }, // Tiene NC
+        { wch: 16 }, // Requiere Revisión
+        { wch: 40 }, // Observaciones
     ];
     ws["!cols"] = columnWidths;
+
+    // Filtro y congelado visual
+    ws["!autofilter"] = {
+        ref: XLSX.utils.encode_range({
+            s: { r: 4, c: 0 },
+            e: { r: 4 + rows.length, c: headers.length - 1 },
+        }),
+    };
+    ws["!freeze"] = { xSplit: 0, ySplit: 5 };
+
+    // Estilos básicos (si la librería instalada soporta estilos)
+    const titleCell = ws[XLSX.utils.encode_cell({ r: 0, c: 0 })];
+    if (titleCell) {
+        titleCell.s = {
+            font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "1E40AF" } },
+            alignment: { horizontal: "left", vertical: "center" },
+        };
+    }
+    const subtitleCell = ws[XLSX.utils.encode_cell({ r: 1, c: 0 })];
+    if (subtitleCell) {
+        subtitleCell.s = {
+            font: { sz: 11, color: { rgb: "0F172A" } },
+            fill: { fgColor: { rgb: "DBEAFE" } },
+            alignment: { horizontal: "left", vertical: "center" },
+        };
+    }
+    const filtersCell = ws[XLSX.utils.encode_cell({ r: 2, c: 0 })];
+    if (filtersCell) {
+        filtersCell.s = {
+            font: { sz: 10, color: { rgb: "334155" } },
+            fill: { fgColor: { rgb: "EFF6FF" } },
+            alignment: {
+                horizontal: "left",
+                vertical: "center",
+                wrapText: true,
+            },
+        };
+    }
+
+    headers.forEach((_, colIndex) => {
+        const cell = ws[XLSX.utils.encode_cell({ r: 4, c: colIndex })];
+        if (cell) {
+            cell.s = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "0F172A" } },
+                alignment: {
+                    horizontal: "center",
+                    vertical: "center",
+                    wrapText: true,
+                },
+            };
+        }
+    });
 
     // Crear workbook
     const wb = XLSX.utils.book_new();

@@ -291,24 +291,31 @@ export function InvoicesPage() {
         },
     });
 
-    // Helper para construir parámetros de filtro
+    // Helper para construir parámetros de filtro (incluye pestaña activa)
     const buildFilterParams = () => {
+        const tabFilters = getFiltersForTab();
         const params = new URLSearchParams({
             ...(search && { search }),
-            ...(filters.estado_provision && {
-                estado_provision: filters.estado_provision,
+            ...(tabFilters.estado_provision && {
+                estado_provision: tabFilters.estado_provision,
             }),
-            ...(filters.estado_facturacion && {
-                estado_facturacion: filters.estado_facturacion,
+            ...(tabFilters.estado_facturacion && {
+                estado_facturacion: tabFilters.estado_facturacion,
             }),
-            ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
-            ...(filters.proveedor && { proveedor: filters.proveedor }),
-            ...(filters.operativo && { operativo: filters.operativo }),
-            ...(filters.fecha_desde && {
-                fecha_desde: filters.fecha_desde,
+            ...(tabFilters.estado_pago && {
+                estado_pago: tabFilters.estado_pago,
             }),
-            ...(filters.fecha_hasta && {
-                fecha_hasta: filters.fecha_hasta,
+            ...(tabFilters.excluir_pagadas && {
+                excluir_pagadas: tabFilters.excluir_pagadas,
+            }),
+            ...(tabFilters.tipo_costo && { tipo_costo: tabFilters.tipo_costo }),
+            ...(tabFilters.proveedor && { proveedor: tabFilters.proveedor }),
+            ...(tabFilters.operativo && { operativo: tabFilters.operativo }),
+            ...(tabFilters.fecha_desde && {
+                fecha_desde: tabFilters.fecha_desde,
+            }),
+            ...(tabFilters.fecha_hasta && {
+                fecha_hasta: tabFilters.fecha_hasta,
             }),
         });
         return params.toString();
@@ -365,7 +372,11 @@ export function InvoicesPage() {
 
             // Exportar todos los datos
             toast.loading("Generando archivo Excel...", { id: "export-toast" });
-            exportInvoicesToExcel(allInvoices, "Facturas_Export");
+            exportInvoicesToExcel(allInvoices, "Facturas_Export", {
+                tab: activeTab,
+                search,
+                filters: getFiltersForTab(),
+            });
 
             toast.success(
                 `Se exportaron ${allInvoices.length} factura${

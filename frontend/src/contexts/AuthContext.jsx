@@ -31,11 +31,11 @@ export const AuthProvider = ({ children = null }) => {
         }
     };
 
-    const login = async (email, password) => {
+    const login = async (username, password) => {
         try {
-            // Backend expects 'username' field, but we use email as username
+            // Backend expects 'username' field
             const { data } = await apiClient.post("/token/", {
-                username: email, // Send email as username
+                username,
                 password,
             });
 

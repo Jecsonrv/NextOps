@@ -12,7 +12,7 @@ import {
 } from "../components/ui/Card";
 
 export function LoginPage() {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -25,13 +25,14 @@ export function LoginPage() {
         setLoading(true);
 
         try {
-            await login(email, password);
+            await login(username, password);
             navigate("/");
         } catch (err) {
             console.error("Login error:", err);
 
             // Manejar diferentes tipos de errores con mensajes amigables
-            let errorMsg = "Error al iniciar sesión. Por favor, intenta nuevamente.";
+            let errorMsg =
+                "Error al iniciar sesión. Por favor, intenta nuevamente.";
 
             if (err.response) {
                 const status = err.response.status;
@@ -39,7 +40,8 @@ export function LoginPage() {
 
                 if (status === 401) {
                     // Credenciales incorrectas
-                    errorMsg = "Usuario o contraseña incorrectos. Por favor, verifica tus credenciales.";
+                    errorMsg =
+                        "Usuario o contraseña incorrectos. Por favor, verifica tus credenciales.";
                 } else if (status === 400) {
                     // Error de validación
                     if (data.detail) {
@@ -53,14 +55,17 @@ export function LoginPage() {
                     }
                 } else if (status >= 500) {
                     // Error del servidor
-                    errorMsg = "Error en el servidor. Por favor, contacta al administrador del sistema.";
+                    errorMsg =
+                        "Error en el servidor. Por favor, contacta al administrador del sistema.";
                 } else if (status === 403) {
                     // Usuario inactivo o sin permisos
-                    errorMsg = "Tu cuenta está inactiva. Contacta al administrador.";
+                    errorMsg =
+                        "Tu cuenta está inactiva. Contacta al administrador.";
                 }
             } else if (err.request) {
                 // No se recibió respuesta del servidor
-                errorMsg = "No se pudo conectar con el servidor. Verifica tu conexión a internet.";
+                errorMsg =
+                    "No se pudo conectar con el servidor. Verifica tu conexión a internet.";
             }
 
             setError(errorMsg);
@@ -94,17 +99,17 @@ export function LoginPage() {
 
                         <div className="space-y-2">
                             <label
-                                htmlFor="email"
+                                htmlFor="username"
                                 className="text-sm font-medium text-foreground"
                             >
-                                Usuario o Email
+                                Usuario
                             </label>
                             <Input
-                                id="email"
+                                id="username"
                                 type="text"
-                                placeholder="Ingresa tu usuario o email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Ingresa tu usuario"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
                                 disabled={loading}
                                 autoComplete="username"
