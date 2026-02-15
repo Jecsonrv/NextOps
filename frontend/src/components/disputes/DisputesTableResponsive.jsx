@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -23,20 +23,25 @@ const resultadoBadgeVariant = {
  * Tabla responsiva de Disputas
  * Diseño limpio y organizado con toda la información relevante
  */
-export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId }) {
+export function DisputesTableResponsive({
+    disputes,
+    onEdit,
+    onDelete,
+    deletingId,
+}) {
     const navigate = useNavigate();
 
     const handleRowClick = (e, disputeId) => {
         // No navegar si se hizo click en un botón o link
-        if (e.target.closest('button') || e.target.closest('a')) {
+        if (e.target.closest("button") || e.target.closest("a")) {
             return;
         }
         navigate(`/disputes/${disputeId}`);
     };
 
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm border-separate border-spacing-0">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full min-w-[1080px] text-sm border-separate border-spacing-0">
                 <thead>
                     <tr className="bg-muted">
                         <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
@@ -66,18 +71,18 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                     </tr>
                 </thead>
 
-                <tbody className="bg-white">
+                <tbody className="bg-card">
                     {disputes.map((dispute) => (
                         <tr
                             key={dispute.id}
                             onClick={(e) => handleRowClick(e, dispute.id)}
-                            className="hover:bg-primary/10 transition-colors cursor-pointer"
+                            className="group cursor-pointer transition-colors hover:bg-primary/10"
                         >
                             {/* CASO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <Link
                                     to={`/disputes/${dispute.id}`}
-                                    className="font-semibold text-sm text-primary hover:text-blue-800"
+                                    className="font-semibold text-sm text-primary hover:text-primary/80"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {dispute.numero_caso}
@@ -85,58 +90,85 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* TIPO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <Badge
                                     variant={
-                                        dispute.tipo_disputa === 'servicio_no_prestado' ? 'destructive' :
-                                        dispute.tipo_disputa === 'monto_incorrecto' ? 'destructive' :
-                                        dispute.tipo_disputa === 'otro' ? 'secondary' :
-                                        'warning'
+                                        dispute.tipo_disputa ===
+                                        "servicio_no_prestado"
+                                            ? "destructive"
+                                            : dispute.tipo_disputa ===
+                                                "monto_incorrecto"
+                                              ? "destructive"
+                                              : dispute.tipo_disputa === "otro"
+                                                ? "secondary"
+                                                : "warning"
                                     }
                                     className="text-xs"
                                 >
-                                    {dispute.tipo_disputa === 'servicio_no_prestado' ? 'Serv. No Prestado' :
-                                     dispute.tipo_disputa === 'monto_incorrecto' ? 'Monto Incorrecto' :
-                                     dispute.tipo_disputa === 'almacenaje_no_aplica' ? 'Almacenaje N/A' :
-                                     dispute.tipo_disputa === 'dias_libres_incorrectos' ? 'Días Libres' :
-                                     dispute.tipo_disputa === 'demoras_no_aplican' ? 'Demoras N/A' :
-                                     'Otro'}
+                                    {dispute.tipo_disputa ===
+                                    "servicio_no_prestado"
+                                        ? "Serv. No Prestado"
+                                        : dispute.tipo_disputa ===
+                                            "monto_incorrecto"
+                                          ? "Monto Incorrecto"
+                                          : dispute.tipo_disputa ===
+                                              "almacenaje_no_aplica"
+                                            ? "Almacenaje N/A"
+                                            : dispute.tipo_disputa ===
+                                                "dias_libres_incorrectos"
+                                              ? "Días Libres"
+                                              : dispute.tipo_disputa ===
+                                                  "demoras_no_aplican"
+                                                ? "Demoras N/A"
+                                                : "Otro"}
                                 </Badge>
                             </td>
 
                             {/* ESTADO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <div className="flex flex-col gap-1">
                                     <Badge
-                                        variant={estadoBadgeVariant[dispute.estado]}
+                                        variant={
+                                            estadoBadgeVariant[dispute.estado]
+                                        }
                                         className="text-xs w-fit"
                                     >
                                         {dispute.estado_display}
                                     </Badge>
-                                    {dispute.resultado && dispute.resultado !== 'pendiente' && (
-                                        <Badge
-                                            variant={resultadoBadgeVariant[dispute.resultado]}
-                                            className="text-xs w-fit"
-                                        >
-                                            {dispute.resultado_display}
-                                        </Badge>
-                                    )}
+                                    {dispute.resultado &&
+                                        dispute.resultado !== "pendiente" && (
+                                            <Badge
+                                                variant={
+                                                    resultadoBadgeVariant[
+                                                        dispute.resultado
+                                                    ]
+                                                }
+                                                className="text-xs w-fit"
+                                            >
+                                                {dispute.resultado_display}
+                                            </Badge>
+                                        )}
                                 </div>
                             </td>
 
                             {/* FACTURA/OT */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <div className="flex flex-col gap-1">
                                     {dispute.invoice_data ? (
                                         <Link
                                             to={`/invoices/${dispute.invoice_data.id}`}
-                                            className="text-primary hover:text-blue-800 font-medium text-sm"
+                                            className="text-primary hover:text-primary/80 font-medium text-sm"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            {dispute.invoice_data.numero_factura}
+                                            {
+                                                dispute.invoice_data
+                                                    .numero_factura
+                                            }
                                         </Link>
                                     ) : (
-                                        <span className="text-muted-foreground text-sm">Sin factura</span>
+                                        <span className="text-muted-foreground text-sm">
+                                            Sin factura
+                                        </span>
                                     )}
                                     {dispute.ot_data && (
                                         <Link
@@ -151,46 +183,59 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                             </td>
 
                             {/* PROVEEDOR / OPERATIVO */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <div className="text-sm">
                                     <p className="font-medium text-foreground">
-                                        {dispute.invoice_data?.proveedor_nombre || "-"}
+                                        {dispute.invoice_data
+                                            ?.proveedor_nombre || "-"}
                                     </p>
-                                    {(dispute.operativo || dispute.ot_data?.operativo) && (
+                                    {(dispute.operativo ||
+                                        dispute.ot_data?.operativo) && (
                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                            {dispute.operativo || dispute.ot_data?.operativo}
+                                            {dispute.operativo ||
+                                                dispute.ot_data?.operativo}
                                         </p>
                                     )}
                                 </div>
                             </td>
 
                             {/* MONTO DISPUTA */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <div className="text-right">
                                     <div className="text-sm font-semibold text-destructive">
-                                        ${dispute.monto_disputa?.toLocaleString("es-MX", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
+                                        $
+                                        {dispute.monto_disputa?.toLocaleString(
+                                            "es-MX",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            },
+                                        )}
                                     </div>
                                     {dispute.invoice_data?.monto && (
                                         <div className="text-xs text-muted-foreground">
-                                            de ${dispute.invoice_data.monto.toLocaleString("es-MX", {
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 0
-                                            })}
+                                            de $
+                                            {dispute.invoice_data.monto.toLocaleString(
+                                                "es-MX",
+                                                {
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0,
+                                                },
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             </td>
 
                             {/* FECHA */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10 text-sm text-muted-foreground">
-                                {new Date(dispute.created_at).toLocaleDateString("es-MX")}
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10 text-sm text-muted-foreground whitespace-nowrap">
+                                {new Date(
+                                    dispute.created_at,
+                                ).toLocaleDateString("es-MX")}
                             </td>
 
                             {/* ACCIONES */}
-                            <td className="px-3 sm:px-4 py-3 border-b border-border bg-white hover:bg-primary/10">
+                            <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                 <div className="flex justify-end gap-1">
                                     <Button
                                         variant="ghost"
@@ -227,7 +272,9 @@ export function DisputesTableResponsive({ disputes, onEdit, onDelete, deletingId
                                         className="h-8 w-8"
                                         disabled={deletingId === dispute.id}
                                     >
-                                        <Trash2 className={`w-4 h-4 ${deletingId === dispute.id ? 'text-muted-foreground' : 'text-destructive'}`} />
+                                        <Trash2
+                                            className={`w-4 h-4 ${deletingId === dispute.id ? "text-muted-foreground" : "text-destructive"}`}
+                                        />
                                     </Button>
                                 </div>
                             </td>
@@ -255,7 +302,7 @@ DisputesTableResponsive.propTypes = {
             created_at: PropTypes.string,
             invoice_data: PropTypes.object,
             ot_data: PropTypes.object,
-        })
+        }),
     ).isRequired,
     onEdit: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,

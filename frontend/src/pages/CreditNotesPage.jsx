@@ -356,8 +356,8 @@ export function CreditNotesPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm border-separate border-spacing-0">
+                            <div className="overflow-x-auto -mx-4 sm:mx-0">
+                                <table className="w-full min-w-[1020px] text-sm border-separate border-spacing-0">
                                     <thead>
                                         <tr className="bg-muted">
                                             <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border bg-muted whitespace-nowrap">
@@ -387,15 +387,15 @@ export function CreditNotesPage() {
                                         {data?.results?.map((cn) => (
                                             <tr
                                                 key={cn.id}
-                                                className="hover:bg-primary/10 transition-colors cursor-pointer"
+                                                className="group cursor-pointer transition-colors hover:bg-primary/10"
                                                 onClick={() =>
                                                     handleViewDetail(cn.id)
                                                 }
                                             >
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                                     <Link
                                                         to={`/invoices/credit-notes/${cn.id}`}
-                                                        className="font-semibold text-sm text-primary hover:text-blue-800"
+                                                        className="font-semibold text-sm text-primary hover:text-primary/80"
                                                         onClick={(e) =>
                                                             e.stopPropagation()
                                                         }
@@ -403,7 +403,7 @@ export function CreditNotesPage() {
                                                         {cn.numero_nota}
                                                     </Link>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                                     <div className="text-sm">
                                                         <p className="font-medium text-foreground">
                                                             {
@@ -422,13 +422,13 @@ export function CreditNotesPage() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                                     <div className="text-sm space-y-1">
                                                         {cn.invoice_data
                                                             ?.numero_factura ? (
                                                             <Link
                                                                 to={`/invoices/${cn.invoice_data.id}`}
-                                                                className="text-primary hover:text-blue-800 font-medium block"
+                                                                className="text-primary hover:text-primary/80 font-medium block"
                                                                 onClick={(e) =>
                                                                     e.stopPropagation()
                                                                 }
@@ -462,12 +462,12 @@ export function CreditNotesPage() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10 text-sm text-muted-foreground">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10 text-sm text-muted-foreground whitespace-nowrap">
                                                     {formatDate(
                                                         cn.fecha_emision,
                                                     )}
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10 text-right">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10 text-right">
                                                     <span className="font-semibold text-destructive text-sm">
                                                         -$
                                                         {Math.abs(
@@ -483,7 +483,7 @@ export function CreditNotesPage() {
                                                         )}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                                     <span
                                                         className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
                                                             cn.estado ===
@@ -507,7 +507,7 @@ export function CreditNotesPage() {
                                                             cn.estado}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 sm:px-4 py-3 border-b border-border bg-card hover:bg-primary/10">
+                                                <td className="px-3 sm:px-4 py-3 border-b border-border group-hover:bg-primary/10">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"

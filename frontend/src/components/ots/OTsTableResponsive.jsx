@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -36,9 +36,9 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
     const navigate = useNavigate();
 
     return (
-        <div className="overflow-x-auto -mx-3 sm:mx-0 relative">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 relative">
             <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full text-sm border-separate border-spacing-0">
+                <table className="min-w-[1200px] text-sm border-separate border-spacing-0">
                     <thead>
                         <tr className="bg-muted">
                             {/* OT - fija */}
@@ -88,23 +88,27 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                         </tr>
                     </thead>
 
-                    <tbody className="bg-white">
+                    <tbody className="bg-card">
                         {ots.map((ot) => (
                             <tr
                                 key={ot.id}
-                                className="hover:bg-primary/10 transition-colors"
+                                className="group transition-colors hover:bg-primary/10"
                             >
                                 {/* OT - fija */}
-                                <td className="sticky left-0 z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-0 z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                         <Link
                                             to={`/ots/${ot.id}`}
-                                            className="font-medium text-xs sm:text-sm text-primary hover:text-blue-800"
+                                            className="font-medium text-xs sm:text-sm text-primary hover:text-primary/80"
                                         >
                                             {ot.numero_ot}
                                         </Link>
-                                        {ot.tipo_operacion === "exportacion" && (
-                                            <Badge variant="warning" className="text-xs">
+                                        {ot.tipo_operacion ===
+                                            "exportacion" && (
+                                            <Badge
+                                                variant="warning"
+                                                className="text-xs"
+                                            >
                                                 EXP
                                             </Badge>
                                         )}
@@ -112,9 +116,11 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                 </td>
 
                                 {/* ESTATUS - fija */}
-                                <td className="sticky left-[100px] sm:left-[130px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[100px] sm:left-[130px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     <Badge
-                                        variant={estadoColors[ot.estado] || "default"}
+                                        variant={
+                                            estadoColors[ot.estado] || "default"
+                                        }
                                         className="text-xs"
                                     >
                                         {ot.estado_display}
@@ -122,17 +128,17 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                 </td>
 
                                 {/* OPERATIVO - fija */}
-                                <td className="sticky left-[200px] sm:left-[250px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[200px] sm:left-[250px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {ot.operativo || "-"}
                                 </td>
 
                                 {/* CLIENTE - fija */}
-                                <td className="sticky left-[300px] sm:left-[370px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[300px] sm:left-[370px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {ot.cliente_nombre || "-"}
                                 </td>
 
                                 {/* MBL - última fija */}
-                                <td className="sticky left-[420px] sm:left-[510px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                                <td className="sticky left-[420px] sm:left-[510px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                     {ot.mbl || "-"}
                                 </td>
 
@@ -162,7 +168,9 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => navigate(`/ots/${ot.id}`)}
+                                            onClick={() =>
+                                                navigate(`/ots/${ot.id}`)
+                                            }
                                             title="Ver detalle"
                                             className="h-8 w-8"
                                         >
@@ -171,7 +179,9 @@ export function OTsTableResponsive({ ots, onDelete, deletingId }) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => navigate(`/ots/${ot.id}/edit`)}
+                                            onClick={() =>
+                                                navigate(`/ots/${ot.id}/edit`)
+                                            }
                                             title="Editar"
                                             className="h-8 w-8"
                                         >

@@ -33,9 +33,9 @@ export function InvoicesTableResponsive({
     const navigate = useNavigate();
 
     return (
-        <div className="overflow-x-auto -mx-3 sm:mx-0 relative">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 relative">
             <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full text-sm border-separate border-spacing-0">
+                <table className="min-w-[1500px] text-sm border-separate border-spacing-0">
                     <thead>
                         <tr className="bg-muted">
                             {/* Checkbox - siempre fija */}
@@ -114,14 +114,14 @@ export function InvoicesTableResponsive({
                         </tr>
                     </thead>
 
-                    <tbody className="bg-white">
+                    <tbody className="bg-card">
                         {invoices.map((invoice) => (
                             <tr
                                 key={invoice.id}
-                                className="hover:bg-primary/10 transition-colors"
+                                className="group transition-colors hover:bg-primary/10"
                             >
                                 {/* Checkbox - fija */}
-                                <td className="sticky left-0 z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                <td className="sticky left-0 z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                     <input
                                         type="checkbox"
                                         checked={selectedInvoices.includes(
@@ -133,16 +133,16 @@ export function InvoicesTableResponsive({
                                 </td>
 
                                 {/* OPERATIVO - fija */}
-                                <td className="sticky left-[40px] sm:left-[52px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[40px] sm:left-[52px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.operativo || "-"}
                                 </td>
 
                                 {/* OT - fija */}
-                                <td className="sticky left-[120px] sm:left-[160px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[120px] sm:left-[160px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data ? (
                                         <Link
                                             to={`/ots/${invoice.ot_data.id}`}
-                                            className="text-primary hover:text-blue-800 font-medium text-xs sm:text-sm flex items-center gap-1"
+                                            className="text-primary hover:text-primary/80 font-medium text-xs sm:text-sm flex items-center gap-1"
                                         >
                                             <Link2 className="w-3.5 h-3.5" />
                                             {invoice.ot_data.numero_ot}
@@ -155,17 +155,17 @@ export function InvoicesTableResponsive({
                                 </td>
 
                                 {/* CLIENTE - fija */}
-                                <td className="sticky left-[220px] sm:left-[280px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[220px] sm:left-[280px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.cliente || "-"}
                                 </td>
 
                                 {/* MBL - fija */}
-                                <td className="sticky left-[340px] sm:left-[420px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
+                                <td className="sticky left-[340px] sm:left-[420px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm text-muted-foreground border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] whitespace-nowrap">
                                     {invoice.ot_data?.mbl || "-"}
                                 </td>
 
                                 {/* ESTADO - última fija */}
-                                <td className="sticky left-[440px] sm:left-[540px] z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
+                                <td className="sticky left-[440px] sm:left-[540px] z-10 bg-card group-hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 border-b border-r-2 border-border shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap">
                                     <div className="flex flex-col gap-1">
                                         <InvoiceStatusBadge invoice={invoice} />
                                         <div className="flex gap-1">
@@ -191,7 +191,7 @@ export function InvoicesTableResponsive({
                                 </td>
 
                                 <td className="px-3 py-2 sm:py-3 border-b border-border whitespace-nowrap">
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">
                                         <Ship className="w-3.5 h-3.5" />
                                         {invoice.proveedor_data?.tipo_display ||
                                             "-"}
@@ -209,7 +209,7 @@ export function InvoicesTableResponsive({
                                     <div className="flex items-center gap-1">
                                         <Link
                                             to={`/invoices/${invoice.id}`}
-                                            className="font-medium text-xs sm:text-sm text-primary hover:text-blue-800"
+                                            className="font-medium text-xs sm:text-sm text-primary hover:text-primary/80"
                                         >
                                             {invoice.numero_factura ||
                                                 "SIN-NUM"}
