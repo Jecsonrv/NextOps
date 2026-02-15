@@ -88,6 +88,7 @@ export function InvoicesPage() {
         estado_facturacion: "",
         tipo_costo: "",
         proveedor: "",
+        operativo: "",
         fecha_desde: "",
         fecha_hasta: "",
     });
@@ -244,6 +245,9 @@ export function InvoicesPage() {
                 ...(tabFilters.proveedor && {
                     proveedor: tabFilters.proveedor,
                 }),
+                ...(tabFilters.operativo && {
+                    operativo: tabFilters.operativo,
+                }),
                 ...(tabFilters.fecha_desde && {
                     fecha_emision_desde: tabFilters.fecha_desde,
                 }),
@@ -273,6 +277,7 @@ export function InvoicesPage() {
                 }),
                 ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
                 ...(filters.proveedor && { proveedor: filters.proveedor }),
+                ...(filters.operativo && { operativo: filters.operativo }),
                 ...(filters.fecha_desde && {
                     fecha_emision_desde: filters.fecha_desde,
                 }),
@@ -298,6 +303,7 @@ export function InvoicesPage() {
             }),
             ...(filters.tipo_costo && { tipo_costo: filters.tipo_costo }),
             ...(filters.proveedor && { proveedor: filters.proveedor }),
+            ...(filters.operativo && { operativo: filters.operativo }),
             ...(filters.fecha_desde && {
                 fecha_desde: filters.fecha_desde,
             }),
@@ -1236,6 +1242,43 @@ export function InvoicesPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-foreground mb-1">
+                                        Operativo
+                                    </label>
+                                    <select
+                                        value={filters.operativo}
+                                        onChange={(e) =>
+                                            setFilters({
+                                                ...filters,
+                                                operativo: e.target.value,
+                                            })
+                                        }
+                                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        disabled={filterValuesLoading}
+                                    >
+                                        <option value="">Todos</option>
+                                        {filterValues?.operativos?.map(
+                                            (operativo) => (
+                                                <option
+                                                    key={operativo}
+                                                    value={operativo}
+                                                >
+                                                    {operativo}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                    {!filterValuesLoading &&
+                                        (!filterValues?.operativos ||
+                                            filterValues.operativos.length ===
+                                                0) && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                No hay operativos con facturas
+                                            </p>
+                                        )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-1">
                                         Fecha Desde
                                     </label>
                                     <Input
@@ -1278,6 +1321,7 @@ export function InvoicesPage() {
                                             estado_facturacion: "",
                                             tipo_costo: "",
                                             proveedor: "",
+                                            operativo: "",
                                             fecha_desde: "",
                                             fecha_hasta: "",
                                         })

@@ -154,6 +154,7 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewset
         - estado_provision: pendiente, provisionada, rechazada
         - estado_facturacion: pendiente, facturada
         - estado_pago: pendiente, pagado_parcial, pagado_total
+        - operativo: nombre del operativo (exacto, case-insensitive)
         - requiere_revision: true, false
         - ot_number: número de OT
         - proveedor_nombre: búsqueda parcial por nombre
@@ -200,6 +201,11 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewset
         tipo_costo = self.request.query_params.get('tipo_costo')
         if tipo_costo:
             queryset = queryset.filter(tipo_costo=tipo_costo)
+
+        # Operativo (exacto, case-insensitive)
+        operativo = self.request.query_params.get('operativo')
+        if operativo:
+            queryset = queryset.filter(ot__operativo__iexact=operativo)
 
         # Proveedor (ID exacto)
         proveedor_id = self.request.query_params.get('proveedor')
@@ -832,7 +838,7 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewset
         """
         Obtener valores únicos de filtros basados en facturas existentes.
 
-        Retorna solo proveedores y tipos de costo que tienen facturas activas.
+        Retorna proveedores, tipos de costo y operativos que tienen facturas activas.
         Útil para poblar dropdowns de filtros dinámicamente.
         """
         # Usar queryset base sin filtros para obtener TODOS los valores posibles
@@ -862,6 +868,19 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewset
             is_deleted=False
         ).values('code', 'name').order_by('name')
 
+        # Operativos (únicos) provenientes de OTs relacionadas
+        operativos = sorted(
+            {
+                value.strip()
+                for value in base_queryset.exclude(
+                    ot__isnull=True
+                ).exclude(
+                    ot__operativo__isnull=True
+                ).values_list('ot__operativo', flat=True)
+                if value and value.strip()
+            }
+        )
+
         # Estados únicos (desde los choices del modelo)
         estados_provision = [
             {'value': code, 'label': label}
@@ -876,6 +895,7 @@ class InvoiceViewSet(RoleBasedFieldValidationMixin, CloudinaryFileMixin, viewset
         data = {
             'proveedores': list(proveedores),
             'tipos_costo': list(tipos_costo),
+            'operativos': operativos,
             'estados_provision': estados_provision,
             'estados_facturacion': estados_facturacion,
         }
