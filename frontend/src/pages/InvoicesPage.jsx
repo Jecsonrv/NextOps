@@ -1012,9 +1012,7 @@ export function InvoicesPage() {
                             {canImport && (
                                 <Button
                                     size="sm"
-                                    onClick={() =>
-                                        (window.location.href = "/invoices/new")
-                                    }
+                                    onClick={() => navigate("/invoices/new")}
                                     className="flex-1 sm:flex-none"
                                 >
                                     <Upload className="w-4 h-4 sm:mr-2" />

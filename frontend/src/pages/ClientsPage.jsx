@@ -28,6 +28,7 @@ import { Input } from "../components/ui/Input";
 import { NormalizationModal } from "../components/clients/NormalizationModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { showConfirm } from "../utils/toast";
+import { extractApiErrorMessage } from "../lib/errorMessages";
 import { InputDialog } from "../components/ui/InputDialog";
 import { StatCard } from "../components/common/StatCard";
 import {
@@ -230,7 +231,7 @@ function OverviewTab({
                         <div className="space-y-3 text-sm text-foreground">
                             <div className="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2">
                                 <span>Total de clientes</span>
-                                <span className="font-semibold text-blue-700">
+                                <span className="font-semibold text-primary">
                                     {totalAliases.toLocaleString("es-MX")}
                                 </span>
                             </div>
@@ -292,10 +293,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                 const similarity = Math.round(match.similarity_score || 0);
 
                 return (
-                    <Card
-                        key={match.id}
-                        className="border-yellow-200 bg-yellow-50/30"
-                    >
+                    <Card key={match.id} className="border-border bg-card">
                         <CardContent className="pt-6">
                             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                 <div className="flex-1 space-y-3">
@@ -344,7 +342,7 @@ function PendingTab({ matches, onApprove, onReject, isLoading }) {
                                         size="sm"
                                         onClick={() => onApprove(match)}
                                         disabled={isLoading}
-                                        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                                        className="flex-1 sm:flex-none"
                                     >
                                         <CheckCircle2 className="w-4 h-4 mr-2" />
                                         Aprobar
@@ -382,7 +380,7 @@ function ApprovedTab({ matches, isLoading }) {
             <Card>
                 <CardContent className="py-12">
                     <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         <p className="mt-2 text-sm text-muted-foreground">
                             Cargando...
                         </p>
@@ -417,10 +415,7 @@ function ApprovedTab({ matches, isLoading }) {
                 const targetAlias = match.alias_2?.original_name || "Cliente";
 
                 return (
-                    <Card
-                        key={match.id}
-                        className="border-green-200 bg-emerald-50/30"
-                    >
+                    <Card key={match.id} className="border-border bg-card">
                         <CardContent className="pt-6">
                             <div className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -508,7 +503,7 @@ function AllAliasesTab({
                 <CardContent>
                     {isLoading ? (
                         <div className="py-12 text-center text-sm text-muted-foreground">
-                            <div className="mx-auto mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                            <div className="mx-auto mb-3 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                             Cargando clientes...
                         </div>
                     ) : filteredAliases.length === 0 ? (
@@ -690,7 +685,9 @@ export default function ClientsPage() {
             setResultDialog({
                 isOpen: true,
                 title: "❌ Error",
-                message: error.response?.data?.error || error.message,
+                message: extractApiErrorMessage(error, {
+                    fallback: "No se pudo completar el análisis.",
+                }),
             });
         }
     };
@@ -745,7 +742,9 @@ export default function ClientsPage() {
             setResultDialog({
                 isOpen: true,
                 title: "❌ Error",
-                message: error.response?.data?.error || error.message,
+                message: extractApiErrorMessage(error, {
+                    fallback: "No se pudo rechazar la sugerencia.",
+                }),
             });
         }
     };
@@ -793,7 +792,9 @@ export default function ClientsPage() {
             setResultDialog({
                 isOpen: true,
                 title: "❌ Error",
-                message: error.response?.data?.error || error.message,
+                message: extractApiErrorMessage(error, {
+                    fallback: "No se pudo aplicar la normalización.",
+                }),
             });
         }
     };
@@ -840,7 +841,10 @@ export default function ClientsPage() {
             setResultDialog({
                 isOpen: true,
                 title: "❌ Error al Renombrar",
-                message: error.response?.data?.error || error.message,
+                message: extractApiErrorMessage(error, {
+                    fallback: "No se pudo renombrar el cliente.",
+                    fieldPriority: ["new_name", "original_name", "detail"],
+                }),
             });
         }
     };

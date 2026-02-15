@@ -9,7 +9,7 @@ Casos contemplados:
 - Nombres similares que corresponden a empresas diferentes
 """
 
-from django.db import models
+from django.db import models, IntegrityError
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from common.models import TimeStampedModel, SoftDeleteModel
@@ -222,6 +222,16 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
             self.short_name = self.generate_short_name()
         
         self.full_clean()
+        for _ in range(3):
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError as exc:
+                if 'short_name' not in str(exc).lower():
+                    raise
+                base_short_name = self.short_name or self.generate_short_name() or 'CLIENTE'
+                self.short_name = self._ensure_unique_short_name(base_short_name)
+
         super().save(*args, **kwargs)
     
     @staticmethod
@@ -573,15 +583,21 @@ class ClientResolution(TimeStampedModel):
         """
         normalized = ClientAlias.normalize_name(original_name)
 
-        # Crear o actualizar
-        resolution, created = cls.objects.update_or_create(
+        resolution = cls.objects.filter(normalized_name=normalized).order_by('-created_at').first()
+        if resolution:
+            resolution.original_name = original_name
+            resolution.resolved_to = resolved_to
+            resolution.resolution_type = resolution_type
+            resolution.created_by = created_by
+            resolution.save(update_fields=['original_name', 'resolved_to', 'resolution_type', 'created_by', 'updated_at'])
+            return resolution
+
+        resolution = cls.objects.create(
             original_name=original_name,
-            defaults={
-                'normalized_name': normalized,
-                'resolved_to': resolved_to,
-                'resolution_type': resolution_type,
-                'created_by': created_by
-            }
+            normalized_name=normalized,
+            resolved_to=resolved_to,
+            resolution_type=resolution_type,
+            created_by=created_by,
         )
 
         return resolution

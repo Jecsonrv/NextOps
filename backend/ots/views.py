@@ -764,6 +764,7 @@ class OTViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
             
             # Re-procesar archivos con ExcelProcessor
             from .services.excel_processor import ExcelProcessor
+            from ots.models import ProcessedFile
             
             processor = ExcelProcessor()
             # Primero cargar los datos
@@ -786,6 +787,18 @@ class OTViewSet(RoleBasedFieldValidationMixin, viewsets.ModelViewSet):
             # Luego resolver conflictos y procesar
             processed_by = request.user.username if request.user else 'system'
             stats = processor.resolve_conflicts_and_process(conflicts_resolutions, processed_by=processed_by)
+
+            # Marcar archivos como procesados para evitar reprocesamiento posterior
+            for i, (tmp_path, original_name) in enumerate(temp_files):
+                file_hash = processor.calculate_file_hash(tmp_path)
+                operation_type = tipos_operacion[i] if i < len(tipos_operacion) else 'importacion'
+                ProcessedFile.mark_as_processed(
+                    file_hash=file_hash,
+                    filename=original_name,
+                    stats=stats,
+                    processed_by=processed_by,
+                    operation_type=operation_type,
+                )
 
             success = len(stats['errors']) == 0 or stats['processed'] > 0
 

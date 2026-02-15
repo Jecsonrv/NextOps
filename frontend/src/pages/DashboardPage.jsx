@@ -150,9 +150,10 @@ export function DashboardPage() {
                         </div>
                         <Link
                             to="/invoices"
-                            className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent/80 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 hover:border-primary/30"
                         >
-                            Ver todas <ArrowRight className="h-3 w-3" />
+                            Ver todas las facturas{" "}
+                            <ArrowRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>
                     <CardContent>
@@ -164,7 +165,7 @@ export function DashboardPage() {
                                     <Link
                                         key={invoice.id}
                                         to={`/invoices/${invoice.id}`}
-                                        className="flex items-center justify-between rounded-lg p-2.5 transition-colors hover:bg-muted/50"
+                                        className="flex items-center justify-between rounded-lg border border-transparent p-2.5 transition-colors hover:bg-primary/10 hover:border-border"
                                     >
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
@@ -277,9 +278,9 @@ function QuickAction({ to, icon: Icon, label, description }) {
     return (
         <Link
             to={to}
-            className="group flex items-center gap-3.5 rounded-lg border border-border/50 bg-card p-4 transition-all hover:border-accent/30 hover:shadow-sm"
+            className="group flex items-center gap-3.5 rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/10 hover:shadow-sm"
         >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-accent/10 group-hover:text-accent">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15 group-hover:text-primary">
                 <Icon className="h-4 w-4" />
             </div>
             <div className="min-w-0">

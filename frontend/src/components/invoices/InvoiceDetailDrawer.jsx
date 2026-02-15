@@ -3,7 +3,7 @@ import { useInvoiceDetail } from "../../hooks/useInvoices";
 import { Sheet, SheetHeader, SheetContent, SheetFooter } from "../ui/Sheet";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-import { DetailSkeleton } from "../ui/Skeleton";
+import { Skeleton } from "../ui/Skeleton";
 import { formatDateLocalized, formatDate } from "../../lib/dateUtils";
 import {
     FileText,
@@ -18,6 +18,82 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import InvoiceStatusBadge, { CostTypeBadge } from "./InvoiceStatusBadge";
+
+function InvoiceDrawerSkeleton() {
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+
+            <section className="bg-muted p-4 rounded-lg border border-border">
+                <Skeleton className="h-3 w-36 mb-4" />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-8 w-32" />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-5 w-24" />
+                    </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                    <div className="flex justify-between">
+                        <Skeleton className="h-3 w-28" />
+                        <Skeleton className="h-3 w-10" />
+                    </div>
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                </div>
+            </section>
+
+            <section>
+                <div className="flex items-center justify-between mb-3">
+                    <Skeleton className="h-3 w-36" />
+                    <Skeleton className="h-3 w-14" />
+                </div>
+                <div className="grid grid-cols-2 gap-y-4 gap-x-2 bg-card border border-border p-4 rounded-lg">
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-4 w-24" />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-10" />
+                        <Skeleton className="h-4 w-20" />
+                    </div>
+                    <div className="col-span-2 pt-2 border-t border-border space-y-2">
+                        <Skeleton className="h-3 w-14" />
+                        <Skeleton className="h-4 w-40" />
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <Skeleton className="h-3 w-20 mb-3" />
+                <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="flex justify-between items-center py-2 border-b border-border"
+                        >
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 w-28" />
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section>
+                <Skeleton className="h-3 w-12 mb-2" />
+                <div className="p-3 bg-muted rounded-md border-l-2 border-border">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-5/6 mt-2" />
+                </div>
+            </section>
+        </div>
+    );
+}
 
 export function InvoiceDetailDrawer({ invoiceId, isOpen, onClose }) {
     const navigate = useNavigate();
@@ -45,7 +121,7 @@ export function InvoiceDetailDrawer({ invoiceId, isOpen, onClose }) {
 
             <SheetContent>
                 {isLoading ? (
-                    <DetailSkeleton />
+                    <InvoiceDrawerSkeleton />
                 ) : error ? (
                     <div className="p-4 bg-destructive/10 text-red-700 rounded-md">
                         Error al cargar los detalles de la factura.

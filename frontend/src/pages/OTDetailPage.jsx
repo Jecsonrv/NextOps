@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import apiClient from "../lib/api";
 import { exportOTDetailToExcel } from "../lib/exportUtils";
 import { formatDate } from "../lib/dateUtils";
@@ -11,6 +13,7 @@ import {
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import {
     ArrowLeft,
     Edit,
@@ -69,6 +72,8 @@ const estadoFacturadoColors = {
 export function OTDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Cargar datos de la OT
     const {
@@ -102,26 +107,24 @@ export function OTDetailPage() {
     });
 
     const handleDelete = async () => {
-        if (
-            window.confirm(
-                `¿Está seguro de eliminar la OT ${ot?.numero_ot}? Esta acción no se puede deshacer.`
-            )
-        ) {
-            try {
-                await apiClient.delete(`/ots/${id}/`);
-                alert("OT eliminada exitosamente");
-                navigate("/ots");
-            } catch (error) {
-                console.error("Error al eliminar OT:", error);
-                alert("Error al eliminar la OT");
-            }
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(`/ots/${id}/`);
+            toast.success("OT eliminada exitosamente");
+            setShowDeleteConfirm(false);
+            navigate("/ots");
+        } catch (error) {
+            console.error("Error al eliminar OT:", error);
+            toast.error("Error al eliminar la OT");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('es-EC', {
-            style: 'currency',
-            currency: 'USD',
+        return new Intl.NumberFormat("es-EC", {
+            style: "currency",
+            currency: "USD",
         }).format(amount || 0);
     };
 
@@ -141,7 +144,9 @@ export function OTDetailPage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <div className="text-center">
-                    <p className="text-destructive mb-4">Error al cargar la OT</p>
+                    <p className="text-destructive mb-4">
+                        Error al cargar la OT
+                    </p>
                     <Button onClick={() => navigate("/ots")}>
                         Volver a la lista
                     </Button>
@@ -172,7 +177,9 @@ export function OTDetailPage() {
                             </h1>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <Badge
-                                    variant={estadoColors[ot.estado] || "default"}
+                                    variant={
+                                        estadoColors[ot.estado] || "default"
+                                    }
                                     className="text-xs"
                                 >
                                     {ot.estado_display ||
@@ -180,12 +187,18 @@ export function OTDetailPage() {
                                         ot.estado?.toUpperCase()}
                                 </Badge>
                                 {ot.tipo_operacion === "exportacion" && (
-                                    <Badge variant="warning" className="text-xs">Exportación</Badge>
+                                    <Badge
+                                        variant="warning"
+                                        className="text-xs"
+                                    >
+                                        Exportación
+                                    </Badge>
                                 )}
                             </div>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
-                            {ot.cliente?.original_name || "N/A"} • {ot.operativo || "N/A"}
+                            {ot.cliente?.original_name || "N/A"} •{" "}
+                            {ot.operativo || "N/A"}
                         </p>
                     </div>
                 </div>
@@ -211,7 +224,7 @@ export function OTDetailPage() {
                     <Button
                         variant="destructive"
                         size="sm"
-                        onClick={handleDelete}
+                        onClick={() => setShowDeleteConfirm(true)}
                         className="hidden sm:inline-flex"
                     >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -350,7 +363,7 @@ export function OTDetailPage() {
                                                     </p>
                                                 </div>
                                             </div>
-                                        )
+                                        ),
                                     )}
                                 </div>
                             </CardContent>
@@ -471,7 +484,7 @@ export function OTDetailPage() {
                                     </p>
                                     <p className="text-base">
                                         {formatDate(
-                                            ot.fecha_solicitud_facturacion
+                                            ot.fecha_solicitud_facturacion,
                                         )}
                                     </p>
                                 </div>
@@ -617,7 +630,7 @@ export function OTDetailPage() {
                                     </p>
                                     <p className="text-base">
                                         {formatDate(
-                                            ot.fecha_solicitud_facturacion
+                                            ot.fecha_solicitud_facturacion,
                                         )}
                                     </p>
                                 </div>
@@ -645,11 +658,16 @@ export function OTDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <h3 className="text-lg font-medium text-foreground mb-2">Facturas de Costo</h3>
+                            <h3 className="text-lg font-medium text-foreground mb-2">
+                                Facturas de Costo
+                            </h3>
                             {invoices.length > 0 ? (
                                 <div className="space-y-2">
                                     {invoices.map((invoice) => (
-                                        <div key={invoice.id} className="space-y-1.5">
+                                        <div
+                                            key={invoice.id}
+                                            className="space-y-1.5"
+                                        >
                                             <Link
                                                 to={`/invoices/${invoice.id}`}
                                                 state={{ from: `/ots/${id}` }}
@@ -659,73 +677,121 @@ export function OTDetailPage() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
                                                             <p className="font-semibold text-sm text-foreground truncate">
-                                                                {invoice.numero_factura}
+                                                                {
+                                                                    invoice.numero_factura
+                                                                }
                                                             </p>
-                                                            {invoice.estado_provision === 'anulada' && (
-                                                                <Badge variant="destructive" className="text-xs shrink-0">ANULADA</Badge>
+                                                            {invoice.estado_provision ===
+                                                                "anulada" && (
+                                                                <Badge
+                                                                    variant="destructive"
+                                                                    className="text-xs shrink-0"
+                                                                >
+                                                                    ANULADA
+                                                                </Badge>
                                                             )}
-                                                            {invoice.estado_provision === 'anulada_parcialmente' && (
-                                                                <Badge variant="warning" className="text-xs shrink-0">PARCIAL</Badge>
+                                                            {invoice.estado_provision ===
+                                                                "anulada_parcialmente" && (
+                                                                <Badge
+                                                                    variant="warning"
+                                                                    className="text-xs shrink-0"
+                                                                >
+                                                                    PARCIAL
+                                                                </Badge>
                                                             )}
-                                                            {invoice.estado_provision === 'disputada' && (
-                                                                <Badge variant="warning" className="text-xs shrink-0">
+                                                            {invoice.estado_provision ===
+                                                                "disputada" && (
+                                                                <Badge
+                                                                    variant="warning"
+                                                                    className="text-xs shrink-0"
+                                                                >
                                                                     <AlertCircle className="h-3 w-3 mr-1" />
                                                                     DISPUTA
                                                                 </Badge>
                                                             )}
                                                         </div>
                                                         <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                            {invoice.proveedor_nombre || invoice.proveedor?.nombre}
+                                                            {invoice.proveedor_nombre ||
+                                                                invoice
+                                                                    .proveedor
+                                                                    ?.nombre}
                                                         </p>
                                                     </div>
                                                     <div className="text-right ml-3 shrink-0">
                                                         <p className="text-sm font-semibold text-foreground">
-                                                            ${(invoice.monto_aplicable ?? invoice.monto ?? invoice.monto_total)?.toLocaleString("es-MX", {
-                                                                minimumFractionDigits: 2,
-                                                                maximumFractionDigits: 2
-                                                            }) || "0.00"}
+                                                            $
+                                                            {(
+                                                                invoice.monto_aplicable ??
+                                                                invoice.monto ??
+                                                                invoice.monto_total
+                                                            )?.toLocaleString(
+                                                                "es-MX",
+                                                                {
+                                                                    minimumFractionDigits: 2,
+                                                                    maximumFractionDigits: 2,
+                                                                },
+                                                            ) || "0.00"}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </Link>
 
                                             {/* Notas de Crédito - diseño simplificado */}
-                                            {invoice.notas_credito && invoice.notas_credito.length > 0 && (
-                                                <div className="space-y-1">
-                                                    {invoice.notas_credito.map((nc) => (
-                                                        <Link
-                                                            key={nc.id}
-                                                            to={`/invoices/credit-notes/${nc.id}`}
-                                                            state={{ from: `/ots/${id}` }}
-                                                            className="block p-2.5 bg-primary/10 border border-blue-200 rounded-lg hover:bg-primary/10 transition-colors"
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <FileMinus className="h-4 w-4 text-primary shrink-0" />
-                                                                        <span className="text-xs font-semibold text-blue-900 truncate">
-                                                                            NC {nc.numero_nota}
-                                                                        </span>
+                                            {invoice.notas_credito &&
+                                                invoice.notas_credito.length >
+                                                    0 && (
+                                                    <div className="space-y-1">
+                                                        {invoice.notas_credito.map(
+                                                            (nc) => (
+                                                                <Link
+                                                                    key={nc.id}
+                                                                    to={`/invoices/credit-notes/${nc.id}`}
+                                                                    state={{
+                                                                        from: `/ots/${id}`,
+                                                                    }}
+                                                                    className="block p-2.5 bg-primary/10 border border-primary/25 rounded-lg hover:bg-primary/10 transition-colors"
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <FileMinus className="h-4 w-4 text-primary shrink-0" />
+                                                                                <span className="text-xs font-semibold text-primary truncate">
+                                                                                    NC{" "}
+                                                                                    {
+                                                                                        nc.numero_nota
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                            <p className="text-xs text-primary/90 mt-0.5 truncate ml-6">
+                                                                                {nc.proveedor_nombre ||
+                                                                                    invoice.proveedor_nombre ||
+                                                                                    invoice
+                                                                                        .proveedor
+                                                                                        ?.nombre}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="text-right ml-3 shrink-0">
+                                                                            {nc.monto && (
+                                                                                <span className="text-xs font-semibold text-primary">
+                                                                                    -$
+                                                                                    {parseFloat(
+                                                                                        nc.monto,
+                                                                                    ).toLocaleString(
+                                                                                        "es-MX",
+                                                                                        {
+                                                                                            minimumFractionDigits: 2,
+                                                                                            maximumFractionDigits: 2,
+                                                                                        },
+                                                                                    )}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    <p className="text-xs text-blue-700 mt-0.5 truncate ml-6">
-                                                                        {nc.proveedor_nombre || invoice.proveedor_nombre || invoice.proveedor?.nombre}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-right ml-3 shrink-0">
-                                                                    {nc.monto && (
-                                                                        <span className="text-xs font-semibold text-primary">
-                                                                            -${parseFloat(nc.monto).toLocaleString("es-MX", {
-                                                                                minimumFractionDigits: 2,
-                                                                                maximumFractionDigits: 2
-                                                                            })}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                                </Link>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                )}
                                         </div>
                                     ))}
                                 </div>
@@ -735,33 +801,43 @@ export function OTDetailPage() {
                                 </p>
                             )}
 
-                            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">Facturas de Venta</h3>
+                            <h3 className="text-lg font-medium text-foreground mt-4 mb-2">
+                                Facturas de Venta
+                            </h3>
                             {salesInvoicesData?.results?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {salesInvoicesData.results.map((invoice) => (
-                                        <Link
-                                            key={invoice.id}
-                                            to={`/sales/invoices/${invoice.id}`}
-                                            state={{ from: `/ots/${id}` }}
-                                            className="block p-2.5 sm:p-3 border border-border rounded-lg hover:border-border hover:bg-muted transition-colors"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-semibold text-sm text-foreground truncate">
-                                                        {invoice.numero_factura}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                        {invoice.cliente_nombre}
-                                                    </p>
+                                    {salesInvoicesData.results.map(
+                                        (invoice) => (
+                                            <Link
+                                                key={invoice.id}
+                                                to={`/sales/invoices/${invoice.id}`}
+                                                state={{ from: `/ots/${id}` }}
+                                                className="block p-2.5 sm:p-3 border border-border rounded-lg hover:border-border hover:bg-muted transition-colors"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-sm text-foreground truncate">
+                                                            {
+                                                                invoice.numero_factura
+                                                            }
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                            {
+                                                                invoice.cliente_nombre
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right ml-3 shrink-0">
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            {formatCurrency(
+                                                                invoice.monto_total,
+                                                            )}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right ml-3 shrink-0">
-                                                    <p className="text-sm font-semibold text-foreground">
-                                                        {formatCurrency(invoice.monto_total)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))}
+                                            </Link>
+                                        ),
+                                    )}
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -797,6 +873,18 @@ export function OTDetailPage() {
                     </Card>
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDelete}
+                title="Eliminar OT"
+                message={`¿Está seguro de eliminar la OT ${ot?.numero_ot}? Esta acción no se puede deshacer.`}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                isConfirming={isDeleting}
+                variant="destructive"
+            />
         </div>
     );
 }

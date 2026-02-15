@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useInvoiceUpload, useProviders } from "../hooks/useInvoices";
 import { FileUploadZone } from "../components/ui/FileUploadZone";
 import {
@@ -39,13 +40,16 @@ export function InvoiceUploadPage() {
     const [loadingPatterns, setLoadingPatterns] = useState(false);
 
     const uploadMutation = useInvoiceUpload();
-    const { data: providersData, isLoading: loadingProviders } = useProviders({ page_size: 1000 });
+    const { data: providersData, isLoading: loadingProviders } = useProviders({
+        page_size: 1000,
+    });
     const { data: activeCostTypes } = useActiveCostTypes();
 
-    const costTypeOptions = activeCostTypes?.map((type) => ({
-        value: type.code,
-        label: type.name,
-    })) || [];
+    const costTypeOptions =
+        activeCostTypes?.map((type) => ({
+            value: type.code,
+            label: type.name,
+        })) || [];
 
     useEffect(() => {
         if (!tipoCosto && costTypeOptions.length > 0) {
@@ -66,11 +70,14 @@ export function InvoiceUploadPage() {
         try {
             setLoadingPatterns(true);
             const token = localStorage.getItem("access_token");
-            const response = await apiClient.get(`/catalogs/invoice-pattern-catalog/by_provider/${providerId}/`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
+            const response = await apiClient.get(
+                `/catalogs/invoice-pattern-catalog/by_provider/${providerId}/`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 },
-            });
+            );
             setAvailablePatterns(response.data);
         } catch (error) {
             console.error("Error cargando patrones:", error);
@@ -82,20 +89,20 @@ export function InvoiceUploadPage() {
 
     const handleUpload = async () => {
         if (selectedFiles.length === 0) {
-            alert("Por favor selecciona al menos un archivo");
+            toast.error("Por favor selecciona al menos un archivo");
             return;
         }
 
         // Validar que se haya seleccionado un proveedor
         if (!selectedProveedor) {
-            alert(
-                "Por favor selecciona un proveedor antes de subir las facturas"
+            toast.error(
+                "Por favor selecciona un proveedor antes de subir las facturas",
             );
             return;
         }
 
         if (!tipoCosto) {
-            alert("Selecciona un tipo de costo antes de subir.");
+            toast.error("Selecciona un tipo de costo antes de subir.");
             return;
         }
 
@@ -228,7 +235,7 @@ export function InvoiceUploadPage() {
                                                             {/* Campos detectados */}
                                                             {item.numero_factura &&
                                                                 !item.numero_factura.startsWith(
-                                                                    "TEMP-"
+                                                                    "TEMP-",
                                                                 ) && (
                                                                     <div className="flex items-center gap-2 text-xs">
                                                                         <span className="text-muted-foreground">
@@ -252,7 +259,7 @@ export function InvoiceUploadPage() {
                                                                         <span className="font-semibold text-emerald-600">
                                                                             $
                                                                             {item.monto.toFixed(
-                                                                                2
+                                                                                2,
                                                                             )}
                                                                         </span>
                                                                     </div>
@@ -301,6 +308,7 @@ export function InvoiceUploadPage() {
                                                                                 {
                                                                                     item.match_method
                                                                                 }
+
                                                                                 )
                                                                             </span>
                                                                         )}
@@ -334,9 +342,9 @@ export function InvoiceUploadPage() {
                                                                         0.7
                                                                             ? "success"
                                                                             : item.confidence >=
-                                                                              0.5
-                                                                            ? "warning"
-                                                                            : "destructive"
+                                                                                0.5
+                                                                              ? "warning"
+                                                                              : "destructive"
                                                                     }
                                                                     className="text-xs"
                                                                 >
@@ -344,7 +352,7 @@ export function InvoiceUploadPage() {
                                                                         item.confidence *
                                                                         100
                                                                     ).toFixed(
-                                                                        0
+                                                                        0,
                                                                     )}
                                                                     % confianza
                                                                 </Badge>
@@ -352,7 +360,7 @@ export function InvoiceUploadPage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </div>
@@ -383,7 +391,7 @@ export function InvoiceUploadPage() {
                                                         {item.reason}
                                                     </p>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </div>
@@ -410,7 +418,7 @@ export function InvoiceUploadPage() {
                                                         {item.error}
                                                     </p>
                                                 </div>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </div>
@@ -459,7 +467,7 @@ export function InvoiceUploadPage() {
                                     onChange={(e) =>
                                         setSelectedProveedor(e.target.value)
                                     }
-                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                     required
                                 >
                                     <option value="">
@@ -481,7 +489,7 @@ export function InvoiceUploadPage() {
                                                         ? `(${provider.tipo_display})`
                                                         : ""}
                                                 </option>
-                                            )
+                                            ),
                                         )
                                     )}
                                 </select>
@@ -496,17 +504,17 @@ export function InvoiceUploadPage() {
 
                             {/* Patrones Disponibles */}
                             {selectedProveedor && (
-                                <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
+                                <div className="bg-primary/10 border border-primary/25 rounded-lg p-4">
                                     <div className="flex items-start gap-3">
                                         <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                                         <div className="flex-1">
-                                            <h4 className="font-semibold text-blue-900 mb-2">
+                                            <h4 className="font-semibold text-primary mb-2">
                                                 Patrones de Detección
                                                 Disponibles
                                             </h4>
 
                                             {loadingPatterns ? (
-                                                <div className="flex items-center gap-2 text-sm text-blue-700">
+                                                <div className="flex items-center gap-2 text-sm text-primary">
                                                     <Loader2 className="w-4 h-4 animate-spin" />
                                                     <span>
                                                         Cargando patrones...
@@ -514,7 +522,7 @@ export function InvoiceUploadPage() {
                                                 </div>
                                             ) : availablePatterns ? (
                                                 <div className="space-y-2">
-                                                    <p className="text-sm text-blue-700">
+                                                    <p className="text-sm text-primary">
                                                         <Sparkles className="w-4 h-4 inline mr-1" />
                                                         Se aplicarán{" "}
                                                         <strong>
@@ -551,7 +559,7 @@ export function InvoiceUploadPage() {
                                                     <div className="flex flex-wrap gap-1 mt-2">
                                                         {Object.entries(
                                                             availablePatterns.by_field ||
-                                                                {}
+                                                                {},
                                                         ).map(
                                                             ([
                                                                 fieldCode,
@@ -568,7 +576,7 @@ export function InvoiceUploadPage() {
                                                                         ?.target_field_name ||
                                                                         fieldCode}
                                                                 </Badge>
-                                                            )
+                                                            ),
                                                         )}
                                                     </div>
 
@@ -584,7 +592,7 @@ export function InvoiceUploadPage() {
                                                     )}
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-blue-700">
+                                                <p className="text-sm text-primary">
                                                     No se pudieron cargar los
                                                     patrones.
                                                 </p>
@@ -629,7 +637,7 @@ export function InvoiceUploadPage() {
                                     onChange={(e) =>
                                         setTipoCosto(e.target.value)
                                     }
-                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                 >
                                     {costTypeOptions.length === 0 && (
                                         <option value="" disabled>

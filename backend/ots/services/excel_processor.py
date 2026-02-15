@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 from decimal import Decimal
 from django.utils import timezone
+from django.db import IntegrityError
 from django.db.models import Q
 
 from ots.models import CONTAINER_NUMBER_PATTERN
@@ -653,12 +654,34 @@ class ExcelProcessor:
         # Limpiar el nombre del cliente
         cliente_name = str(cliente_name).strip().upper()
 
-        cliente, _ = ClientAlias.objects.get_or_create(
-            original_name=cliente_name,
-            defaults={
-                'normalized_name': ClientAlias.normalize_name(cliente_name)
-            }
+        normalized_name = ClientAlias.normalize_name(cliente_name)
+        cliente = (
+            ClientAlias.objects.filter(
+                normalized_name=normalized_name,
+                deleted_at__isnull=True,
+            )
+            .order_by('-usage_count', 'id')
+            .first()
         )
+
+        if not cliente:
+            try:
+                cliente = ClientAlias.objects.create(
+                    original_name=cliente_name,
+                    normalized_name=normalized_name,
+                )
+            except IntegrityError:
+                cliente = (
+                    ClientAlias.objects.filter(
+                        normalized_name=normalized_name,
+                        deleted_at__isnull=True,
+                    )
+                    .order_by('-usage_count', 'id')
+                    .first()
+                )
+
+        if not cliente:
+            raise ValueError(f"No se pudo resolver/crear alias para cliente '{cliente_name}'")
 
         # Obtener el alias efectivo (si está fusionado, usa el principal)
         cliente = cliente.get_effective_alias()
@@ -778,15 +801,63 @@ class ExcelProcessor:
                     if 'cliente' in resolutions_map[numero_ot]:
                         resolution_info = resolutions_map[numero_ot]['cliente']
                         decision = resolution_info['decision']
+                        valor_nuevo = resolution_info.get('valor_nuevo')
 
                         if decision == 'mantener_actual' and existing_ot:
                             # Mantener el cliente actual de la BD
                             ot_data['cliente_name'] = existing_ot.cliente.original_name
+                            if existing_ot.cliente and valor_nuevo:
+                                ClientResolution.cache_resolution(
+                                    original_name=valor_nuevo,
+                                    resolved_to=existing_ot.cliente.get_effective_alias(),
+                                    resolution_type='conflict',
+                                    created_by=processed_by,
+                                )
                         elif decision == 'usar_nuevo':
                             # Usar el nuevo valor del Excel. No se necesita hacer nada
                             # a ot_data['cliente_name'] porque ya tiene el valor nuevo.
-                            # NO se debe cachear la resolución globalmente.
-                            pass
+                            resolved_alias = None
+                            if ot_data.get('cliente_name'):
+                                resolved_alias = ClientResolution.find_resolution(ot_data['cliente_name'])
+
+                            if not resolved_alias:
+                                normalized = ClientAlias.normalize_name(ot_data.get('cliente_name'))
+                                resolved_alias = (
+                                    ClientAlias.objects.filter(
+                                        normalized_name=normalized,
+                                        deleted_at__isnull=True,
+                                    )
+                                    .order_by('-usage_count', 'id')
+                                    .first()
+                                )
+
+                            if not resolved_alias and ot_data.get('cliente_name'):
+                                try:
+                                    resolved_alias = ClientAlias.objects.create(
+                                        original_name=ot_data['cliente_name'],
+                                        normalized_name=ClientAlias.normalize_name(ot_data['cliente_name']),
+                                    )
+                                except IntegrityError:
+                                    normalized = ClientAlias.normalize_name(ot_data.get('cliente_name'))
+                                    resolved_alias = (
+                                        ClientAlias.objects.filter(
+                                            normalized_name=normalized,
+                                            deleted_at__isnull=True,
+                                        )
+                                        .order_by('-usage_count', 'id')
+                                        .first()
+                                    )
+
+                            if resolved_alias:
+                                resolved_alias = resolved_alias.get_effective_alias()
+                                ot_data['cliente_name'] = resolved_alias.original_name
+                                if valor_nuevo:
+                                    ClientResolution.cache_resolution(
+                                        original_name=valor_nuevo,
+                                        resolved_to=resolved_alias,
+                                        resolution_type='conflict',
+                                        created_by=processed_by,
+                                    )
 
                     # Operativo
                     if 'operativo' in resolutions_map[numero_ot]:

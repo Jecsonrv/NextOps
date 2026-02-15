@@ -202,7 +202,7 @@ export default function SalesInvoicesPage() {
                                     {invoice.ot ? (
                                         <Link
                                             to={`/ots/${invoice.ot}`}
-                                            className="text-sm text-primary hover:text-blue-800"
+                                            className="text-sm text-primary hover:text-primary/80"
                                         >
                                             {invoice.ot_numero || invoice.ot}
                                         </Link>
@@ -221,7 +221,7 @@ export default function SalesInvoicesPage() {
                                         invoice.tipo_operacion === "nacional" &&
                                         invoice.monto_neto_cobrar ? (
                                             <div className="flex flex-col">
-                                                <span className="font-semibold text-blue-700">
+                                                <span className="font-semibold text-primary">
                                                     {formatCurrency(
                                                         invoice.monto_neto_cobrar,
                                                     )}
@@ -262,7 +262,7 @@ export default function SalesInvoicesPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <Link
                                         to={`/sales/invoices/${invoice.id}`}
-                                        className="text-primary hover:text-blue-800"
+                                        className="text-primary hover:text-primary/80"
                                     >
                                         <Button variant="ghost" size="sm">
                                             <Eye className="h-4 w-4" />

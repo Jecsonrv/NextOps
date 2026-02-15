@@ -220,7 +220,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                                 accept=".csv"
                                 onChange={handleFileChange}
                                 disabled={uploading}
-                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-blue-700 hover:file:bg-primary/10 disabled:opacity-50"
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/10 disabled:opacity-50"
                             />
                             {file && (
                                 <p className="mt-2 text-sm text-muted-foreground">
@@ -232,11 +232,11 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
 
-                        <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
-                            <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                        <div className="bg-primary/10 border border-primary/25 rounded-lg p-4">
+                            <h3 className="text-sm font-semibold text-primary mb-2">
                                 ℹ️ Información Importante
                             </h3>
-                            <ul className="text-xs text-blue-800 space-y-1">
+                            <ul className="text-xs text-primary/90 space-y-1">
                                 <li>
                                     • Solo se actualizarán:{" "}
                                     <strong>Fecha de Provisión</strong> y{" "}
@@ -276,7 +276,6 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                     <Button
                         onClick={handleUpload}
                         disabled={!file || uploading}
-                        className="bg-blue-600 hover:bg-blue-700"
                     >
                         {uploading ? (
                             <>
@@ -483,10 +482,8 @@ export function OTImportPage() {
         });
 
         if (invalidFiles.length > 0) {
-            alert(
-                `Los siguientes archivos tienen formato inválido y no serán importados:\n${invalidFiles.join(
-                    "\n",
-                )}\n\nFormatos válidos: .xlsx, .xls`,
+            toast.error(
+                `Archivos inválidos: ${invalidFiles.join(", ")}. Formatos válidos: .xlsx, .xls`,
             );
         }
 
@@ -524,7 +521,7 @@ export function OTImportPage() {
 
     const handleImport = () => {
         if (files.length === 0) {
-            alert("Por favor selecciona al menos un archivo Excel");
+            toast.error("Por favor selecciona al menos un archivo Excel");
             return;
         }
 
@@ -614,7 +611,7 @@ export function OTImportPage() {
                             </span>
                         </p>
 
-                        <p className="mt-2 text-blue-700 bg-primary/10 p-3 rounded-md flex items-start gap-2">
+                        <p className="mt-2 text-primary bg-primary/10 p-3 rounded-md flex items-start gap-2">
                             <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                             <span>
                                 <strong>Conflictos:</strong> Si la misma OT
@@ -644,7 +641,7 @@ export function OTImportPage() {
                             onDrop={handleDrop}
                             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
                                 isDragging
-                                    ? "border-blue-500 bg-primary/10"
+                                    ? "border-primary/40 bg-primary/10"
                                     : "border-border hover:border-border"
                             }`}
                         >
@@ -666,7 +663,7 @@ export function OTImportPage() {
                                                             "importacion",
                                                         )
                                                     }
-                                                    className="flex items-center gap-1 py-1 px-2.5 bg-card border border-blue-200 hover:bg-primary/10 text-blue-700 rounded text-xs font-medium transition-colors"
+                                                    className="flex items-center gap-1 py-1 px-2.5 bg-card border border-primary/25 hover:bg-primary/10 text-primary rounded text-xs font-medium transition-colors"
                                                     title="Marcar todos como Importación"
                                                 >
                                                     <CheckCircle className="h-3 w-3" />
@@ -768,7 +765,7 @@ export function OTImportPage() {
                                                                 className={`py-1.5 px-3 rounded text-xs font-medium transition-colors whitespace-nowrap ${
                                                                     fileData.tipo_operacion ===
                                                                     "importacion"
-                                                                        ? "bg-blue-600 text-white"
+                                                                        ? "bg-primary text-primary-foreground"
                                                                         : "bg-muted text-muted-foreground hover:bg-muted"
                                                                 }`}
                                                             >
@@ -952,7 +949,7 @@ export function OTImportPage() {
                                         <p className="text-sm text-primary">
                                             Procesadas
                                         </p>
-                                        <p className="text-2xl font-bold text-blue-700">
+                                        <p className="text-2xl font-bold text-primary">
                                             {importResult.processed}
                                         </p>
                                     </div>

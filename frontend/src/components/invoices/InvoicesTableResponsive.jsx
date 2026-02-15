@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
-import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button";
 import InvoiceStatusBadge, {
     CostTypeBadge,
@@ -30,6 +30,8 @@ export function InvoicesTableResponsive({
     onAssignOT,
     onCreateDispute,
 }) {
+    const navigate = useNavigate();
+
     return (
         <div className="overflow-x-auto -mx-3 sm:mx-0 relative">
             <div className="inline-block min-w-full align-middle">
@@ -41,7 +43,8 @@ export function InvoicesTableResponsive({
                                 <input
                                     type="checkbox"
                                     checked={
-                                        selectedInvoices.length === invoices.length &&
+                                        selectedInvoices.length ===
+                                            invoices.length &&
                                         invoices.length > 0
                                     }
                                     onChange={onSelectAll}
@@ -121,7 +124,9 @@ export function InvoicesTableResponsive({
                                 <td className="sticky left-0 z-10 bg-white hover:bg-primary/10 px-2 sm:px-3 py-2 sm:py-3 text-center border-b border-r border-border shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                     <input
                                         type="checkbox"
-                                        checked={selectedInvoices.includes(invoice.id)}
+                                        checked={selectedInvoices.includes(
+                                            invoice.id,
+                                        )}
                                         onChange={() => onSelectOne(invoice.id)}
                                         className="rounded border-border text-primary focus:ring-blue-500"
                                     />
@@ -165,7 +170,9 @@ export function InvoicesTableResponsive({
                                         <InvoiceStatusBadge invoice={invoice} />
                                         <div className="flex gap-1">
                                             <CostTypeBadge invoice={invoice} />
-                                            <ExcludedFromStatsBadge invoice={invoice} />
+                                            <ExcludedFromStatsBadge
+                                                invoice={invoice}
+                                            />
                                         </div>
                                     </div>
                                 </td>
@@ -186,7 +193,8 @@ export function InvoicesTableResponsive({
                                 <td className="px-3 py-2 sm:py-3 border-b border-border whitespace-nowrap">
                                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                                         <Ship className="w-3.5 h-3.5" />
-                                        {invoice.proveedor_data?.tipo_display || "-"}
+                                        {invoice.proveedor_data?.tipo_display ||
+                                            "-"}
                                     </div>
                                 </td>
 
@@ -203,7 +211,8 @@ export function InvoicesTableResponsive({
                                             to={`/invoices/${invoice.id}`}
                                             className="font-medium text-xs sm:text-sm text-primary hover:text-blue-800"
                                         >
-                                            {invoice.numero_factura || "SIN-NUM"}
+                                            {invoice.numero_factura ||
+                                                "SIN-NUM"}
                                         </Link>
                                         {invoice.requiere_revision && (
                                             <AlertCircle
@@ -211,15 +220,18 @@ export function InvoicesTableResponsive({
                                                 title="Requiere Revisión"
                                             />
                                         )}
-                                        {invoice.has_disputes && invoice.dispute_id && (
-                                            <Link
-                                                to={`/invoices/disputes/${invoice.dispute_id}`}
-                                                onClick={(e) => e.stopPropagation()}
-                                                title="Ver Disputa"
-                                            >
-                                                <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
-                                            </Link>
-                                        )}
+                                        {invoice.has_disputes &&
+                                            invoice.dispute_id && (
+                                                <Link
+                                                    to={`/invoices/disputes/${invoice.dispute_id}`}
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
+                                                    title="Ver Disputa"
+                                                >
+                                                    <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-500 hover:text-yellow-700 flex-shrink-0" />
+                                                </Link>
+                                            )}
                                         {invoice.has_credit_notes && (
                                             <FileMinus
                                                 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-500 flex-shrink-0"
@@ -242,13 +254,13 @@ export function InvoicesTableResponsive({
                                 </td>
 
                                 <td className="px-3 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-foreground border-b border-border whitespace-nowrap">
-                                    ${(invoice.monto_aplicable ?? invoice.monto)?.toLocaleString(
-                                        "es-MX",
-                                        {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        }
-                                    ) || "0.00"}
+                                    $
+                                    {(
+                                        invoice.monto_aplicable ?? invoice.monto
+                                    )?.toLocaleString("es-MX", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    }) || "0.00"}
                                 </td>
 
                                 <td className="px-3 py-2 sm:py-3 text-right border-b border-border whitespace-nowrap">
@@ -257,7 +269,9 @@ export function InvoicesTableResponsive({
                                             variant="ghost"
                                             size="icon"
                                             onClick={() =>
-                                                (window.location.href = `/invoices/${invoice.id}`)
+                                                navigate(
+                                                    `/invoices/${invoice.id}`,
+                                                )
                                             }
                                             title="Ver detalles"
                                             className="h-8 w-8"
@@ -269,7 +283,9 @@ export function InvoicesTableResponsive({
                                             size="icon"
                                             onClick={() => onAssignOT(invoice)}
                                             title={
-                                                invoice.ot_data ? "Cambiar OT" : "Asignar OT"
+                                                invoice.ot_data
+                                                    ? "Cambiar OT"
+                                                    : "Asignar OT"
                                             }
                                             className="h-8 w-8"
                                         >
@@ -278,7 +294,9 @@ export function InvoicesTableResponsive({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => onCreateDispute(invoice)}
+                                            onClick={() =>
+                                                onCreateDispute(invoice)
+                                            }
                                             title="Crear Disputa"
                                             className="h-8 w-8"
                                         >
@@ -293,7 +311,7 @@ export function InvoicesTableResponsive({
                                                         `${import.meta.env.VITE_BASE_URL}${
                                                             invoice.file_url
                                                         }`,
-                                                        "_blank"
+                                                        "_blank",
                                                     )
                                                 }
                                                 title="Descargar archivo"

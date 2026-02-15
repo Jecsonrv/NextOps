@@ -111,16 +111,8 @@ export function CostCategoriesPage() {
                     value={totalCount}
                     icon={Tag}
                 />
-                <StatCard
-                    label="Activas"
-                    value={activeCount}
-                    icon={Tag}
-                />
-                <StatCard
-                    label="Inactivas"
-                    value={inactiveCount}
-                    icon={Tag}
-                />
+                <StatCard label="Activas" value={activeCount} icon={Tag} />
+                <StatCard label="Inactivas" value={inactiveCount} icon={Tag} />
             </div>
 
             {/* Filtros */}
@@ -178,7 +170,7 @@ export function CostCategoriesPage() {
                 <CardContent>
                     {isLoading ? (
                         <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
                             <p className="mt-2 text-muted-foreground">
                                 Cargando categorías...
                             </p>

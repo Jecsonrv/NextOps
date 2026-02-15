@@ -31,6 +31,7 @@ import {
     useRegenerateShortName,
 } from "../hooks/useCatalogs";
 import { showSuccess, showError, showConfirm } from "../utils/toast.jsx";
+import { extractApiErrorMessage } from "../lib/errorMessages";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -139,7 +140,10 @@ export function ClientAliasesPage() {
         } catch (error) {
             console.error("Error actualizando alias:", error);
             setEditError(
-                error.response?.data?.short_name?.[0] || "Error al guardar",
+                extractApiErrorMessage(error, {
+                    fallback: "Error al guardar el alias.",
+                    fieldPriority: ["short_name", "original_name"],
+                }),
             );
         }
     };

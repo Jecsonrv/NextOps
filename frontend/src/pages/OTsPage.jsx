@@ -20,6 +20,12 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import {
+    Sheet,
+    SheetHeader,
+    SheetContent,
+    SheetFooter,
+} from "../components/ui/Sheet";
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -218,7 +224,7 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                                 accept=".csv"
                                 onChange={handleFileChange}
                                 disabled={uploading}
-                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-blue-700 hover:file:bg-primary/10 disabled:opacity-50"
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/10 disabled:opacity-50"
                             />
                             {file && (
                                 <p className="mt-2 text-sm text-muted-foreground">
@@ -230,11 +236,11 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
 
-                        <div className="bg-primary/10 border border-blue-200 rounded-lg p-4">
-                            <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                        <div className="bg-primary/10 border border-primary/25 rounded-lg p-4">
+                            <h3 className="text-sm font-semibold text-primary mb-2">
                                 ℹ️ Información Importante
                             </h3>
-                            <ul className="text-xs text-blue-800 space-y-1">
+                            <ul className="text-xs text-primary/90 space-y-1">
                                 <li>
                                     • Solo se actualizarán:{" "}
                                     <strong>Fecha de Provisión</strong> y{" "}
@@ -274,7 +280,6 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
                     <Button
                         onClick={handleUpload}
                         disabled={!file || uploading}
-                        className="bg-blue-600 hover:bg-blue-700"
                     >
                         {uploading ? (
                             <>
@@ -296,6 +301,103 @@ function ProvisionAcajutlaModal({ isOpen, onClose, onSuccess }) {
     return createPortal(modalContent, document.body);
 }
 
+function OTQuickDetailDrawer({ ot, isOpen, onClose, onOpenDetail, onEdit }) {
+    if (!ot) return null;
+
+    return (
+        <Sheet open={isOpen} onOpenChange={onClose}>
+            <SheetHeader onClose={onClose}>
+                <div className="space-y-1">
+                    <h2 className="text-xl font-bold text-foreground">
+                        {ot.numero_ot}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        {ot.cliente_nombre || "Sin cliente"}
+                    </p>
+                </div>
+            </SheetHeader>
+
+            <SheetContent>
+                <div className="space-y-5">
+                    <div className="flex flex-wrap gap-2">
+                        <Badge variant={estadoColors[ot.estado] || "default"}>
+                            {ot.estado_display || "Sin estado"}
+                        </Badge>
+                        {ot.tipo_operacion === "exportacion" && (
+                            <Badge variant="warning">Exportación</Badge>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Operativo
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                                {ot.operativo || "-"}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Naviera
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                                {ot.proveedor_nombre || "-"}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">MBL</p>
+                            <p className="text-sm font-medium text-foreground">
+                                {ot.mbl || "-"}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Barco
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                                {ot.barco || "-"}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                Fecha ETA
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                                {formatDate(ot.fecha_eta)}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">
+                                F. Provisión
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                                {formatDate(ot.fecha_provision)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-lg border border-border bg-muted/30 p-4">
+                        <p className="text-xs text-muted-foreground mb-1">
+                            Contenedores
+                        </p>
+                        <p className="text-sm text-foreground break-words">
+                            {ot.contenedores_list || "Sin contenedores"}
+                        </p>
+                    </div>
+                </div>
+            </SheetContent>
+
+            <SheetFooter>
+                <Button variant="outline" onClick={onEdit}>
+                    Editar
+                </Button>
+                <Button onClick={onOpenDetail}>Ver detalle completo</Button>
+            </SheetFooter>
+        </Sheet>
+    );
+}
+
 export function OTsPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -305,6 +407,8 @@ export function OTsPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [showBulkSearch, setShowBulkSearch] = useState(false);
     const [showProvisionModal, setShowProvisionModal] = useState(false);
+    const [selectedOT, setSelectedOT] = useState(null);
+    const [isQuickDetailOpen, setIsQuickDetailOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [bulkSearchText, setBulkSearchText] = useState("");
@@ -617,6 +721,15 @@ export function OTsPage() {
         }
     };
 
+    const openQuickDetail = (ot) => {
+        setSelectedOT(ot);
+        setIsQuickDetailOpen(true);
+    };
+
+    const closeQuickDetail = () => {
+        setIsQuickDetailOpen(false);
+    };
+
     if (error) {
         return (
             <div className="p-4 text-center">
@@ -686,7 +799,7 @@ export function OTsPage() {
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex-1 sm:flex-none ${
                                     showFilters
-                                        ? "bg-primary/10 border-blue-300"
+                                        ? "bg-primary/10 border-primary/30"
                                         : ""
                                 }`}
                             >
@@ -719,7 +832,7 @@ export function OTsPage() {
                                 }
                                 className={`hidden md:inline-flex ${
                                     showBulkSearch
-                                        ? "bg-primary/10 border-blue-300"
+                                        ? "bg-primary/10 border-primary/30"
                                         : ""
                                 }`}
                             >
@@ -746,7 +859,7 @@ export function OTsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowProvisionModal(true)}
-                                    className="hidden lg:inline-flex border-blue-600 text-primary hover:bg-primary/10"
+                                    className="hidden lg:inline-flex border-primary/40 text-primary hover:bg-primary/10"
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
                                     Provisión
@@ -948,7 +1061,7 @@ export function OTsPage() {
 
             {/* Panel de Búsqueda Masiva - Independiente */}
             {showBulkSearch && (
-                <Card className="border-blue-200 bg-primary/10/30">
+                <Card className="border-primary/25 bg-primary/10/30">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1034,7 +1147,7 @@ export function OTsPage() {
                                                   ? "MSCU1234567 TEMU2345678 CMAU3456789"
                                                   : "OT-001\nOT-002\nOT-003"
                                         }`}
-                                        className="w-full px-4 py-3 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] font-mono text-sm bg-card resize-y"
+                                        className="w-full px-4 py-3 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring min-h-[120px] font-mono text-sm bg-card resize-y"
                                     />
                                     <div className="flex items-center justify-between mt-2">
                                         <div className="text-sm text-muted-foreground">
@@ -1088,7 +1201,6 @@ export function OTsPage() {
                                                 disabled={
                                                     !bulkSearchText.trim()
                                                 }
-                                                className="bg-blue-600 hover:bg-blue-700"
                                             >
                                                 <Search className="w-4 h-4 mr-2" />
                                                 Aplicar Búsqueda
@@ -1290,7 +1402,7 @@ export function OTsPage() {
                                                         <div className="flex items-center gap-2">
                                                             <Link
                                                                 to={`/ots/${ot.id}`}
-                                                                className="font-medium text-sm text-primary hover:text-blue-800"
+                                                                className="font-medium text-sm text-primary hover:text-primary/80"
                                                             >
                                                                 {ot.numero_ot}
                                                             </Link>
@@ -1359,11 +1471,11 @@ export function OTsPage() {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
-                                                                    navigate(
-                                                                        `/ots/${ot.id}`,
+                                                                    openQuickDetail(
+                                                                        ot,
                                                                     )
                                                                 }
-                                                                title="Ver detalle"
+                                                                title="Vista rápida"
                                                                 className="h-8 w-8"
                                                             >
                                                                 <Eye className="w-4 h-4" />
@@ -1433,7 +1545,7 @@ export function OTsPage() {
                                                     );
                                                     setPage(1);
                                                 }}
-                                                className="px-3 py-1.5 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-card"
+                                                className="px-3 py-1.5 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card"
                                             >
                                                 <option value="20">20</option>
                                                 <option value="50">50</option>
@@ -1482,6 +1594,22 @@ export function OTsPage() {
                     queryClient.invalidateQueries(["ots"]);
                     queryClient.invalidateQueries(["ots-cards-stats"]);
                     setShowProvisionModal(false);
+                }}
+            />
+
+            <OTQuickDetailDrawer
+                ot={selectedOT}
+                isOpen={isQuickDetailOpen}
+                onClose={closeQuickDetail}
+                onOpenDetail={() => {
+                    if (!selectedOT) return;
+                    setIsQuickDetailOpen(false);
+                    navigate(`/ots/${selectedOT.id}`);
+                }}
+                onEdit={() => {
+                    if (!selectedOT) return;
+                    setIsQuickDetailOpen(false);
+                    navigate(`/ots/${selectedOT.id}/edit`);
                 }}
             />
         </div>

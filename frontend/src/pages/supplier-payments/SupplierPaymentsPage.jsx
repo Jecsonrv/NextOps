@@ -70,7 +70,7 @@ function ProveedoresList({ proveedores, selected, onSelect }) {
                         onClick={() => onSelect(p)}
                         className={`w-full text-left p-3 rounded-lg border transition-all ${
                             isSelected
-                                ? "bg-primary/10 border-blue-500 shadow-sm"
+                                ? "bg-primary/10 border-primary/40 shadow-sm"
                                 : "bg-card border-border hover:border-border hover:shadow-sm"
                         }`}
                     >
@@ -93,7 +93,7 @@ function ProveedoresList({ proveedores, selected, onSelect }) {
                                     <p
                                         className={`font-semibold text-sm truncate ${
                                             isSelected
-                                                ? "text-blue-900"
+                                                ? "text-primary"
                                                 : "text-foreground"
                                         }`}
                                     >
@@ -115,7 +115,7 @@ function ProveedoresList({ proveedores, selected, onSelect }) {
                                     <span
                                         className={`text-sm font-bold ${
                                             isSelected
-                                                ? "text-blue-700"
+                                                ? "text-primary"
                                                 : "text-foreground"
                                         }`}
                                     >
@@ -158,7 +158,7 @@ function FacturasPendientesList({ facturas, selected, onToggle }) {
                         key={f.id}
                         className={`flex items-start p-3 border rounded-lg cursor-pointer transition-all ${
                             isSelected
-                                ? "border-blue-500 bg-primary/10"
+                                ? "border-primary/40 bg-primary/10"
                                 : "border-border hover:border-border hover:bg-muted"
                         }`}
                     >
@@ -166,7 +166,7 @@ function FacturasPendientesList({ facturas, selected, onToggle }) {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => onToggle(f.id)}
-                            className="mt-0.5 mr-3 h-4 w-4 text-primary focus:ring-blue-500 rounded"
+                            className="mt-0.5 mr-3 h-4 w-4 text-primary focus:ring-ring rounded"
                         />
 
                         <div className="flex-1 min-w-0">
@@ -183,7 +183,7 @@ function FacturasPendientesList({ facturas, selected, onToggle }) {
                                         <p
                                             className={`font-semibold text-sm truncate ${
                                                 isSelected
-                                                    ? "text-blue-900"
+                                                    ? "text-primary"
                                                     : "text-foreground"
                                             }`}
                                         >
@@ -207,7 +207,7 @@ function FacturasPendientesList({ facturas, selected, onToggle }) {
                                     <p
                                         className={`text-base font-bold ${
                                             isSelected
-                                                ? "text-blue-700"
+                                                ? "text-primary"
                                                 : "text-foreground"
                                         }`}
                                     >
@@ -425,17 +425,17 @@ export default function SupplierPaymentsPage() {
 
                                             {/* Resumen de Selección */}
                                             {selectedInvoices.length > 0 && (
-                                                <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg border border-blue-300 shadow-sm">
+                                                <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/25 shadow-sm">
                                                     <div className="flex justify-between items-center">
                                                         <div>
-                                                            <p className="text-xs font-medium text-blue-700">
+                                                            <p className="text-xs font-medium text-primary">
                                                                 {
                                                                     selectedInvoices.length
                                                                 }{" "}
                                                                 factura(s)
                                                                 seleccionada(s)
                                                             </p>
-                                                            <p className="text-xl font-bold text-blue-900 mt-0.5">
+                                                            <p className="text-xl font-bold text-primary mt-0.5">
                                                                 $
                                                                 {totalSeleccionado.toFixed(
                                                                     2,
@@ -451,7 +451,7 @@ export default function SupplierPaymentsPage() {
                                                                     true,
                                                                 )
                                                             }
-                                                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all"
+                                                            className="shadow-sm hover:shadow-md transition-all"
                                                         >
                                                             <DollarSign className="mr-2 h-4 w-4" />
                                                             Registrar Pago

@@ -14,17 +14,44 @@ import {
     CardTitle,
 } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
-import { Button } from "../../components/ui/Button";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
     DollarSign,
     TrendingUp,
-    FileText,
     Clock,
     CheckCircle2,
     AlertCircle,
     Calendar,
+    ArrowRight,
 } from "lucide-react";
 import { StatCard } from "../../components/common/StatCard";
+
+function FinanceDashboardSkeleton() {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardContent className="py-6 space-y-4">
+                    <Skeleton className="h-5 w-36" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </CardContent>
+            </Card>
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                        key={i}
+                        className="rounded-xl border border-border bg-card px-6 py-5"
+                    >
+                        <Skeleton className="h-3.5 w-24 mb-2" />
+                        <Skeleton className="h-7 w-28" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 export default function FinanceDashboardPage() {
     const [dateRange, setDateRange] = useState({
@@ -61,17 +88,7 @@ export default function FinanceDashboardPage() {
     };
 
     if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <Card>
-                    <CardContent className="text-center py-8">
-                        <p className="text-muted-foreground">
-                            Cargando dashboard...
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+        return <FinanceDashboardSkeleton />;
     }
 
     if (error) {
@@ -105,7 +122,7 @@ export default function FinanceDashboardPage() {
                             </label>
                             <input
                                 type="date"
-                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                 value={dateRange.start}
                                 onChange={(e) =>
                                     setDateRange((prev) => ({
@@ -121,7 +138,7 @@ export default function FinanceDashboardPage() {
                             </label>
                             <input
                                 type="date"
-                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                                 value={dateRange.end}
                                 onChange={(e) =>
                                     setDateRange((prev) => ({
@@ -248,7 +265,15 @@ export default function FinanceDashboardPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Márgenes por OT</CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Márgenes por OT</CardTitle>
+                        <Link
+                            to="/sales/invoices"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 hover:border-primary/30"
+                        >
+                            Ver facturas <ArrowRight className="h-3 w-3" />
+                        </Link>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {dashboard?.top_ots_margen &&
@@ -281,12 +306,12 @@ export default function FinanceDashboardPage() {
                                     {dashboard.top_ots_margen.map((ot) => (
                                         <tr
                                             key={ot.id}
-                                            className="hover:bg-muted"
+                                            className="transition-colors hover:bg-primary/10"
                                         >
                                             <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                 <Link
                                                     to={`/ots/${ot.id}`}
-                                                    className="text-primary hover:text-blue-800"
+                                                    className="text-primary hover:text-primary/80"
                                                 >
                                                     {ot.numero_ot}
                                                 </Link>
@@ -380,7 +405,7 @@ export default function FinanceDashboardPage() {
                                             (factura) => (
                                                 <tr
                                                     key={factura.id}
-                                                    className="hover:bg-muted"
+                                                    className="transition-colors hover:bg-primary/10"
                                                 >
                                                     <td className="px-4 py-3 text-sm font-medium text-foreground">
                                                         {factura.numero_factura}
@@ -401,7 +426,7 @@ export default function FinanceDashboardPage() {
                                                     <td className="px-4 py-3 text-sm">
                                                         <Link
                                                             to={`/sales/invoices/${factura.id}`}
-                                                            className="text-primary hover:text-blue-800"
+                                                            className="inline-flex items-center rounded-md border border-border px-2 py-1 text-primary hover:bg-primary/10 hover:border-primary/30 transition-colors"
                                                         >
                                                             Ver Detalle
                                                         </Link>
