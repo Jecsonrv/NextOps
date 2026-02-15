@@ -241,11 +241,7 @@ export default function InvoicePatternCatalogPage() {
                     value={stats.active}
                     icon={PlayCircle}
                 />
-                <StatCard
-                    label="Costo"
-                    value={stats.costo}
-                    icon={Package}
-                />
+                <StatCard label="Costo" value={stats.costo} icon={Package} />
                 <StatCard label="Venta" value={stats.venta} icon={FileText} />
             </div>
 

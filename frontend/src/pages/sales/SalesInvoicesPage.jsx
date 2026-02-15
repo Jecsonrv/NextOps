@@ -373,60 +373,69 @@ export default function SalesInvoicesPage() {
                         onValueChange={setActiveTab}
                         className="w-full"
                     >
-                        <TabsList className="grid w-full grid-cols-6 mb-6">
+                        <TabsList className="mb-6 flex w-full flex-nowrap items-stretch justify-start gap-1 overflow-x-auto rounded-lg bg-muted p-1">
                             <TabsTrigger
                                 value="all"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[130px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Todas
                                 {stats && (
-                                    <Badge variant="secondary" className="ml-1">
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                    >
                                         {stats.total}
                                     </Badge>
                                 )}
                             </TabsTrigger>
                             <TabsTrigger
                                 value="facturadas"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[150px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Facturadas
                                 {stats && (
-                                    <Badge variant="info" className="ml-1">
+                                    <Badge variant="info" className="text-xs">
                                         {stats.facturadas}
                                     </Badge>
                                 )}
                             </TabsTrigger>
                             <TabsTrigger
                                 value="pendientes_cobro"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[180px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Pendientes Cobro
                                 {stats && (
-                                    <Badge variant="warning" className="ml-1">
+                                    <Badge
+                                        variant="warning"
+                                        className="text-xs"
+                                    >
                                         {stats.pendientes_cobro}
                                     </Badge>
                                 )}
                             </TabsTrigger>
                             <TabsTrigger
                                 value="pagadas"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[130px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Pagadas
                                 {stats && (
-                                    <Badge variant="success" className="ml-1">
+                                    <Badge
+                                        variant="success"
+                                        className="text-xs"
+                                    >
                                         {stats.pagadas}
                                     </Badge>
                                 )}
                             </TabsTrigger>
                             <TabsTrigger
                                 value="anuladas"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[140px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Anuladas
                                 {stats && (
                                     <Badge
                                         variant="destructive"
-                                        className="ml-1"
+                                        className="text-xs"
                                     >
                                         {stats.anuladas}
                                     </Badge>
@@ -434,11 +443,14 @@ export default function SalesInvoicesPage() {
                             </TabsTrigger>
                             <TabsTrigger
                                 value="credit_notes"
-                                className="flex items-center gap-2"
+                                className="flex min-w-[180px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 Notas de Crédito
                                 {creditNotes && Array.isArray(creditNotes) && (
-                                    <Badge variant="warning" className="ml-1">
+                                    <Badge
+                                        variant="warning"
+                                        className="text-xs"
+                                    >
                                         {creditNotes.length}
                                     </Badge>
                                 )}

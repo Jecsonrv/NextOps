@@ -5,7 +5,7 @@ import PropTypes from "prop-types";
  */
 export function StatCard({ label, value, subtitle, icon: Icon }) {
     return (
-        <div className="rounded-xl border border-border bg-card shadow-sm px-6 py-5 w-full min-w-[280px] flex items-center justify-between transition-shadow hover:shadow-md">
+        <div className="rounded-xl border border-border bg-card shadow-sm px-4 sm:px-6 py-4 sm:py-5 w-full min-w-0 flex items-center justify-between gap-3 transition-shadow hover:shadow-md">
             <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium text-muted-foreground leading-tight">
                     {label}
@@ -19,7 +19,7 @@ export function StatCard({ label, value, subtitle, icon: Icon }) {
                     </p>
                 )}
             </div>
-            <Icon className="h-12 w-12 text-muted-foreground/50 shrink-0 ml-4" />
+            <Icon className="h-9 w-9 sm:h-12 sm:w-12 text-muted-foreground/50 shrink-0" />
         </div>
     );
 }

@@ -455,7 +455,7 @@ export function Layout({ children }) {
     );
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background overflow-x-hidden">
             {/* Mobile backdrop */}
             {mobileOpen && (
                 <div
@@ -480,7 +480,7 @@ export function Layout({ children }) {
 
             {/* Main content */}
             <div
-                className={`transition-all duration-200 ${collapsed ? "lg:pl-[68px]" : "lg:pl-64"}`}
+                className={`min-w-0 transition-all duration-200 ${collapsed ? "lg:pl-[68px]" : "lg:pl-64"}`}
             >
                 {/* Header */}
                 <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-card/80 px-4 backdrop-blur-md sm:h-16 lg:px-8">
@@ -497,7 +497,7 @@ export function Layout({ children }) {
                 </header>
 
                 {/* Page */}
-                <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+                <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
             </div>
         </div>
     );

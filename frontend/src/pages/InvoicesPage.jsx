@@ -1300,80 +1300,68 @@ export function InvoicesPage() {
                         onValueChange={setActiveTab}
                         className="w-full"
                     >
-                        <TabsList className="grid w-full grid-cols-6 mb-6">
+                        <TabsList className="mb-6 flex w-full flex-nowrap items-stretch justify-start gap-1 overflow-x-auto rounded-lg bg-muted p-1">
                             <TabsTrigger
                                 value="all"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[130px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium">
                                     Todas
                                 </span>
-                                <Badge
-                                    variant="secondary"
-                                    className="text-xs px-2 py-0.5"
-                                >
+                                <Badge variant="secondary" className="text-xs">
                                     {stats?.total || 0}
                                 </Badge>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="pendientes"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[150px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium">
                                     Pendientes
                                 </span>
-                                <Badge
-                                    variant="warning"
-                                    className="text-xs px-2 py-0.5"
-                                >
+                                <Badge variant="warning" className="text-xs">
                                     {stats?.pendientes_provision || 0}
                                 </Badge>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="provisionadas"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[160px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium">
                                     Provisionadas
                                 </span>
-                                <Badge
-                                    variant="success"
-                                    className="text-xs px-2 py-0.5"
-                                >
+                                <Badge variant="success" className="text-xs">
                                     {stats?.provisionadas || 0}
                                 </Badge>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="pagadas"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[130px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium">
                                     Pagadas
                                 </span>
-                                <Badge
-                                    variant="default"
-                                    className="text-xs px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600"
-                                >
+                                <Badge variant="success" className="text-xs">
                                     {stats?.pagadas || 0}
                                 </Badge>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="disputadas"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[150px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium flex items-center gap-1">
                                     Disputadas
                                     {stats?.disputadas > 0 && (
-                                        <AlertTriangle className="h-3 w-3 text-destructive" />
+                                        <AlertTriangle className="h-3 w-3 text-destructive hidden sm:inline" />
                                     )}
                                 </span>
                                 <Badge
                                     variant="destructive"
-                                    className="text-xs px-2 py-0.5"
+                                    className="text-xs"
                                 >
                                     {stats?.disputadas || 0}
                                 </Badge>
@@ -1381,15 +1369,12 @@ export function InvoicesPage() {
 
                             <TabsTrigger
                                 value="anuladas"
-                                className="flex items-center justify-between gap-2 px-3"
+                                className="flex min-w-[130px] shrink-0 items-center justify-between gap-2 rounded-md px-3 py-2"
                             >
                                 <span className="text-sm font-medium">
                                     Anuladas
                                 </span>
-                                <Badge
-                                    variant="outline"
-                                    className="text-xs px-2 py-0.5"
-                                >
+                                <Badge variant="outline" className="text-xs">
                                     {stats?.anuladas || 0}
                                 </Badge>
                             </TabsTrigger>
