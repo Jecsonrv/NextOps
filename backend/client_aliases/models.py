@@ -350,7 +350,7 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
         short_name = base_short_name
         counter = 1
 
-        while ClientAlias.objects.filter(short_name=short_name).exclude(pk=self.pk).exists():
+        while ClientAlias.all_objects.filter(short_name=short_name).exclude(pk=self.pk).exists():
             # Agregar sufijo con espacio (más legible que guión bajo)
             suffix = f" {counter}"
             max_len = 50 - len(suffix)
@@ -366,6 +366,15 @@ class ClientAlias(TimeStampedModel, SoftDeleteModel):
                 break
 
         return short_name
+
+    def delete(self, using=None, keep_parents=False):
+        """Soft delete que libera short_name para evitar conflictos de unicidad."""
+        self.short_name = None
+        self.is_deleted = True
+        from django.utils import timezone
+
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['short_name', 'is_deleted', 'deleted_at', 'updated_at'])
     
     def increment_usage(self):
         """Incrementa el contador de uso cuando aparece en un documento"""
